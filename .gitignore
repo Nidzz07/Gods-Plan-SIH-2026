@@ -1,14 +1,26 @@
-# backend/leakproof.db is NOT ignored. It is committed on purpose so a clone
-# demos the same 60 shops without running seed.py first.
-
-data/interim/
-data/processed/
+# Python
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+coverage/
 
+# Node
 node_modules/
-frontend/dist/
+dist/
+
+# Local databases and secrets
+*.db
+.env
+.env.local
+
+# Derived data. data/raw/ is COMMITTED on purpose - the twelve MPLADS portal
+# exports are the project's evidence base and must travel with the repo.
+data/interim/
+data/processed/
+
+# Offline install cache
+offline-wheels/
 
 .DS_Store
