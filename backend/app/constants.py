@@ -1,0 +1,334 @@
+"""Every shared literal in NIGRANI, defined once (CLAUDE.md invariant 7).
+
+Nothing in `ingest/`, `engine/` or `derive.py` may restate a value that lives
+here. If a number appears in two modules it belongs in this one.
+
+The measured figures quoted in comments come from `docs/data/DATA-PROFILE.md`,
+which is the authority for every threshold and every claim about the data.
+"""
+
+from __future__ import annotations
+
+import enum
+import hashlib
+from datetime import date
+from pathlib import Path
+
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
+
+# backend/app/constants.py -> repo root
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BACKEND_DIR.parent
+RAW_DATA_DIR = REPO_ROOT / "data" / "raw"
+
+# --------------------------------------------------------------------------
+# Corpus
+# --------------------------------------------------------------------------
+
+# The maximum payment date in the committed corpus (DATA-PROFILE.md section 4).
+# Every "days since" feature is measured against this and never against
+# `today`, so a case re-derived months from now reproduces the number the
+# officer acted on. Changing this without re-downloading the corpus silently
+# rewrites history.
+DATA_AS_OF = date(2026, 8, 24)
+
+# The portal appends a "Grand Total" footer row to every export. It is not a
+# data row: it carries an aggregate in one column and blanks elsewhere, and in
+# the two Works_Sanctioned files that aggregate lands in `Work Status`.
+# Detected on the serial-number column, which reads this literal instead of an
+# integer.
+GRAND_TOTAL_MARKER = "Grand Total"
+
+HOUSE_LOK_SABHA = "lok_sabha"
+HOUSE_RAJYA_SABHA = "rajya_sabha"
+HOUSES = (HOUSE_LOK_SABHA, HOUSE_RAJYA_SABHA)
+
+DATASET_RECOMMENDED = "works_recommended"
+DATASET_SANCTIONED = "works_sanctioned"
+DATASET_COMPLETED = "works_completed"
+DATASET_EXPENDITURE = "expenditure"
+DATASET_ALLOCATION = "allocation"
+DATASET_CALAMITY = "calamity"
+
+# The twelve committed exports, keyed by (dataset, house) so no loader spells a
+# filename out for itself. File names on disk use underscores; the portal's
+# originals used spaces (DATA-PROFILE.md section 9).
+RAW_FILES: dict[tuple[str, str], str] = {
+    (DATASET_RECOMMENDED, HOUSE_LOK_SABHA): "Works_Recommended_lok_sabha.csv",
+    (DATASET_RECOMMENDED, HOUSE_RAJYA_SABHA): "Works_Recommended_rajya_sabha.csv",
+    (DATASET_SANCTIONED, HOUSE_LOK_SABHA): "Works_Sanctioned_lok_sabha.csv",
+    (DATASET_SANCTIONED, HOUSE_RAJYA_SABHA): "Works_Sanctioned_rajya_sabha.csv",
+    (DATASET_COMPLETED, HOUSE_LOK_SABHA): "Works_Completed_lok_sabha.csv",
+    (DATASET_COMPLETED, HOUSE_RAJYA_SABHA): "Works_Completed_rajya_sabha.csv",
+    (DATASET_EXPENDITURE, HOUSE_LOK_SABHA): (
+        "Expenditure_on_Completed_and_On-going_Works_as_on_Date_lok_sabha.csv"
+    ),
+    (DATASET_EXPENDITURE, HOUSE_RAJYA_SABHA): (
+        "Expenditure_on_Completed_and_On-going_Works_as_on_Date_rajya_sabha.csv"
+    ),
+    (DATASET_ALLOCATION, HOUSE_LOK_SABHA): "Allocated_Limit_for_Honble_MPs_lok_sabha.csv",
+    (DATASET_ALLOCATION, HOUSE_RAJYA_SABHA): "Allocated_Limit_for_Honble_MPs_rajya_sabha.csv",
+    (DATASET_CALAMITY, HOUSE_LOK_SABHA): "Amount_consented_for_Calamity_lok_sabha.csv",
+    (DATASET_CALAMITY, HOUSE_RAJYA_SABHA): "Amount_consented_for_Calamity_rajya_sabha.csv",
+}
+
+# Files are UTF-8 with a byte-order mark; without this the first column name
+# arrives with a BOM glued to it (data/raw/README.md).
+RAW_ENCODING = "utf-8-sig"
+
+# Portal date format, e.g. 08-Jul-2024.
+RAW_DATE_FORMAT = "%d-%b-%Y"
+
+# --------------------------------------------------------------------------
+# Work id
+# --------------------------------------------------------------------------
+
+# Pattern WS/MP{code}/{FY}/{serial}. Some Lok Sabha rows carry a literal tab
+# inside the id, so all whitespace is stripped before the match is attempted
+# (DATA-PROFILE.md section 2).
+WORK_ID_PATTERN = r"^(WS/MP(\d+)/(\d{4}-\d{4})/(\d+))"
+
+CASE_ID_PREFIX = "NG-"
+# Ten hex characters give 2^40 values against ~27K works. Ingest asserts
+# uniqueness anyway; a collision is an ingest_rejects row, never an overwrite.
+CASE_ID_HEX_LEN = 10
+
+
+def canonical_work_id(work_id_raw: str) -> str:
+    """Uppercase, with all whitespace including embedded tabs removed."""
+    return "".join(str(work_id_raw).split()).upper()
+
+
+def case_id_for(work_id_raw: str) -> str:
+    """Deterministic from the work id, never from row order (invariant 8)."""
+    canon = canonical_work_id(work_id_raw)
+    digest = hashlib.sha256(canon.encode()).hexdigest()
+    return CASE_ID_PREFIX + digest[:CASE_ID_HEX_LEN].upper()
+
+
+# --------------------------------------------------------------------------
+# Availability - the three-valued distinction invariant 2 exists to protect
+# --------------------------------------------------------------------------
+
+
+class Availability(str, enum.Enum):
+    """Why a nullable field is null, recorded next to the field itself.
+
+    `not_published` and `published_zero` are different findings and must stay
+    distinguishable end to end (CLAUDE.md invariant 2). A reporting gap must
+    never be able to masquerade as a clean record.
+
+    `not_applicable` is written by the derivation layer, not by ingest: it
+    means the work has not reached the stage the field describes, which is a
+    judgement over the lifecycle rather than a fact any export states. It is
+    declared here so the storage layer and the rule trace share one vocabulary.
+    """
+
+    PUBLISHED = "published"
+    NOT_PUBLISHED = "not_published"
+    PUBLISHED_ZERO = "published_zero"
+    NOT_APPLICABLE = "not_applicable"
+
+
+# The subset ingest may write. Anything else is a derivation-layer decision.
+INGEST_AVAILABILITIES = (
+    Availability.PUBLISHED,
+    Availability.NOT_PUBLISHED,
+    Availability.PUBLISHED_ZERO,
+)
+
+# `rule_hits.skip_reason` draws from the same vocabulary, minus `published`:
+# a rule that read a value is never skipped.
+SKIP_REASONS = (
+    Availability.NOT_PUBLISHED.value,
+    Availability.PUBLISHED_ZERO.value,
+    Availability.NOT_APPLICABLE.value,
+)
+
+# --------------------------------------------------------------------------
+# Ingest rejects - a closed enum (CLAUDE.md invariant 11)
+# --------------------------------------------------------------------------
+
+
+class RejectReason(str, enum.Enum):
+    """Why a source row, or a part of one, was not loaded.
+
+    Ingestion never silently drops a row. Every value here is written with the
+    source file, the 1-based row number and the raw line, so a Ministry user
+    can read the original text of anything NIGRANI refused.
+    """
+
+    # The portal's "Grand Total" footer, one per export. Twelve rows in all.
+    GRAND_TOTAL_ROW = "grand_total_row"
+    # `Work` / `Work ID` does not match WS/MP{code}/{FY}/{serial}. In
+    # Works_Recommended_lok_sabha these rows read literally "NA-<category>".
+    WORK_ID_UNPARSEABLE = "work_id_unparseable"
+    # An amount column held something other than a number.
+    UNPARSEABLE_AMOUNT = "unparseable_amount"
+    # A date column held something other than %d-%b-%Y.
+    UNPARSEABLE_DATE = "unparseable_date"
+    # A column the row cannot exist without (state, sanctioned amount) was blank.
+    NULL_REQUIRED_FIELD = "null_required_field"
+    # The same canonical work id appeared twice in one work-level export.
+    DUPLICATE_WORK_ID = "duplicate_work_id"
+    # A reserved id - currently only the synthetic control - already exists.
+    CASE_ID_COLLISION = "case_id_collision"
+    # Declared in DOMAIN-MODEL.md (e) and retained. Currently emitted zero
+    # times: the two shifted-amount rows the profile recorded turned out to be
+    # Grand Total footers and are classified as such.
+    COLUMN_SHIFT = "column_shift"
+    # sanction_date earlier than recommended_date. Zero measured; the check
+    # stands because clamping to zero would hide it.
+    NEGATIVE_LAG = "negative_lag"
+    # Declared in DOMAIN-MODEL.md (e) and retained, but never emitted: an
+    # unrecognised category label is reported as vocabulary drift and the work
+    # is still loaded. Dropping a real work over a label would lose evidence.
+    UNKNOWN_CATEGORY = "unknown_category"
+
+
+# --------------------------------------------------------------------------
+# Categorical vocabularies (DATA-PROFILE.md section 7)
+# --------------------------------------------------------------------------
+
+# Recorded in full so an unseen value in a later download is detected as new
+# rather than silently bucketed.
+WORK_STATUSES = (
+    "Physical Inspection",
+    "Sanction",
+    "Vendor Identification",
+    "Work partially Completed",
+    "Work Completed",
+    "Time Estimation",
+)
+WORK_CATEGORIES = (
+    "Normal/Others",
+    "Repair and Renovation",
+    "Trust and Society",
+    "Bar and Associations",
+)
+PAYMENT_STATUSES = ("Payment Success", "Payment In-Progress")
+
+# The portal writes these where it has nothing to say. They are absences, not
+# values, and become NULL with availability `not_published`.
+NULL_TOKENS = ("", "N/A", "NA", "-", "NULL", "NONE", "NAN")
+
+# `Image` is binary presence only: no geotag, no timestamp, no URL.
+IMAGE_PRESENT_TOKEN = "Images"
+
+# The status that `completed_without_payment` reads.
+STATUS_WORK_COMPLETED = "Work Completed"
+
+# --------------------------------------------------------------------------
+# Canonicalisation
+# --------------------------------------------------------------------------
+
+# `DISTRICT MAGISTRAE BUDAUN` and `DISTRICT MAGISTRATE BUDAUN` are one office.
+# Merges are blocked on (state, district) - both published separately in the
+# IDA column - and then compared on the agency name alone, so this floor only
+# has to separate typos from genuinely different offices inside one district.
+# 90 admits a single-character slip in a short name and rejects
+# `DISTRICT MAGISTRATE` against `DISTRICT PLANNING OFFICER`. Every merge is
+# written to `agency_name_variants` for review; none is silent (declared
+# limitation 9).
+AGENCY_FUZZY_FLOOR = 90.0
+
+# Term suffixes on published MP names: `(2022-28) (2022-2028)`, `(NaN-NaN)`.
+MP_TERM_SUFFIX_PATTERN = r"\s*\(\s*(?:\d{4}\s*-\s*\d{2,4}|NaN\s*-\s*NaN)\s*\)"
+# Honorifics stripped before the allocation join. Applied repeatedly, because
+# names such as `Dr. Shri X` carry two.
+MP_TITLE_PREFIXES = (
+    "shri",
+    "shrimati",
+    "smt",
+    "sh",
+    "dr",
+    "mr",
+    "mrs",
+    "ms",
+    "miss",
+    "prof",
+    "professor",
+    "adv",
+    "advocate",
+    "km",
+    "kumari",
+    "kum",
+    "maulana",
+    "sardar",
+    "col",
+    "capt",
+    "gen",
+    "justice",
+)
+
+# The IDA column reads DISTRICT(AGENCY NAME_IDA). The `_IDA` suffix is a portal
+# artefact and not part of the office's name; a few rows omit it, and a few
+# carry `_<digit>` instead.
+IDA_PATTERN = r"^\s*(.*?)\s*\((.*)\)\s*$"
+IDA_SUFFIX_PATTERN = r"_(?:IDA|\d+)\s*$"
+
+# --------------------------------------------------------------------------
+# Account ladder
+# --------------------------------------------------------------------------
+
+# The portal publishes ONE allocation figure per MP, cumulative over the term,
+# and no financial-year breakdown. `fund_accounts` therefore carries one row
+# per MP per FY for the sanction and disbursement rollups, which are genuinely
+# per-FY, plus one row under this sentinel carrying the published allocation
+# and the term-to-date rollups. `mp_utilisation_pct` is computable only on the
+# sentinel row; on every per-FY row `allocated_amt` is NULL with availability
+# `not_published`, because it is.
+FY_TERM_TO_DATE = "term_to_date"
+
+# --------------------------------------------------------------------------
+# Scoring (read by engine/, defined here so no module restates them)
+# --------------------------------------------------------------------------
+
+RULE_WEIGHT_TOTAL = 144
+CORROBORATION_WEIGHT = 10
+CORROBORATION_MIN_HIGH_CASES = 3
+SCORE_CAP = 100
+SEVERITY_HIGH_MIN = 75
+SEVERITY_MEDIUM_MIN = 50
+
+SEVERITY_HIGH = "HIGH"
+SEVERITY_MEDIUM = "MEDIUM"
+SEVERITY_LOW = "LOW"
+
+RULE_STATUS_FIRED = "fired"
+RULE_STATUS_PASSED = "passed"
+RULE_STATUS_SKIPPED = "skipped"
+
+CASE_STATUSES = ("open", "under_review", "escalated", "resolved")
+
+# An agency's total disbursement must clear this floor before
+# `vendor_concentration` may fire, so a small agency with one work does not
+# read as concentrated. Rs 50 lakh (DOMAIN-MODEL.md (g) rule 6).
+VENDOR_CONCENTRATION_AGENCY_FLOOR = 5_000_000
+
+AUDIT_EVENTS = (
+    "CASE_OPENED",
+    "RULE_FIRED",
+    "DUPLICATE_LINKED",
+    "PATTERN_LINKED",
+    "NOTE_ADDED",
+    "SCORE_RECOMPUTED",
+    "ALERT_RAISED",
+    "ALERT_ESCALATED",
+    "RULEBOOK_UPDATED",
+    "INGEST_COMPLETED",
+)
+
+ROLES = ("ministry", "state_nodal", "district_authority", "member_of_parliament")
+
+# --------------------------------------------------------------------------
+# The synthetic control (docs/contract/fixtures.md, fixture C)
+# --------------------------------------------------------------------------
+
+# No real MPLADS row can populate the certification rung, so the only way to
+# exercise fund-ladder hop 2 is an injected, labelled row (invariant 12). This
+# id is reserved; ingest rejects it with `case_id_collision` if the portal ever
+# publishes it (fixtures.md caveat 3).
+SYNTHETIC_CONTROL_WORK_ID = "WS/MP503/2025-2026/140882"
