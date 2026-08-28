@@ -175,6 +175,11 @@ class RejectReason(str, enum.Enum):
     DUPLICATE_WORK_ID = "duplicate_work_id"
     # A reserved id - currently only the synthetic control - already exists.
     CASE_ID_COLLISION = "case_id_collision"
+    # The row names a person or a work that no export in the corpus
+    # identifies - a calamity consent against an MP who holds no allocation
+    # and recommends no work. The consent is real; the corpus cannot say whose
+    # it is, and inventing an MP row to hang it on would invent a person.
+    UNRESOLVED_REFERENCE = "unresolved_reference"
     # Declared in DOMAIN-MODEL.md (e) and retained. Currently emitted zero
     # times: the two shifted-amount rows the profile recorded turned out to be
     # Grand Total footers and are classified as such.

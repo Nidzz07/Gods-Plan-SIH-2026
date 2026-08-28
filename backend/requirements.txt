@@ -5,3 +5,12 @@ pydantic==2.10.4
 pyyaml==6.0.2
 pytest==8.3.4
 httpx==0.28.1
+
+# Ingestion. Declared in CLAUDE.md's fixed stack; the inherited repo never
+# installed them because it loaded no real data.
+pandas==2.2.3
+numpy==2.1.3
+# Agency canonicalisation. Folds nothing on the current corpus (the portal
+# publishes one IDA string per district office) but every raw string still
+# passes through it and lands in agency_name_variants for review.
+rapidfuzz==3.10.1

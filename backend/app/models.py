@@ -129,6 +129,12 @@ class MP(Base):
     term_start: Mapped[int | None] = mapped_column(Integer)
     term_end: Mapped[int | None] = mapped_column(Integer)
 
+    # CLAUDE.md invariant 12. The labelled synthetic control needs an actor to
+    # hang on, and hanging it on a real member, office or firm would put an
+    # injected sanction inside that actor's published aggregate. A flagged row
+    # of its own keeps real and injected data from mixing silently.
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+
     state: Mapped["State"] = relationship()
     constituency: Mapped["Constituency | None"] = relationship()
 
@@ -150,8 +156,14 @@ class Agency(Base):
     """
 
     __tablename__ = "agencies"
+    # Keyed by district and name, NOT by state: the portal's `State` column
+    # describes the work's member rather than the office, and files one Agra
+    # district magistrate under five different states. Including state in the
+    # key would split that office five ways and quietly divide its duplicate
+    # clusters and its vendor concentration by five. `state_id` below is the
+    # majority of what the referencing rows said.
     __table_args__ = (
-        UniqueConstraint("state_id", "district", "name_canon", name="uq_agency_scope_name"),
+        UniqueConstraint("district", "name_canon", name="uq_agency_district_name"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -159,6 +171,8 @@ class Agency(Base):
 
     # Null when the IDA column carried no district prefix.
     district: Mapped[str | None] = mapped_column(String(120), index=True)
+    # The state most of this office's rows were filed under. A majority, not a
+    # fact the portal asserts about the office - see the key comment above.
     state_id: Mapped[int] = mapped_column(ForeignKey("states.id"), nullable=False, index=True)
 
     # How many raw strings merged into this row. 1 means no merge happened.
@@ -166,6 +180,12 @@ class Agency(Base):
     # rapidfuzz ratio of the weakest merged variant. Null when nothing was
     # merged, which is a different statement from "merged at a low score".
     merge_confidence: Mapped[float | None] = mapped_column(Float)
+
+    # CLAUDE.md invariant 12. The labelled synthetic control needs an actor to
+    # hang on, and hanging it on a real member, office or firm would put an
+    # injected sanction inside that actor's published aggregate. A flagged row
+    # of its own keeps real and injected data from mixing silently.
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 
     state: Mapped["State"] = relationship()
     variants: Mapped[list["AgencyNameVariant"]] = relationship(back_populates="agency")
@@ -181,12 +201,18 @@ class AgencyNameVariant(Base):
     """
 
     __tablename__ = "agency_name_variants"
+    # Unique per agency rather than globally: `DEPUTY COMMISSIONER` is a
+    # different office in every district that has one, so the same raw string
+    # legitimately appears against several agencies.
+    __table_args__ = (
+        UniqueConstraint("agency_id", "name_raw", name="uq_variant_agency_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     agency_id: Mapped[int] = mapped_column(ForeignKey("agencies.id"), nullable=False, index=True)
 
-    # The string exactly as it appeared inside the IDA column.
-    name_raw: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    # The string exactly as it appeared inside the IDA column's bracket.
+    name_raw: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
 
     # `exact` when the normalised strings were identical, `fuzzy` when
     # rapidfuzz cleared AGENCY_FUZZY_FLOOR. The two are never shown as the same
@@ -215,6 +241,12 @@ class Vendor(Base):
     # because the agency-vendor graph reads it on every case and recomputing it
     # per case would scan the payment table each time.
     agency_span: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # CLAUDE.md invariant 12. The labelled synthetic control needs an actor to
+    # hang on, and hanging it on a real member, office or firm would put an
+    # injected sanction inside that actor's published aggregate. A flagged row
+    # of its own keeps real and injected data from mixing silently.
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 
 
 # ---------------------------------------------------------------------------
