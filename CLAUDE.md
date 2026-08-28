@@ -1,76 +1,148 @@
-# CLAUDE.md — LEAKPROOF
+# CLAUDE.md — NIGRANI
 
 ## What this is
-LEAKPROOF detects diversion of subsidised foodgrain in India's Public
-Distribution System and explains every flag in language an officer can
-act on and an auditor can re-derive months later.
+NIGRANI detects anomalies, fraud and inefficiency in the implementation of
+MPLADS — the Members of Parliament Local Area Development Scheme — and explains
+every flag in language an officer can act on and an auditor can re-derive months
+later.
 
-Hackathon: Innovate 4 Impact, AI SDG Global Hackathon 2026, PS-B16.
-Team ExploreeTinkerBell. Two developers, ~36 build hours, hard deadline.
-Read PROJECT-BRIEF.md before your first edit in any session.
+Smart India Hackathon, problem statement PS 26102, MoSPI / DIID.
+Team ExploreeTinkerBell. Two developers, hard deadline.
+
+The project inherits its detection-engine architecture from LEAKPROOF, a PDS
+diversion prototype (tag `leakproof-baseline`). The architecture is kept. The
+entire domain layer is rebuilt against REAL data downloaded from
+mplads.mospi.gov.in and committed in `data/raw/`.
+
+Read, in this order, before your first edit in any session:
+  1. `docs/data/DATA-PROFILE.md`   — what the real data contains
+  2. `docs/domain/DOMAIN-MODEL.md` — ladders, tables, rulebook
+  3. `PROJECT-BRIEF.md`            — features, personas, scope
+
+`docs/data/DATA-PROFILE.md` is the authority for every threshold and every
+claim about the data. If code and profile disagree, the profile wins until it is
+re-measured.
 
 ## Stack — fixed, do not substitute
-Backend : Python 3.11 · FastAPI · SQLAlchemy 2.x · Pydantic v2 · PyYAML · SQLite · pytest
-Frontend: React 18 · Vite · Tailwind · React Router · Recharts
-Storage : SQLite, single file at backend/leakproof.db. Committed on purpose.
+Backend : Python 3.11 · FastAPI · SQLAlchemy 2.x · Pydantic v2 · PyYAML · SQLite
+          · pytest · pandas · numpy · scikit-learn · networkx · rapidfuzz
+          · passlib[bcrypt] · python-jose
+Frontend: React 18 · Vite · Tailwind · React Router · Recharts · react-leaflet
+          · TanStack Table
+Node    : pinned to 22.11.0 via nvm, recorded in `.nvmrc` at the repo root.
 
-Do not introduce Postgres, Supabase, Docker, Redis, Celery, an ORM other
-than SQLAlchemy, a state library, a component library, or any LLM API call.
+SQLite is RETAINED deliberately. 118K raw rows, reduced to ~27K work rows with
+pre-aggregated agency, vendor and MP-account rollups, fits comfortably in a
+single file. Postgres would add a service dependency, a container, and a demo
+failure mode, for no benefit a judge can see. The SQLAlchemy URL stays
+swappable, so moving to Postgres is a configuration change and not a rewrite.
+Say that out loud when asked; do not apologise for it.
+
+Recharts is listed above and, unlike the inherited project, MUST actually be
+installed in Phase 8. The inherited repo declared it and never added it.
+
+Do not introduce Postgres, Supabase, Docker, Redis, Celery, an ORM other than
+SQLAlchemy, a client state library, a component library, or any LLM API call.
 If you think one is needed, say so and stop — do not add it.
 
 ## Repo map
+```
 backend/
   app/
     main.py            FastAPI app, CORS to :5173, router registration
     db.py              engine, SessionLocal, Base
-    models.py          9 SQLAlchemy tables
+    models.py          SQLAlchemy tables (see DOMAIN-MODEL.md (e))
     schemas.py         Pydantic shapes — MUST mirror docs/contract/case_detail.json
+    constants.py       every shared literal, defined once (invariant 7)
     rules.yaml         F2 rulebook, loaded at runtime, never imported as constants
     engine/
-      reconcile.py     F1  four-hop ladder + locate_gap()
+      reconcile.py     F1  fund ladder (2 hops) + lifecycle ladder (3 lags)
+      derive.py        derived feature dictionary (DOMAIN-MODEL.md (f))
       rulebook.py      F2  load() + evaluate()
       score.py         F3+F5 composite score, trace, coverage_pct
-      complaints.py    F4  window matching + corroboration bonus
+      pattern.py       F4  agency pattern-of-conduct corroboration
       memo.py          plain-language memo — template f-string, NOT an LLM
       audit.py         F6  append-only log
-    routers/           cases.py, audit.py, rulebook.py
-  seed.py              synthetic data, random.seed(4521)
+      ablation.py      F9  mask a field, re-score, measure coverage delta
+    ml/                F7  duplicates, anomaly badge, delay forecast, graph
+    routers/
+  ingest/              CSV loaders, canonicalisation, ingest_rejects
+  seed.py              labelled synthetic controls only — never bulk fake data
   tests/
 frontend/
   src/api.js           single fetch wrapper
-  src/pages/           Officer, CaseDetail, Inspector, Auditor, Rulebook
+  src/pages/           per-persona screens (see PROJECT-BRIEF.md)
   src/components/
+data/raw/              the twelve MPLADS exports — COMMITTED on purpose
+data/interim/          generated, gitignored
+data/processed/        generated, gitignored
+docs/data/             DATA-PROFILE.md
+docs/domain/           DOMAIN-MODEL.md
 docs/contract/         case_detail.json (frozen), fixtures.md
+docs/design/           REDESIGN-SPEC.md
+```
 
-## Invariants — breaking any of these breaks the pitch
-1. Shop #4521 scores EXACTLY 87. 30 + 25 + 22 + 10 = 87. The deck promises
-   87 on stage. If a change makes it 86 or 88, the change is wrong, not the 87.
-2. #4102 scores 55 with coverage_pct 83. #4788 scores 53 with
-   gap_hop == "receipt_to_counter".
-3. Rule weights total 120, plus a 10-point complaint bonus = 130 possible.
-   Display is capped at 100. Do NOT "fix" this by renormalising to 100.
-4. Missing data is status "skipped" and reduces coverage_pct. It is never
-   treated as "passed". A rule we could not evaluate is not a rule that passed.
-5. The z-score layer is a confirming badge only. It contributes ZERO to score.
-6. audit_log is append-only. No UPDATE, no DELETE, no helper that could do
-   either, anywhere in the codebase. Before any commit touching audit.py, run:
-     grep -rn "\.delete(\|UPDATE" backend/ | grep -i audit
-   It must return nothing.
-7. seed.py uses random.seed(4521). Never remove or change the seed.
-8. schemas.py and docs/contract/case_detail.json move together or not at all.
-   Changing a key name on one side without the other breaks the frontend
-   silently. Flag it, don't just do it.
+## Invariants — numbered, non-negotiable
+Breaking any of these breaks either the pitch or the honesty of the product.
+
+1. **The score comes only from the rulebook.** The composite score is the sum of
+   fired rulebook weights plus the pattern-of-conduct corroboration bonus, and
+   nothing else. Anomaly scores, delay forecasts, z-scores and graph centrality
+   are badges worth ZERO. A test asserts this per model: perturb the model
+   output, assert the score is unchanged.
+2. **Missing data is `skipped`, never `passed`.** A skipped rule reduces
+   `coverage_pct`. Its weight is never redistributed to the remaining rules.
+   "Not published by MoSPI" and "published as zero" are different findings and
+   must stay distinguishable end to end — in the derived features, in
+   `rule_hits.skip_reason`, in the contract, and on screen.
+3. **Every declared hop and lag is computed.** Any hop or lag named in
+   `schemas.py`, in a severity map, or in a ladder component MUST have a
+   derivation function in `engine/` and a test. The inherited project declared
+   `allocation_to_dispatch` in three files and never computed it once. Do not
+   repeat that.
+4. **`audit_log` is append-only.** No UPDATE, no DELETE, and no helper capable of
+   either, anywhere in `backend/`. The enforcing test greps ALL of `backend/`,
+   not only `audit.py`.
+5. **Recompute re-derives against the snapshot.** A recompute reads the rulebook
+   snapshot stored in `rulebook_versions` for that case, NOT the current
+   `rules.yaml`, and compares the full `rule_hits` trace — rule ids, raw values,
+   thresholds, contributions, statuses — not just the scalar score.
+6. **Thresholds come from measured distributions.** Every threshold is set from
+   `docs/data/DATA-PROFILE.md` and carries a YAML comment naming its firing
+   count on the profiled sample. Thresholds are NOT back-solved to make a demo
+   case land on a round number. If a fixture score looks untidy, the fixture is
+   what it is.
+7. **Constants appear once and are imported.** No duplicated literals across
+   `ingest/`, `engine/` and `derive.py`. The as-of date, the severity cut-offs,
+   the weight total and the file-name map all live in `app/constants.py`.
+8. **Case ids are deterministic from the work id**, never from positional
+   ordering over a query result. Re-running ingest on the same corpus produces
+   the same case id for the same work.
+9. **`schemas.py` and `docs/contract/case_detail.json` move together or not at
+   all.** Renaming a key on one side alone breaks the frontend silently. Flag
+   it, do not just do it.
+10. **Role scoping is enforced server-side, in the query.** Never by hiding rows
+    in the UI. A District Authority token must not be able to fetch another
+    district's cases by editing a URL.
+11. **Ingestion never silently drops a row.** Every rejected row is written to
+    `ingest_rejects` with a reason. Load counts must reconcile:
+    loaded + rejected = rows in file, asserted by a test.
+12. **Synthetic rows are labelled.** Any synthetic or injected row carries
+    `is_synthetic = true`, is labelled as such in the UI, and is excluded from
+    every published aggregate. Real and injected data are never mixed silently.
 
 ## Working rules
-- Test first. For every engine function, write the pytest assertion against
-  the fixture in docs/contract/fixtures.md before writing the implementation.
+- Test first. For every engine function, write the pytest assertion against the
+  fixture in `docs/contract/fixtures.md` before writing the implementation.
 - One feature per session. Do not touch F4 while fixing F2.
-- Never edit files outside the feature currently being built. If a fix needs
-  a change elsewhere, say so and ask.
+- Never edit files outside the feature currently being built. If a fix needs a
+  change elsewhere, say so and ask.
 - Prefer boring, readable code. A judge may read this on screen.
 - No new dependencies without asking.
-- Comments explain WHY a threshold or weight is what it is, not what the
-  line does.
+- Comments explain WHY a threshold or weight is what it is, not what the line
+  does. A threshold comment names its firing count.
+- Never edit anything in `data/raw/`. Defects are handled in ingest, not by
+  correcting the source.
 
 ## Git conventions
 - Never add a "Co-authored-by" or "Co-Authored-By" trailer of any kind to a
@@ -86,61 +158,95 @@ docs/contract/         case_detail.json (frozen), fixtures.md
     git log -1 --format="%B" | grep -iE "co-authored|claude|anthropic"
   It must return nothing.
 - One logical unit per commit, and every commit must build. Do not commit a
-  file whose imports land in a later commit — a fresh checkout at any point
-  in the history should install and build. If a change needs a sibling file
-  to work, they go in together.
+  file whose imports land in a later commit — a fresh checkout at any point in
+  the history should install and build. If a change needs a sibling file to
+  work, they go in together.
+- `data/raw/` and the regenerated `docs/data/DATA-PROFILE.md` go in the same
+  commit. A profile that describes a different download is worse than none.
 
-## Commands
-Backend
-  cd backend && python -m venv .venv
-  source .venv/bin/activate      # Windows: .venv\Scripts\activate
-  pip install -r requirements.txt
-  python seed.py
-  uvicorn app.main:app --reload --port 8000
-  pytest -v
-Frontend
-  cd frontend && npm install && npm run dev     # :5173
+## Honesty rules — these appear on stage, keep the code truthful
+The following are deliberately scoped and are declared to judges as scoping
+decisions. Do not write code, comments, copy or captions that overclaim them.
+
+- Memos are **templates**, not generated text. Never describe `memo.py` output
+  as AI-generated, LLM-written, or "natural language generation". The honest
+  line is "template now, LLM later".
+- A rule-based flag is **rule-based**. Never describe a rulebook hit as
+  AI-detected. The ML tier is separately labelled and scores zero.
+- A duplicate cluster is a **candidate for review, never fraud**. Many repeated
+  works — street lights across a constituency, hand pumps across a block — are
+  entirely legitimate. The UI word is "review", never "fraud" and never
+  "duplicate payment".
+- Forecast horizons are **illustrative**. The delay forecast is trained on a
+  truncated sample and its horizon is a demonstration, not a commitment.
+- The data is a **truncated sample** of the portal, not the national record. No
+  figure derived from it is ever presented as a national total.
+- Injected controls are **synthetic and labelled**. Say so on the same screen,
+  not in a footnote.
+- The role switcher is a **dropdown over seeded accounts**, not an identity
+  provider. Server-side scoping is real; the login is a demo.
+- Escalation delivers to an in-app queue and an audit event. It does not send
+  email or SMS. Say "queued for the State Nodal Authority", not "notified".
+- Never describe the SQLite setup as row-level security. It is role-scoped
+  queries at the API layer.
+- Headline statistics used in the pitch are drawn from `DATA-PROFILE.md` and
+  cited to it, or they are labelled illustrative. There is no third option.
 
 ## UI conventions
 
-Reference spec: docs/design/REDESIGN-SPEC.md — read this before any
-styling work. It extends, not replaces, the tokens below.
+Reference spec: `docs/design/REDESIGN-SPEC.md` — read this before any styling
+work. It extends, not replaces, the tokens below.
 
 Brand palette (unchanged, locked since Stage 0):
   bg #FAF8F4 · navy #132A47 · green #2E7D5B · gold #C8952B · coral #D4573D
 
-Text/surface tokens (added in redesign pass):
+Text/surface tokens:
   ink #14171A (body text) · ink-secondary #5B6169 (meta/captions) ·
   ink-muted #94989E (disabled/skipped) · border #DDD9D0 ·
   border-strong #C7C2B6 · surface #FFFFFF · surface-sunk #F3F0EA
 
 Rule: navy is for headings and the score-display number ONLY. Body text,
-labels, and captions use ink or ink-secondary. Navy-colored body text is
-the single most common regression — check for it explicitly.
+labels, and captions use ink or ink-secondary. Navy-coloured body text is the
+single most common regression — check for it explicitly.
 
-Type    : serif display (headings + score-display) / Inter (everything
-          else), tabular-nums on ALL numeric elements. Full scale in
-          REDESIGN-SPEC.md — six defined sizes, not two.
+Type    : serif display (headings + score-display) / Inter (everything else),
+          tabular-nums on ALL numeric elements. Full scale in REDESIGN-SPEC.md —
+          six defined sizes, not two.
 Spacing : 8px scale only (4/8/16/24/32/48)
 Radius  : one 4px token everywhere, including tags — no second radius
 Shadow  : one shadow-card token, no second depth
 Severity: TWO valid patterns, do not mix on one element —
-  (1) colored left-border on a full data row (Officer, trace table)
-  (2) rectangular tag — tinted bg, solid-color text, sentence case,
-      ALWAYS with a text label (Rulebook severity, status chips)
+  (1) coloured left-border on a full data row (case list, trace table)
+  (2) rectangular tag — tinted bg, solid-colour text, sentence case,
+      ALWAYS with a text label (rulebook severity, status chips)
 Tables  : numeric columns right-aligned + tabular-nums; every table has a
           one-line caption; headers are meta-label style (12px uppercase
           tracked ink-secondary), visually distinct from cells
+Charts  : brand palette only — no default Recharts colours, ever. Every chart
+          has a one-line caption stating what it shows and over what population.
+          Axes are labelled with units. Money is rupees in crore or lakh, never
+          raw paise-free integers on an axis. No chart junk, no 3D, no gradient
+          fills. A chart that needs a legend of more than five entries is the
+          wrong chart.
+Maps    : react-leaflet, brand palette for choropleth ramps, always with a
+          legend and a caption naming the population. MPLADS publishes no
+          coordinates, so maps are state- and district-level joins only — never
+          imply point-located assets.
 Banned  : gradients, rounded-full badges/pills, emoji in UI, more than one
-          shadow depth, more than one border-radius, unstyled browser
-          defaults, spinner-only loading states
+          shadow depth, more than one border-radius, unstyled browser defaults,
+          spinner-only loading states, default chart palettes.
 
-## Honesty rules — these appear on stage, keep the code truthful
-The following are deliberately hardcoded and are declared to judges as
-scoping decisions. Do not write code or comments that overclaim them:
-  synthetic data · back-solved rule weights · escalation is a stub ·
-  role switcher is a dropdown, not auth · inspector routing is score-sorted,
-  not optimised · memos are templates ("template now, LLM later") ·
-  headline statistics are illustrative, not sourced
-Never describe memo.py output as AI-generated. Never describe the SQLite
-setup as row-level security — it is role-scoped queries at the API layer.
+## Commands
+Backend
+```
+cd backend && python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m ingest.run           # loads data/raw/ into backend/nigrani.db
+pytest -v
+uvicorn app.main:app --reload --port 8000
+```
+Frontend
+```
+cd frontend && nvm use && npm install && npm run dev     # :5173
+```
