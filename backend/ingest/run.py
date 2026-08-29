@@ -84,6 +84,14 @@ from .parse import (
 from .rejects import RejectCollector, raw_row_of
 from .synthetic import insert_synthetic_control
 
+# Fields whose availability companion must be written at the same moment as
+# the value itself. See Corpus.upsert_work.
+AVAILABILITY_PAIRS = {
+    "description": "description_availability",
+    "status": "status_availability",
+    "asset_image_present": "asset_image_availability",
+}
+
 # Descriptive-field precedence. Lower wins.
 SOURCE_PRECEDENCE = {
     "works_sanctioned": 0,
@@ -218,14 +226,33 @@ class Corpus:
         return key
 
     def upsert_work(self, canon: str, fields: dict) -> None:
-        """First source wins per field; later sources fill only what is missing."""
+        """First source wins per field; later sources fill only what is missing.
+
+        A value and its availability companion move together. The sanctioned
+        export is read first and publishes no `Image` column, so it seeds
+        `asset_image_present = None` with availability `not_published`; when
+        the completed export supplies the flag, the companion has to travel
+        with it or the work reads as unphotographed and unpublished at once.
+        Filling the value while leaving the companion behind is exactly the
+        collapse invariant 2 forbids, so the pairs are named rather than left
+        to a generic "fill what is None" loop.
+        """
         existing = self.works.get(canon)
         if existing is None:
             self.works[canon] = fields
             return
+
+        for value_key, availability_key in AVAILABILITY_PAIRS.items():
+            if existing.get(value_key) is None and fields.get(value_key) is not None:
+                existing[value_key] = fields[value_key]
+                existing[availability_key] = fields[availability_key]
+
         for key, value in fields.items():
+            if key in AVAILABILITY_PAIRS or key in AVAILABILITY_PAIRS.values():
+                continue
             if existing.get(key) is None and value is not None:
                 existing[key] = value
+
         if SOURCE_PRECEDENCE[fields["_dataset"]] < SOURCE_PRECEDENCE[existing["_dataset"]]:
             existing["_dataset"] = fields["_dataset"]
             existing["source_file"] = fields["source_file"]
