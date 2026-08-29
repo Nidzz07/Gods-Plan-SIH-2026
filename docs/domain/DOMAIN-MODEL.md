@@ -446,12 +446,31 @@ skip.
 | `same_desc_same_agency_count` | int | `works.description`, `works.agency_id` | description is null, or `agency_id` is null |
 | `vendor_share_in_agency_pct` | float % | `payments.paid_amt` by `vendor_id` within `agency_id` | the work has no payment, or the agency's total disbursement is at or below the Rs 50 lakh floor |
 | `completed_without_payment` | bool | `works.status`, count of `payments` | `works.status` is null |
-| `asset_image_absent` | bool | `works.asset_image_present` | never — the column is non-null |
+| `asset_image_absent` | bool | `works.asset_image_present` | `works.asset_image_availability` is `not_published` — 14,104 of 27,078 sanctioned works |
 | `mp_utilisation_pct` | float % | `fund_accounts` for this work's MP and FY | no allocation row for that MP and FY (`not_published`) |
 | `payment_count` | int | count of `payments` | never — 0 is a real value, not a null |
 
-Two rows deserve their reasoning stated:
+Three rows deserve their reasoning stated:
 
+- **`asset_image_absent` is `None` on more than half the corpus, and this row
+  previously claimed it never was.** The claim was wrong and is corrected here.
+  The portal publishes the `Image` column **only in the completed export**, so a
+  sanctioned work that has not been reported complete has no image field to
+  read at all. That is `not_published` — a reporting gap — and it is a different
+  finding from a work whose `Image` column *was* published carrying `N/A`, which
+  is `published` with `asset_image_absent = true` and a photograph genuinely
+  never filed. Collapsing the two would fire `asset_evidence_missing` on a
+  reporting gap across 52% of the corpus, which is precisely what invariant 2
+  exists to prevent. Measured on the sanctioned population: 12,974 published
+  (8,481 present, 4,493 absent) and **14,104 `not_published`**, so the rule
+  fires on 4,493 and is skipped on 14,104 (DATA-PROFILE.md §6).
+
+  Because `works.asset_image_present` is itself nullable, the availability
+  companion `works.asset_image_availability` is what the derivation reads: the
+  feature is `None` exactly when the companion is `not_published`. The
+  underlying column being nullable is what makes the distinction storable, and
+  the companion is what makes it *legible* — a bare null could not say which of
+  the two findings it was.
 - **`payment_count` is never `None`.** Zero payments is a fact about the work,
   not a missing measurement. Making it nullable would have let a real zero
   masquerade as an unmeasured field, which is exactly the confusion invariant 2

@@ -424,6 +424,13 @@ class Sanction(Base):
     sanctioned_amt: Mapped[int] = mapped_column(Integer, nullable=False)
     sanction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
+    # Carried here as well as on `works`, matching payments, completions and
+    # certifications. Without it the synthetic control's sanction row could
+    # only be excluded from an aggregate by joining back to `works`, and an
+    # aggregate that forgot the join would silently mix a labelled synthetic
+    # row into a published figure (CLAUDE.md invariant 12).
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+
     work: Mapped["Work"] = relationship(back_populates="sanction")
 
 

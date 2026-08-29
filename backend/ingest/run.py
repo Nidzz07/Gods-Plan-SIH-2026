@@ -1140,7 +1140,9 @@ def _write_fund_accounts(session, corpus, mp_ids, work_ids, sanction_rows, payme
     return len(rows)
 
 
-SYNTHETIC_FLAGGED_TABLES = (MP, Agency, Vendor, Work, Payment, Completion, Certification)
+SYNTHETIC_FLAGGED_TABLES = (
+    MP, Agency, Vendor, Work, Sanction, Payment, Completion, Certification,
+)
 
 
 def count_tables(session) -> dict[str, int]:

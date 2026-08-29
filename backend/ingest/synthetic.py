@@ -189,6 +189,7 @@ def insert_synthetic_control(session, rejects) -> dict:
             recommended_date_availability=Availability.PUBLISHED,
             sanctioned_amt=SYNTHETIC_CONTROL["sanctioned_amt"],
             sanction_date=SYNTHETIC_CONTROL["sanction_date"],
+            is_synthetic=True,
         )
     )
     session.add(

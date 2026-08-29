@@ -11,15 +11,27 @@ data *contains*; this file is the authority on what loading it *produces*.
 | | |
 | --- | --- |
 | Measured on | 29 August 2026 |
-| Repository commit | `aaa8726` |
-| `backend/ingest/run.py` blob | `7a423cb`, last changed by `96e2127` |
+| Repository commit | the commit that introduced this revision of the file — `git log -1 -- docs/data/INGEST-EXPECTATIONS.md` |
+| `backend/ingest/run.py` blob | `08d083c` |
+| `backend/app/models.py` blob | `e2d6b04` |
+| `backend/ingest/synthetic.py` blob | `255fe69` |
 | Corpus | the twelve exports in `data/raw/`, downloaded 26 August 2026 |
 | Command | `cd backend && python -m ingest.run` |
 | Exit code | `0` |
 
-The run was executed twice in succession and produced identical output apart
-from its own timestamp line. Ingestion is idempotent by rebuild: it drops and
-recreates every table, so a second run does not double the data.
+Blob hashes rather than a commit hash for the code, because a blob hash can be
+recorded in the same commit it describes and a commit hash cannot. Check one
+with `git hash-object backend/ingest/run.py`.
+
+The run was executed repeatedly and produced identical output apart from its own
+timestamp line, including once against a deleted `nigrani.db`. Ingestion is
+idempotent by rebuild: it drops and recreates every table, so a second run does
+not double the data and a missing database file is not a special case.
+
+The previous revision of this file was measured at commit `aaa8726` with
+`run.py` blob `7a423cb`. Between that revision and this one, `sanctions` gained
+an `is_synthetic` column. **No count changed**; the only difference in the whole
+load report is that the `sanctions` line now prints its `(1 syn)` share.
 
 **These expectations are void after a fresh download.** Re-download, re-run,
 re-measure `DATA-PROFILE.md`, and regenerate this file in the same commit as the
@@ -104,7 +116,7 @@ from every published aggregate (CLAUDE.md invariant 12).
 | `agency_name_variants` | 757 | — |
 | `vendors` | 14,744 | 1 |
 | `works` | 65,270 | 1 |
-| `sanctions` | 27,079 | — † |
+| `sanctions` | 27,079 | 1 |
 | `payments` | 34,004 | 4 |
 | `completions` | 14,831 | 1 |
 | `certifications` | 1 | 1 |
@@ -116,22 +128,22 @@ Subtract the synthetic rows and every count is the figure `DATA-PROFILE.md`
 section 4 records: 65,269 works, 27,078 sanctioned works, 34,000 payment rows,
 14,830 completions, 764 members, 757 agencies, 14,743 vendors, 36 states.
 
-**† `sanctions` prints no synthetic count, and the reason is a real asymmetry in
-the model.** The count of 27,079 *is* 27,078 real rows plus the synthetic
-control's sanction row, but `sanctions` is the only one of the control's child
-tables with no `is_synthetic` column of its own — `payments`, `completions` and
-`certifications` all have one — so `count_tables` cannot report it and prints a
-dash. The row is still reachable and still excludable:
+**Every one of the control's child tables now carries its own `is_synthetic`
+column.** `sanctions` was the exception until Phase 1 closed: it held the
+control's sanction row but had no flag of its own, so the row could be excluded
+only by joining back to `works`, and an aggregate that forgot the join would have
+mixed a labelled synthetic row into a published figure. The column was added and
+the corpus reloaded. Both routes now agree, and a test may use either:
 
 ```sql
+SELECT count(*) FROM sanctions WHERE is_synthetic = 1;                  -- 1
 SELECT count(*) FROM sanctions s JOIN works w ON w.id = s.work_id
-WHERE w.is_synthetic = 1;   -- returns 1
+WHERE w.is_synthetic = 1;                                               -- 1
 ```
 
-Invariant 12 is satisfied through that join, not through a column. Whether
-`sanctions` should carry the flag directly, like its siblings, is a models.py
-decision that has not been taken; it is recorded here so it is not discovered by
-someone writing an aggregate that forgets the join.
+Adding the column changed no count. The only difference it made to the load
+report is that the `sanctions` line now prints its `(1 syn)` share, where it
+previously printed none.
 
 **`certifications` holds exactly one row and that row is synthetic.** MoSPI
 publishes no utilisation certificate for any real work, so a real row in this
