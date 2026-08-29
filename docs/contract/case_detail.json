@@ -1,30 +1,32 @@
 {
   "_comment": "FROZEN CONTRACT. Worked response for GET /api/cases/{case_id}, shown for fixture A in docs/contract/fixtures.md. backend/app/schemas.py mirrors this file exactly; the two move together or not at all (CLAUDE.md invariant 9). Every number here is re-derived in fixtures.md.",
 
-  "case_id": "NG-27060CB62F",
+  "_pinned_note": "Phase 1 re-pinned fixture A from the provisional id WS/MP410/2024-2025/118427, which does not exist in data/raw/, to the real sanctioned work below. Every value in this file was measured from the loaded corpus by the Phase 1 reference pass described in fixtures.md standing caveat 2, and is a contract Phase 3's engine must reproduce.",
+
+  "case_id": "NG-8F0E3213D8",
 
   "work": {
-    "id": 118427,
-    "work_id": "WS/MP410/2024-2025/118427",
-    "work_id_raw": "WS/MP410/2024-2025/118427",
+    "id": 63423,
+    "work_id": "WS/MP847/2025-2026/160261",
+    "work_id_raw": "WS/MP847/2025-2026/160261",
     "category": "Normal/Others",
-    "description": "high mast led light 95 mtrs ms pole with 6 led",
+    "description": "Led Semi High Mast Light (6LED) with 200-watt, 9.5-meter pole",
     "state": "Uttar Pradesh",
-    "district": "Budaun",
-    "agency": "District Magistrate, Budaun",
-    "agency_name_raw": "DISTRICT MAGISTRAE BUDAUN",
+    "district": "JALAUN",
+    "agency": "DISTRICT MAGISTRATE JALAUN",
+    "agency_name_raw": "DISTRICT MAGISTRATE JALAUN",
     "status": "Work partially Completed",
-    "asset_image_present": true,
+    "asset_image_present": null,
     "is_synthetic": false
   },
 
   "mp": {
-    "id": 410,
-    "name": "Name of Hon'ble Member",
-    "house": "lok_sabha",
-    "constituency": "Budaun",
+    "id": 91,
+    "name": "BABURAM NISHAD",
+    "house": "rajya_sabha",
+    "constituency": null,
     "state": "Uttar Pradesh",
-    "term": "2024-2029"
+    "term": "2022-2028"
   },
 
   "score": 92,
@@ -32,7 +34,7 @@
   "score_cap": 100,
   "severity": "HIGH",
   "status": "open",
-  "opened_at": "2026-08-26T09:14:00+05:30",
+  "opened_at": "2026-08-29T14:35:39+05:30",
   "data_as_of": "2026-08-24",
 
   "fund_ladder": {
@@ -40,15 +42,15 @@
       {
         "key": "sanctioned_amt",
         "label": "Sanctioned",
-        "amount": 1630000,
+        "amount": 199539,
         "availability": "published",
-        "recommended_amt": 1630000,
-        "recommended_equals_sanctioned": true
+        "recommended_amt": null,
+        "recommended_equals_sanctioned": null
       },
       {
         "key": "disbursed_amt",
         "label": "Disbursed",
-        "amount": 1062000,
+        "amount": 119711,
         "availability": "published"
       },
       {
@@ -63,7 +65,7 @@
       {
         "key": "sanction_to_disbursement",
         "label": "Sanction to disbursement",
-        "variance_pct": -34.85,
+        "variance_pct": -40.01,
         "tolerance_pct": -15,
         "state": "open",
         "hop_action": "Pull the agency's payment register for this work. Confirm whether the balance is committed against an unpaid bill, unspent, or was returned. If unspent for more than one financial year, the sanction should be revalidated or surrendered rather than left standing."
@@ -82,42 +84,45 @@
 
   "lifecycle_ladder": {
     "dates": [
-      { "key": "recommended_date",    "label": "Recommended",   "date": "2024-03-11", "availability": "published" },
-      { "key": "sanction_date",       "label": "Sanctioned",    "date": "2024-12-04", "availability": "published" },
-      { "key": "first_payment_date",  "label": "First payment", "date": "2025-04-19", "availability": "published" },
-      { "key": "completion_date",     "label": "Completed",     "date": null,         "availability": "not_published", "unavailable_reason": "not_applicable" }
+      { "key": "recommended_date",    "label": "Recommended",   "date": "2024-12-19", "availability": "published" },
+      { "key": "sanction_date",       "label": "Sanctioned",    "date": "2025-11-17", "availability": "published" },
+      { "key": "first_payment_date",  "label": "First payment", "date": "2025-11-26", "availability": "published" },
+      { "key": "completion_date",     "label": "Completed",     "date": null,         "availability": "not_applicable", "unavailable_reason": "not_applicable" }
     ],
     "lags": [
-      { "key": "recommend_to_sanction",      "label": "Recommendation to sanction",  "days": 268,  "state": "computed" },
-      { "key": "sanction_to_first_payment",  "label": "Sanction to first payment",   "days": 136,  "state": "computed" },
+      { "key": "recommend_to_sanction",      "label": "Recommendation to sanction",  "days": 333,  "state": "computed" },
+      { "key": "sanction_to_first_payment",  "label": "Sanction to first payment",   "days": 9,    "state": "computed" },
       { "key": "first_payment_to_completion","label": "First payment to completion", "days": null, "state": "unavailable", "unavailable_reason": "not_applicable" }
     ],
-    "last_payment_date": "2025-07-11",
-    "payment_count": 3
+    "last_payment_date": "2025-11-26",
+    "payment_count": 1
   },
 
   "gap_hop": "sanction_to_disbursement",
   "slowest_lag": "recommend_to_sanction",
 
-  "coverage_pct": 86,
-  "coverage_basis": "124 of 144 rulebook weight points were evaluable. Skipped weight is never redistributed.",
+  "coverage_pct": 79,
+  "coverage_basis": "114 of 144 rulebook weight points were evaluable. Skipped weight is never redistributed.",
 
   "unavailable_fields": [
+    { "field": "recommended_amt",                          "reason": "not_published",  "detail": "This work has no row in the Works_Recommended export, which joins to 14,831 of 27,078 sanctioned works. The recommendation DATE is published in the sanctioned export itself, so sanction_lag_days is still computable." },
     { "field": "completion_date",                          "reason": "not_applicable", "detail": "Work status is 'Work partially Completed'; no completion has been reported." },
     { "field": "execution_days",                           "reason": "not_applicable", "detail": "Derived from completion_date, which is not applicable." },
+    { "field": "asset_image_absent",                       "reason": "not_published",  "detail": "The Image column is published only in the completed export. This work has not been reported complete, so no photograph was ever asked for. This is a reporting gap, not a finding that no photograph was filed." },
     { "field": "certified_amt",                            "reason": "not_published",  "detail": "Not published by MoSPI for any work." },
     { "field": "variance_disbursement_to_certification",   "reason": "not_published",  "detail": "Derived from certified_amt, which is not published by MoSPI." }
   ],
 
   "rulebook_version": "v1.0.0",
-  "rulebook_version_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "_rulebook_version_sha256_note": "PLACEHOLDER, not a real digest. NIGRANI's rules.yaml does not exist yet: backend/app/rules.yaml is still the inherited LEAKPROOF PDS rulebook and contains none of the ten rule ids below. The field is filled with the sha256 of the yaml_snapshot stored in rulebook_versions when Phase 3 writes the real rulebook. It is deliberately NOT the hash of the current file, because hashing the wrong rulebook would be worse than admitting there is not one yet.",
+  "rulebook_version_sha256": "PLACEHOLDER-PENDING-PHASE-3-RULEBOOK",
 
   "rule_hits": [
     {
       "rule_id": "utilisation_shortfall",
       "label": "Disbursement materially below sanction",
       "field": "variance_sanction_to_disbursement",
-      "raw_value": -34.85,
+      "raw_value": -40.01,
       "operator": "lt",
       "threshold": -15,
       "weight": 22,
@@ -147,7 +152,7 @@
       "rule_id": "duplicate_work",
       "label": "Description repeated under the same agency",
       "field": "duplicate_similarity",
-      "raw_value": 0.97,
+      "raw_value": 1.0,
       "operator": "gte",
       "threshold": 0.85,
       "weight": 18,
@@ -157,32 +162,32 @@
       "skip_reason": null,
       "citation": {
         "matched_work_ids": [
-          "WS/MP410/2024-2025/118431",
-          "WS/MP410/2024-2025/118455"
+          "WS/MP847/2025-2026/160262",
+          "WS/MP847/2025-2026/160263"
         ],
         "matched_case_ids": [
-          "NG-37C1520CF7",
-          "NG-4BE707E095"
+          "NG-D4BA75C468",
+          "NG-436EB11F68"
         ],
-        "cluster_size": 244,
-        "shared_description": "high mast led light 95 mtrs ms pole with 6 led",
-        "agency": "District Magistrate, Budaun",
-        "similarity": 0.97,
+        "cluster_size": 15,
+        "shared_description": "led semi high mast light 6led with 200 watt 9 5 meter pole",
+        "agency": "DISTRICT MAGISTRATE JALAUN",
+        "similarity": 1.0,
         "components": {
           "token_set_ratio": 1.0,
-          "partial_ratio": 0.98,
-          "length_ratio": 0.93
+          "partial_ratio": 1.0,
+          "token_sort_ratio": 1.0
         },
         "method": "rapidfuzz.token_set_ratio over normalised description, blocked by agency_id",
-        "reading": "This is a cluster for review, not an accusation. Repeated works such as street lights across a constituency are frequently legitimate. Open the cited works and judge."
+        "reading": "The descriptions in this cluster are identical after normalisation, so every component reads 1.0. This is exact repetition, not a fuzzy near-match. It is a cluster for review, not an accusation: 15 semi-high-mast LED lights under one district magistrate is very probably 15 street lights. Open the cited works and judge."
       },
-      "caveat": null
+      "caveat": "The duplicate_similarity threshold of 0.85 is not yet calibrated and fires on 61% of the corpus (DATA-PROFILE.md section 6). This rule's 18 points are provisional until Phase 7 chooses a scorer and a threshold together."
     },
     {
       "rule_id": "sanction_delay",
       "label": "Sanction issued long after recommendation",
       "field": "sanction_lag_days",
-      "raw_value": 268,
+      "raw_value": 333,
       "operator": "gt",
       "threshold": 180,
       "weight": 16,
@@ -197,7 +202,7 @@
       "rule_id": "stalled_work",
       "label": "No payment activity for an extended period",
       "field": "days_since_last_payment",
-      "raw_value": 409,
+      "raw_value": 271,
       "operator": "gt",
       "threshold": 270,
       "weight": 16,
@@ -206,13 +211,13 @@
       "status": "fired",
       "skip_reason": null,
       "citation": null,
-      "caveat": "Measured against the corpus as-of date 2026-08-24, not against today, so this value is reproducible on re-derivation."
+      "caveat": "Measured against the corpus as-of date 2026-08-24, not against today, so this value is reproducible on re-derivation. This work clears the threshold by one day: 271 against 270."
     },
     {
       "rule_id": "vendor_concentration",
       "label": "One vendor takes most of the agency's disbursement",
       "field": "vendor_share_in_agency_pct",
-      "raw_value": 38.2,
+      "raw_value": 17.35,
       "operator": "gt",
       "threshold": 60,
       "weight": 12,
@@ -242,7 +247,7 @@
       "rule_id": "split_sanction",
       "label": "Three or more identical descriptions under one agency",
       "field": "same_desc_same_agency_count",
-      "raw_value": 244,
+      "raw_value": 15,
       "operator": "gte",
       "threshold": 3,
       "weight": 10,
@@ -257,22 +262,22 @@
       "rule_id": "asset_evidence_missing",
       "label": "No asset photograph filed",
       "field": "asset_image_absent",
-      "raw_value": false,
+      "raw_value": null,
       "operator": "eq",
       "threshold": true,
       "weight": 10,
       "contribution": 0,
       "severity": "low",
-      "status": "passed",
-      "skip_reason": null,
+      "status": "skipped",
+      "skip_reason": "not_published",
       "citation": null,
-      "caveat": null
+      "caveat": "The Image column is published only in the completed export, and this work has not been reported complete. The portal has published nothing about a photograph either way. This rule is skipped, not passed, and it is a different finding from a work whose Image column was published reading N/A."
     },
     {
       "rule_id": "account_underutilisation",
       "label": "MP account below a quarter utilised",
       "field": "mp_utilisation_pct",
-      "raw_value": 44.9,
+      "raw_value": 73.8,
       "operator": "lt",
       "threshold": 25,
       "weight": 8,
@@ -281,7 +286,7 @@
       "status": "passed",
       "skip_reason": null,
       "citation": null,
-      "caveat": null
+      "caveat": "The portal publishes one cumulative allocation per member and no per-year breakdown, so this ratio is term-to-date, not per financial year."
     }
   ],
 
@@ -291,34 +296,34 @@
     "weight": 10,
     "contribution": 10,
     "min_high_cases": 3,
-    "window": "FY2024-2025",
-    "agency": "District Magistrate, Budaun",
-    "high_case_count": 7,
+    "window": "FY2025-2026",
+    "agency": "DISTRICT MAGISTRATE JALAUN",
+    "high_case_count": 25,
     "matched_case_ids": [
-      "NG-37C1520CF7",
-      "NG-AEA24B660B",
-      "NG-2642DC1059"
+      "NG-D4BA75C468",
+      "NG-436EB11F68",
+      "NG-BDC980159E"
     ],
-    "reading": "This agency already carries 7 HIGH cases in FY2024-2025. One bad work is an incident; a pattern under one agency in one year is a posture."
+    "reading": "This agency already carries 25 other HIGH cases in FY2025-2026. One bad work is an incident; a pattern under one agency in one year is a posture."
   },
 
   "statistical": {
-    "z_score": 2.41,
-    "z_peer_group": "Normal/Others works sanctioned in Uttar Pradesh, FY2024-2025",
-    "anomaly_score": 0.88,
-    "anomaly_model_version": "isoforest-0.1.0",
-    "confirms": true,
+    "z_score": null,
+    "z_peer_group": "Normal/Others works sanctioned in Uttar Pradesh, FY2025-2026",
+    "anomaly_score": null,
+    "anomaly_model_version": null,
+    "confirms": null,
     "contribution": 0,
-    "note": "Badge only. Contributes zero points to the score (CLAUDE.md invariant 1)."
+    "note": "Badge only. Contributes zero points to the score (CLAUDE.md invariant 1). Values are null because the ML tier is feature F7 and has not been built; the keys are present so the contract shape is fixed and the frontend can render the 'not yet computed' state."
   },
 
   "forecast": {
-    "delay_risk": 0.79,
+    "delay_risk": null,
     "horizon_days": 90,
-    "model_version": "delay-gbt-0.1.0",
+    "model_version": null,
     "contribution": 0,
-    "note": "Illustrative. Trained on a truncated portal sample; the horizon is a demonstration, not a commitment. Contributes zero points to the score."
+    "note": "Illustrative when populated. Trained on a truncated portal sample; the horizon is a demonstration, not a commitment. Contributes zero points to the score. Null because feature F7 has not been built."
   },
 
-  "memo": "Work WS/MP410/2024-2025/118427, 'high mast led light 95 mtrs ms pole with 6 led', was sanctioned for Rs 16,30,000 on 04 December 2024 by District Magistrate, Budaun, on a recommendation made 268 days earlier on 11 March 2024. Rs 10,62,000 has been disbursed across 3 payments, 34.85% below the sanctioned amount, and no payment has been recorded in the 409 days since 11 July 2025. The same description appears on 244 works under this agency; two are cited above for comparison and should be opened before any conclusion is drawn, because repeated works of this kind are often legitimate. This agency carries 7 other HIGH cases in FY2024-2025. Execution time could not be assessed because no completion has been reported, so 20 of the 144 rulebook points could not be evaluated and this case is scored on 86% coverage. Score 92 of 100, HIGH, under rulebook v1.0.0. This memo is generated from a fixed template, not by a language model."
+  "memo": "Work WS/MP847/2025-2026/160261, 'Led Semi High Mast Light (6LED) with 200-watt, 9.5-meter pole', was sanctioned for Rs 1,99,539 on 17 November 2025 by DISTRICT MAGISTRATE JALAUN, on a recommendation made 333 days earlier on 19 December 2024. Rs 1,19,711 has been disbursed across 1 payment, 40.01% below the sanctioned amount, and no payment has been recorded in the 271 days since 26 November 2025. The same description appears on 15 works under this agency; two are cited above for comparison and should be opened before any conclusion is drawn, because repeated works of this kind are often legitimate. This agency carries 25 other HIGH cases in FY2025-2026. Execution time could not be assessed because no completion has been reported, and for the same reason the portal has published nothing about an asset photograph, so 30 of the 144 rulebook points could not be evaluated and this case is scored on 79% coverage. Score 92 of 100, HIGH, under rulebook v1.0.0. This memo is generated from a fixed template, not by a language model."
 }
