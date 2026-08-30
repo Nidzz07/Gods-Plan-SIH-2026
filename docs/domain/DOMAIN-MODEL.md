@@ -88,9 +88,19 @@ not treated as closed.
 | **HOP_ACTION** — what the officer checks | Obtain the utilisation certificate from the implementing agency and match the certified amount and asset description against the sanction. If no UC exists for a disbursement older than 12 months, that is a recovery proceeding, not a query. |
 
 Hop 2 is retained in the model deliberately. It has a derivation function and a
-test (CLAUDE.md invariant 3), it returns `None` with reason `not_published` on
-every real row, and it is the headline entry in the ablation report §(i). A
-model that quietly dropped it would hide the gap instead of measuring it.
+test (CLAUDE.md invariant 3), and it returns `None` with reason `not_published`
+on every real row. A model that quietly dropped it would hide the gap instead
+of measuring it.
+
+**What the ablation module measures for this hop is zero, and that is the
+finding.** No rule in rulebook v1.0.0 reads
+`variance_disbursement_to_certification` — there is no published data to
+calibrate a threshold against — so no rule can be skipped for the certificate's
+absence, and the field ranks as an unranked zero alongside six others rather
+than at the head of the report (§i). Fixture C is what makes the state
+concrete: an open hop at −25.00% sitting beside a score of 20 and a LOW band,
+because nothing scores it. The hop is visible and unpriced, which is a
+different claim from "expensive", and only the first of the two is measured.
 
 ---
 

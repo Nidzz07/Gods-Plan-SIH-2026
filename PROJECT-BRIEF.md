@@ -129,7 +129,7 @@ on.
 | **F6** | Append-only audit trail | With true re-derivation against the stored rulebook snapshot |
 | **F7** | ML layer | Duplicate detection by citation, anomaly badge, delay forecast, agency-vendor concentration graph |
 | **F8** | Risk-routed early warning | Alerts routed by score and scope, with real escalation between roles |
-| **F9** | Data-Gap Ablation | Mask a field, re-score, measure the coverage loss, and report it to MoSPI as a quantified recommendation |
+| **F9** | Data-Gap Ablation | Count the rules each missing field makes unevaluable and the rulebook weight they leave unrealised, from real availability data — rank by that weight, bound the possible severity shift between a floor and a ceiling, and report it to MoSPI. Never a re-score on invented values |
 
 ---
 
