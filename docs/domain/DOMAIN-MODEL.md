@@ -670,56 +670,184 @@ Copy that implies otherwise is a bug.
 
 ## (i) The ablation module (F9)
 
-**Method.** For each absent field, and for each field NIGRANI does read:
+Implemented in `backend/app/ablation/` — `fields.py` (the field list and its
+traceability), `measure.py` (the measurement), `rank.py`, `report.py`,
+`run.py`. It is a tier of its own beside `engine/` and `ml/`, under the same
+one-way rule: `ablation/` reads `engine/`, and neither `engine/` nor `ml/` may
+import `ablation/`. The AST walk in `tests/test_ml_boundary.py` enforces both
+arrows, so nothing this module measures can reach `score.py`'s addition
+(CLAUDE.md invariant 1).
 
-1. Mask the field across the corpus — set it to `None` with reason
-   `not_published`.
-2. Re-run the rulebook over every case, against the same rulebook snapshot.
-3. Measure the deltas: mean `coverage_pct`, count of cases changing severity
-   band, count of rules moving from evaluated to `skipped`, and total weight
-   rendered unevaluable.
+> ### Correction — Phase 4
+>
+> **The masking method this section previously described is withdrawn for
+> absent fields, and the worked example it carried was illustrative rather than
+> measured.** The old text said: mask the field, re-run the rulebook, and for
+> the seven absent fields take the result as a labelled counterfactual. For a
+> field NIGRANI *does* read that is sound — masking a real column is a real
+> experiment. For a field MoSPI has never published there is nothing to mask:
+> the value is already `None` with reason `not_published` on every row, so the
+> only way to produce a delta is to invent a value and re-score a work against
+> it. That is a fabricated score, and it is the exact failure the project
+> rejected when fixture C was corrected from an invented 42 to the 20 the
+> labelled control actually produces (`docs/contract/fixtures.md`, standing
+> caveats 7 and 9).
+>
+> The old example row carried `weight_recoverable: 20` and
+> `coverage_gain_pct: 12.2` for the utilisation certificate. Neither was a
+> measurement — they were placed to show the shape of the JSON. The measured
+> figure for that field is **zero**, for the reason given below, and the
+> corrected shape is at the end of this section.
 
-Running the mask over fields NIGRANI *does* have gives the observable half: it
-proves the method measures what it claims. Running it over the seven absent
-fields gives the counterfactual: what a rule would be worth if the field
-existed. The second half is an estimate and is labelled as one.
+**Method — structural, over real Availability data.** For each field, measure
+what its absence costs the rulebook that exists today, using only facts already
+recorded in the corpus and in the reasoning trace. Nothing is imputed and no
+work is re-scored.
 
-**The seven absent fields**, from profile §8:
+Measured exactly:
 
-| # | Absent field | Rule it would unlock | Currently |
-| --- | --- | --- | --- |
-| 1 | Utilisation certificate date and certified amount | `certification_shortfall` — fund ladder hop 2 | Not computable |
-| 2 | Revised cost estimate | `cost_overrun` — designed, then removed (§g) | Not computable |
-| 3 | Geo coordinates of the asset | `asset_colocation_conflict` | Not computable |
-| 4 | Milestone / progress percentage | `physical_financial_mismatch` | Not computable |
-| 5 | Tender / bid records | `single_bid_award`, `bid_rotation` | Not computable |
-| 6 | Beneficiary counts | `cost_per_beneficiary_outlier` | Not computable |
-| 7 | Asset photo geotag or timestamp | `asset_photo_reuse` | Not computable |
+1. **Which rules skip because of this field**, counted from the `skip_reason`
+   values `engine/derive.py`'s Availability companions actually produced, on
+   works meeting a stated condition read straight off the row. Each field
+   declares that attribution — rule ids, skip reason, condition — and
+   `tests/test_ablation.py` asserts it holds in **both** directions: every skip
+   claimed is a skip the engine recorded, and every skip matching the condition
+   is claimed. One direction alone would let an attribution under- or
+   over-count.
+2. **The rulebook weight those skips leave unrealised**, summed over the corpus.
+3. **The distinct works** carrying at least one such skip.
+4. **Mean `coverage_pct` as it stands, and as it would stand if those skips
+   became evaluable** — evaluable, not fired. Both come from
+   `engine.score.coverage_pct`, the function the case body already uses;
+   `ablation/` does not carry a second copy of the coverage formula.
 
-**Output shape** — one row per recommendation, returned by `GET /api/ablation`:
+Extrapolated, and labelled as such wherever it appears:
+
+5. **Additional rule fires**, if a newly evaluable rule fired at the rate it
+   fires today among the works where it *is* evaluable. The rate is real —
+   `fired / (fired + passed)` over a named population — and multiplying it by a
+   measured skip count is an extrapolation a reader can check.
+
+Refused:
+
+- No value is invented, imputed or simulated for an absent field, and no work is
+  re-scored as if the field were present.
+- The extrapolated fire counts are **never allocated to specific works**, so the
+  severity-band effect is a floor and a ceiling and never a point estimate.
+  Saying how many rules would fire is defensible; saying which works they fire
+  on is the fabrication. The floor is checked against the affected population's
+  absorbing capacity rather than asserted; the ceiling relaxes the per-rule
+  budgets into one total, so it bounds rather than constructs.
+- The corroboration bonus is held at its measured value inside the ceiling,
+  because re-resolving it would begin by deciding which cases became HIGH.
+
+**The finding, and it was not the expected one.** Applying that method to
+`DATA-PROFILE.md` §8's seven absent fields returns **zero unrealised weight for
+all seven** — not because their absence is harmless, but because rulebook
+v1.0.0 contains no rule that reads any of them. A rule that was never written
+cannot be skipped. That is a proof rather than a claim: `tests/test_ablation.py`
+asserts every rule id those fields would unlock (`cost_overrun`,
+`certification_shortfall`, `physical_financial_mismatch`, `single_bid_award`,
+`bid_rotation`, `asset_colocation_conflict`, `asset_photo_reuse`,
+`cost_per_beneficiary_outlier`) is absent from `rules.yaml`, and fails the
+moment one is added.
+
+**The entire measured detection loss sits in two fields MoSPI already publishes,
+and publishes incompletely.** The second of the two is not on §8's list at all —
+it was surfaced by running the attribution the other way round, asking which
+skip reasons the corpus records and which field each traces back to, and it is
+labelled `surfaced_by_measurement` so it can be told apart from the seven the
+profile named.
+
+| Rank | Field | Kind | Rule skips | Works | Unrealised weight | Coverage uplift |
+| ---: | --- | --- | ---: | ---: | ---: | --- |
+| 1 | Complete expenditure linkage | published incompletely | **70,647** | 23,549 | **1,177,450** | 58.47% → 88.91%, **+30.44 pp** |
+| 2 | Asset evidence for works not yet complete | published incompletely, surfaced by measurement | 14,104 | 14,104 | 141,040 | 58.47% → 62.12%, +3.65 pp |
+| — | The seven fields of profile §8 | never collected | **0** | 0 | **0** | 0.00 pp |
+
+Rank 1's three skipped rules are `utilisation_shortfall` (22 × 23,549),
+`stalled_work` (16 × 23,549) and `vendor_concentration` (12 × 23,549) — the
+23,549 sanctioned works no expenditure row joins to. `vendor_concentration`'s
+other 137 skips are `not_applicable` for the Rs 50 lakh agency floor and are
+**not** attributed here: a small agency is a fact about the agency, not a gap in
+MoSPI's export.
+
+**Ranking criterion: total unrealised rulebook weight, measured. One criterion,
+and no composite.** Works-affected counts a case touched rather than evidence
+lost; coverage uplift is the same quantity divided by
+`RULE_WEIGHT_TOTAL × corpus works` and gives an identical ordering, so it is
+reported beside the criterion and not as a second one. The criterion does not
+separate the seven fields tied at zero, and `rank.py` does not invent a
+separator for them — they are reported as tied, in profile §8's own order, each
+with its own measured corroborating figures. Those figures are not commensurable
+and are deliberately not folded into a tiebreak.
+
+**Output shape** — one row per recommendation, returned by `GET /api/ablation`.
+Two rows, because the difference between them is the point:
 
 ```json
 {
-  "field": "utilisation_certificate_date",
-  "publish_as": "One date and one certified amount per work, in the existing Expenditure export",
-  "unlocks_rule": "certification_shortfall",
-  "would_close": "disbursement_to_certification",
-  "weight_recoverable": 20,
-  "coverage_gain_pct": 12.2,
-  "cases_affected": 3529,
-  "estimate_basis": "counterfactual",
-  "effort": "low — the field already exists in the district MPLADS workflow, it is simply not exported",
-  "priority": 1
+  "field": "expenditure_linkage",
+  "label": "Complete expenditure linkage",
+  "gap_kind": "published_incompletely",
+  "basis": "measured_skips",
+  "rank": 1,
+  "publish_as": "The existing expenditure export, complete. Every payment row for every sanctioned work, rather than the first 34,000 rows.",
+  "improves_rules": ["utilisation_shortfall", "stalled_work", "vendor_concentration"],
+  "measured": {
+    "rule_skips": 70647,
+    "works_affected": 23549,
+    "unrealised_weight": 1177450,
+    "coverage_pct_now": 58.47,
+    "coverage_pct_if_published": 88.91,
+    "coverage_uplift_pct": 30.44
+  },
+  "extrapolated": { "additional_fires_total": 10242 },
+  "severity_band_effect": { "floor": 0, "ceiling": 9271 }
 }
 ```
 
-`estimate_basis` is `measured` when the field exists and was masked, and
-`counterfactual` when it does not exist and the figure is modelled. The two are
-never presented in the same column without that label.
+```json
+{
+  "field": "utilisation_certificate",
+  "gap_kind": "never_collected",
+  "basis": "no_rule_reads_it",
+  "rank": null,
+  "unlocks_rules": ["certification_shortfall"],
+  "zero_reason": "No rule in rulebook v1.0.0 reads variance_disbursement_to_certification, because there is no published data to calibrate a threshold against. A rule that does not exist cannot be skipped.",
+  "measured": { "rule_skips": 0, "works_affected": 0, "unrealised_weight": 0, "coverage_uplift_pct": 0.0 },
+  "extrapolated": null,
+  "severity_band_effect": null
+}
+```
+
+`basis` replaces the old `estimate_basis`, and it is this module's availability
+companion. Every number above is always computed and a zero is always a measured
+zero, so what needs recording is *why* a zero is zero: `measured_skips` means
+rules do read the field and are skipped for its absence; `no_rule_reads_it`
+means nothing can be skipped, and the gap is upstream of the rulebook rather
+than harmless. `rank` and `extrapolated` are null exactly when `basis` is
+`no_rule_reads_it`, and `basis` is what explains both nulls.
+
+**Storage.** `ablation_findings`, one row per field, written by
+`python -m app.ablation.run` and rebuilt by drop-and-create the way
+`ml_findings` is — so a second run replaces its own output and no helper here is
+capable of removing a row (invariant 4). Every row carries `DATA_AS_OF` rather
+than a wall clock, so two runs over the same corpus produce identical rows and a
+byte-identical `docs/reports/DATA-GAP-RECOMMENDATION.md`. That document is
+generated, never hand-written, and a test asserts the committed copy is what the
+code produces.
+
+**Fixture C is what makes the certification entry concrete on screen.** Its fund
+ladder shows hop 2 open at −25.00% beside a score of 20 and a LOW band, because
+no rule reads that hop. NIGRANI can see the shape of the gap and cannot score
+it — which is the whole of this section in one case.
 
 This is the feature that turns NIGRANI from a detector into a contribution: the
-system's own blind spots become a costed, prioritised reporting recommendation
-back to the ministry that publishes the data.
+system's own blind spots become a measured, prioritised reporting recommendation
+back to the ministry that publishes the data. What changed in Phase 4 is that
+the measurement is now honest about which of those blind spots the current
+rulebook can actually price, and which it cannot price at all.
 
 ---
 
