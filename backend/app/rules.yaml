@@ -1,65 +1,250 @@
-version: "1.0.0"
-updated_by: "District Supply Office, Sitapur"
+# NIGRANI rulebook v1.0.0
+#
+# Ten rules, 144 points of weight, plus a 10-point corroboration bonus.
+# This file is the ONLY source of score (CLAUDE.md invariant 1). It is read
+# from disk on every evaluation, never mirrored into Python constants: an
+# officer edits it in the UI, a new version is snapshotted into
+# rulebook_versions, and the next evaluation uses it without a restart.
+#
+# Every threshold below is drawn from a measured distribution in
+# docs/data/DATA-PROFILE.md section 6 and carries the firing count it produced
+# on that measurement (CLAUDE.md invariant 6). The counts are over the 27,078
+# real sanctioned works; the labelled synthetic control is excluded from every
+# published aggregate (invariant 12). No threshold was back-solved to make a
+# fixture land on a round number.
+#
+# There is no AND, no OR and no nesting. A rule an officer cannot read in one
+# line is a rule they cannot edit safely, and a composite condition cannot be
+# attributed to one field in the trace. Conjunctions are expressed as separate
+# rules whose weights add, which is also what lets one leg degrade to `skipped`
+# while the other still evaluates (DOMAIN-MODEL.md section g).
+
+version: "v1.0.0"
+updated_by: "MoSPI / DIID, calibration pass of 29 August 2026"
 
 severity_bands:
   high: 75
   medium: 50
 
 rules:
-  - id: weighing_variance
-    label: Weighing shortfall beyond tolerance
-    field: variance_dispatch_to_receipt
+  - id: utilisation_shortfall
+    label: Disbursement materially below sanction
+    field: variance_sanction_to_disbursement
     operator: lt
-    threshold: -5.0
+    threshold: -15
     unit: "%"
-    severity: high
-    weight: 30
-
-  - id: delivery_gap
-    label: Delivery-to-dispatch gap exceeded
-    field: delivery_gap_hours
-    operator: gt
-    threshold: 48
-    unit: "hrs"
-    severity: high
-    weight: 25
-
-  - id: gps_deviation
-    label: Vehicle deviated from registered route
-    field: gps_deviation_km
-    operator: gt
-    threshold: 2.0
-    unit: "km"
     severity: high
     weight: 22
+    # fires 1,140 of 27,078 - DATA-PROFILE section 6. -15% sits between the
+    # median (-0.37%) and p5 (-76.66%) on the 3,529 works the rule can read:
+    # clear of rounding noise, well short of the tail. Highest weight in the
+    # rulebook because money sanctioned and not delivered is the scheme's core
+    # failure, and this is the only amount variance the data supports at all.
+    skip_caveats:
+      not_published: >-
+        No expenditure row joins to this work, so nothing can be said about how
+        much of the sanction reached the vendor. The expenditure export is
+        truncated and joins to only 3,529 of 27,078 sanctioned works
+        (DATA-PROFILE.md section 3). This rule is skipped, not passed.
+      published_zero: >-
+        The portal published a sanctioned amount of zero for this work, so a
+        percentage against it cannot be formed. That is a fact about the row,
+        not a missing measurement. This rule is skipped, not passed.
 
-  - id: counter_variance
-    label: Shortfall between shop receipt and counter dispensing
-    field: variance_receipt_to_counter
-    operator: lt
-    threshold: -5.0
-    unit: "%"
+  - id: execution_delay
+    label: Work under execution beyond one year
+    field: execution_days
+    operator: gt
+    threshold: 365
+    unit: "days"
     severity: high
     weight: 20
+    # fires 2,568 of 27,078 - DATA-PROFILE section 6. p75 is 308 d and p90 is
+    # 444 d on the 12,974 works with both dates, so 365 selects the slow tenth
+    # and is also the threshold a citizen would recognise: a year to build it.
+    skip_caveats:
+      not_applicable: >-
+        No completion date has been reported for this work, so execution days
+        cannot be computed. This rule is skipped, not passed.
 
-  - id: transaction_mismatch
-    label: Transactions inconsistent with ration-card count
-    field: txn_card_ratio
-    operator: lt
-    threshold: 0.6
+  - id: duplicate_work
+    label: Description repeated under the same agency
+    field: duplicate_similarity
+    operator: gte
+    threshold: 0.85
+    severity: high
+    weight: 18
+    # fires 16,491 of 27,078 - DATA-PROFILE section 6, AND THAT COUNT IS THE
+    # PROBLEM. rapidfuzz.token_set_ratio over normalised descriptions has a
+    # median of 0.893 on this corpus, so 0.85 fires on 61% of it. The threshold
+    # and the scorer must be chosen together in Phase 7 and re-measured in the
+    # profile before these 18 points are shown to an officer as settled. The
+    # count is recorded here exactly as measured rather than quietly tuned.
+    caveat: >-
+      The duplicate_similarity threshold of 0.85 is not yet calibrated and
+      fires on 61% of the corpus (DATA-PROFILE.md section 6). This rule's 18
+      points are provisional until Phase 7 chooses a scorer and a threshold
+      together. The matched works are cited on this row: open them and judge.
+    caveat_when: fired
+    skip_caveats:
+      not_published: >-
+        The portal published no readable description for this work, so there is
+        nothing to compare against its neighbours. This rule is skipped, not
+        passed.
+      not_applicable: >-
+        No other work under this agency carries a readable description, so
+        there is no population to compare this one against. This rule is
+        skipped, not passed.
+
+  - id: sanction_delay
+    label: Sanction issued long after recommendation
+    field: sanction_lag_days
+    operator: gt
+    threshold: 180
+    unit: "days"
     severity: medium
-    weight: 15
+    weight: 16
+    # fires 4,800 of 27,078 - DATA-PROFILE section 6. 180 d sits between p75
+    # (142 d) and p90 (257 d), so it selects the slow quarter without firing on
+    # the ordinary half. Both dates are published in the sanctioned export
+    # itself, so this rule is never skipped on the current corpus.
 
-  - id: operating_hours
-    label: Irregular shop operating hours
-    field: hour_violations_month
+  - id: stalled_work
+    label: No payment activity for an extended period
+    field: days_since_last_payment
+    operator: gt
+    threshold: 270
+    unit: "days"
+    severity: medium
+    weight: 16
+    # fires 345 of 27,078 - DATA-PROFILE section 6. 270 d sits just above p90
+    # (268 d) on the 3,529 works with a payment. Nine months of silence exceeds
+    # any normal inter-instalment gap at a mean of 1.68 payments per work.
+    caveat: >-
+      Measured against the corpus as-of date 2026-08-24, not against today, so
+      this value is reproducible on re-derivation.
+    caveat_when: always
+    skip_caveats:
+      not_published: >-
+        No payment row joins to this work, so there is no last payment to
+        measure silence from. The expenditure export is truncated
+        (DATA-PROFILE.md section 3). This rule is skipped, not passed.
+
+  - id: vendor_concentration
+    label: One vendor takes most of the agency's disbursement
+    field: vendor_share_in_agency_pct
+    operator: gt
+    threshold: 60
+    unit: "%"
+    severity: medium
+    weight: 12
+    # fires 48 of 27,078 - DATA-PROFILE section 6, across 65 agency-vendor
+    # pairs. The median share for a work's own vendor is 5.11% and p90 is
+    # 30.64%, so 60% is far into the tail. The Rs 50 lakh agency floor in
+    # app.constants.VENDOR_CONCENTRATION_AGENCY_FLOOR keeps a small office with
+    # one work from reading as concentrated.
+    skip_caveats:
+      not_published: >-
+        No payment row joins to this work, so it cannot be attributed to a
+        vendor. This rule is skipped, not passed.
+      not_applicable: >-
+        This agency has disbursed Rs 50 lakh or less in total, which is below
+        the floor at which a single vendor's share means anything. The rule
+        does not apply rather than passing.
+
+  - id: status_payment_mismatch
+    label: Reported complete with no payment recorded
+    field: completed_without_payment
+    operator: eq
+    threshold: true
+    severity: medium
+    weight: 12
+    # fires 1,371 of 27,078 - DATA-PROFILE section 6; 1,371 of the 1,629 works
+    # whose status reads `Work Completed` have no payment row at all.
+    caveat: >-
+      The expenditure export is truncated to 34,000 rows and joins to only
+      3,529 of 27,078 sanctioned works, so an unknown share of these works were
+      paid and simply are not carried in the export. Read this flag as a
+      reporting discrepancy to check, not as proof that no money moved
+      (DATA-PROFILE.md section 6).
+    caveat_when: fired
+
+  - id: split_sanction
+    label: Three or more identical descriptions under one agency
+    field: same_desc_same_agency_count
     operator: gte
     threshold: 3
+    unit: "works"
+    severity: medium
+    weight: 10
+    # fires 3,240 of 27,078 - DATA-PROFILE section 6, in 275 clusters worth
+    # Rs 166.59 crore. Three is the smallest count that is not a coincidence.
+    # The weight is only 10 because legitimate repetition is common: the
+    # largest cluster in the corpus is 244 street lights under one district
+    # magistrate, which is very probably 244 street lights.
+    skip_caveats:
+      not_published: >-
+        The portal published no readable description for this work, so
+        repetition under its agency cannot be counted. This rule is skipped,
+        not passed.
+
+  - id: asset_evidence_missing
+    label: No asset photograph filed
+    field: asset_image_absent
+    operator: eq
+    threshold: true
+    severity: low
+    weight: 10
+    # fires 4,493 of 27,078 and is SKIPPED ON 14,104 - DATA-PROFILE section 6.
+    # The Image column is published only in the completed export, so a work not
+    # yet reported complete has no image field at all. Treating that absence as
+    # "no photograph was filed" would fire this rule on a reporting gap across
+    # 52% of the corpus, which is exactly what invariant 2 exists to prevent.
+    # Weight 10 and severity low: an evidence gap, not a finding.
+    skip_caveats:
+      not_published: >-
+        The Image column is published only in the completed export, and this
+        work has not been reported complete. The portal has published nothing
+        about a photograph either way. This rule is skipped, not passed, and it
+        is a different finding from a work whose Image column was published
+        reading N/A.
+
+  - id: account_underutilisation
+    label: MP account below a quarter utilised
+    field: mp_utilisation_pct
+    operator: lt
+    threshold: 25
+    unit: "%"
     severity: low
     weight: 8
+    # fires on 6,371 of 27,078 works - DATA-PROFILE section 6; 243 of the 416
+    # members holding both an allocation and a sanction sit below 25%, against
+    # a median of 19.77%. Deliberately the smallest weight: an MP's aggregate
+    # underuse is context for a work, never the substance of a finding against
+    # it.
+    caveat: >-
+      The portal publishes one cumulative allocation per member and no per-year
+      breakdown, so this ratio is term-to-date, not per financial year.
+    caveat_when: always
+    skip_caveats:
+      not_published: >-
+        No allocation is published for this work's member, so their account
+        cannot be placed against it. This rule is skipped, not passed.
+      published_zero: >-
+        The portal published an allocation of zero for this member, so a
+        utilisation ratio against it cannot be formed. That is a fact about the
+        published row, not a missing measurement.
 
+# The only source of score that is not a rule. Awarded once per case when the
+# work's implementing agency ALREADY carries min_high_cases or more other HIGH
+# cases in the same financial year: one bad work is an incident, a pattern
+# under one agency in one year is a posture. Three is the smallest count that
+# survives the objection "a large district will have some".
+# Awarded to 191 of 27,078 cases on the profiled corpus - DATA-PROFILE
+# section 6. The bonus is all-or-nothing; it is never scaled by the count.
 corroboration:
-  complaint_bonus:
-    min_complaints: 3
-    window_days: 14
-    weight: 10
+  id: agency_pattern_bonus
+  label: Agency already carries a pattern of HIGH cases this financial year
+  min_high_cases: 3
+  window: FY
+  weight: 10

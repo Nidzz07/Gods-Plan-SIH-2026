@@ -313,6 +313,46 @@ CASE_STATUSES = ("open", "under_review", "escalated", "resolved")
 # read as concentrated. Rs 50 lakh (DOMAIN-MODEL.md (g) rule 6).
 VENDOR_CONCENTRATION_AGENCY_FLOOR = 5_000_000
 
+# --------------------------------------------------------------------------
+# The two ladders (DOMAIN-MODEL.md (b) and (c))
+# --------------------------------------------------------------------------
+
+# Fund ladder, two hops. Hop 2 is permanently unavailable on public MPLADS
+# data and is retained deliberately: it has a derivation function and a test,
+# it returns None with reason `not_published` on every real row, and it is the
+# headline entry in the ablation report.
+HOP_SANCTION_TO_DISBURSEMENT = "sanction_to_disbursement"
+HOP_DISBURSEMENT_TO_CERTIFICATION = "disbursement_to_certification"
+FUND_HOPS = (HOP_SANCTION_TO_DISBURSEMENT, HOP_DISBURSEMENT_TO_CERTIFICATION)
+
+# A hop is open when its variance is below the tolerance the rulebook sets for
+# it, which is the threshold of the rule that reads that hop's variance. Hop 2
+# has no rule, because there is no public data to calibrate one against, so it
+# falls back to this figure purely so the ladder can still show a state on the
+# synthetic control. An open hop 2 contributes exactly zero points, and that
+# is the whole point of fixture C.
+FUND_HOP_DEFAULT_TOLERANCE_PCT = -15
+
+# Lifecycle ladder, three lags. `execution_days` is NOT one of them: it is
+# completion_date - sanction_date and is computable on works that have no
+# payment row at all (DOMAIN-MODEL.md (c)).
+LAG_RECOMMEND_TO_SANCTION = "recommend_to_sanction"
+LAG_SANCTION_TO_FIRST_PAYMENT = "sanction_to_first_payment"
+LAG_FIRST_PAYMENT_TO_COMPLETION = "first_payment_to_completion"
+LIFECYCLE_LAGS = (
+    LAG_RECOMMEND_TO_SANCTION,
+    LAG_SANCTION_TO_FIRST_PAYMENT,
+    LAG_FIRST_PAYMENT_TO_COMPLETION,
+)
+
+# How many peer works a fired duplicate_work hit cites, and how many peer HIGH
+# cases the corroboration block names. Citation is what makes the one
+# model-fed rule admissible (DOMAIN-MODEL.md (h)): an officer is handed the
+# records, not asked to trust the number. Two is enough to open in two tabs;
+# the full cluster size travels alongside.
+DUPLICATE_CITATION_LIMIT = 2
+CORROBORATION_CITATION_LIMIT = CORROBORATION_MIN_HIGH_CASES
+
 AUDIT_EVENTS = (
     "CASE_OPENED",
     "RULE_FIRED",

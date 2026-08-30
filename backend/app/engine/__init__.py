@@ -1,5 +1,12 @@
-"""Detection engine: reconcile (F1), rulebook (F2), score (F3/F5),
-complaints (F4), memo, audit (F6).
+"""The NIGRANI detection engine.
 
-F1, F2, F3/F5 and the memo template are implemented. complaints.py (F4) and
-audit.py (F6) are still stubs."""
+    derive.py    F1  the two ladders and the derived feature dictionary
+    rulebook.py  F2  the YAML rulebook, loaded from disk on every evaluation
+    score.py     F3 + F5  composite score, reasoning trace, coverage
+    memo.py          the plain-language memo - a TEMPLATE, never a model
+    audit.py     F6  the append-only, hash-chained trail and true recompute
+
+F4's corroboration bonus lives in `score.corroboration`, fed a count the caller
+resolves over the corpus. The ML tier (F7) is Phase 4 and lands in `app/ml/`;
+nothing it produces can reach the score (CLAUDE.md invariant 1).
+"""
