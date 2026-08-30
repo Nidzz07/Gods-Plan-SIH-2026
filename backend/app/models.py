@@ -769,3 +769,95 @@ class IngestReject(Base):
     detail: Mapped[str | None] = mapped_column(Text)
 
     at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
+class AblationFinding(Base):
+    """One field's measured data gap, and the recommendation it produces (F9).
+
+    Written by `python -m app.ablation.run`, read by `GET /api/ablation`. It is
+    a derived cache over `cases` and `rule_hits`, rebuilt from scratch on every
+    run the way `ml_findings` is - never appended to, so a second run does not
+    double its own output and no helper here is capable of removing a row
+    (CLAUDE.md invariant 4).
+
+    **Nothing in this table can move a score.** It records what the rulebook
+    could NOT evaluate; `engine/score.py` never reads it and `app/ablation/` is
+    never imported by `engine/` or `ml/` (`tests/test_ml_boundary.py`).
+
+    **`basis` is this table's availability companion.** The other tables record
+    why a value is null with an `Availability`; here the question is different -
+    every numeric column below is always computed, and a zero is always a
+    measured zero. What needs recording is why a zero is zero, because
+    `unrealised_weight = 0` means two very different things:
+
+        measured_skips     rules DO read this field and are skipped because it
+                           is absent; the counts are of trace rows.
+        no_rule_reads_it   no rule in the scored rulebook reads this field, so
+                           nothing can be skipped for its absence. The zero is
+                           exact and it does not mean the gap is harmless - it
+                           means the gap is upstream of the rulebook.
+
+    `rank` and `extrapolation_json` are the only nullable columns, and `basis`
+    is what explains both nulls. Neither is a missing measurement.
+    """
+
+    __tablename__ = "ablation_findings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # `app.ablation.fields.FIELDS[*].key`. Unique: one row per field per run.
+    field_key: Mapped[str] = mapped_column(String(48), nullable=False, unique=True)
+    field_label: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    # never_collected | published_incompletely - see ablation/fields.py.
+    gap_kind: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    # Where the entry came from: a DATA-PROFILE section, or surfaced_by_measurement.
+    source: Mapped[str] = mapped_column(String(48), nullable=False)
+    # measured_skips | no_rule_reads_it. The companion described above.
+    basis: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+
+    # Null when the field is unranked - it measures zero on the ranking
+    # criterion, or it ties with another field. `rank_note` says which, so a
+    # null here is never read as a missing measurement.
+    rank: Mapped[int | None] = mapped_column(Integer)
+    rank_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    # Every count below is over the real sanctioned works; the labelled
+    # synthetic control is excluded (invariant 12).
+    corpus_works: Mapped[int] = mapped_column(Integer, nullable=False)
+    rule_skips: Mapped[int] = mapped_column(Integer, nullable=False)
+    works_affected: Mapped[int] = mapped_column(Integer, nullable=False)
+    # The ranking criterion. Points of rulebook weight, not a normalised score.
+    unrealised_weight: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    coverage_pct_now: Mapped[float] = mapped_column(Float, nullable=False)
+    coverage_pct_if_published: Mapped[float] = mapped_column(Float, nullable=False)
+    coverage_uplift_pct: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # The bounded severity-band effect. Two integers and never a point
+    # estimate: the extrapolation says how many rules would fire and refuses to
+    # say which works they fire on (ablation/measure.py).
+    band_change_floor: Mapped[int] = mapped_column(Integer, nullable=False)
+    band_change_ceiling: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Per rule: the observed firing rate, the population it was measured over,
+    # and the extrapolated additional fires. Null exactly when `basis` is
+    # `no_rule_reads_it` - there is no observed rate to extrapolate from,
+    # because there is no rule.
+    extrapolation_json: Mapped[str | None] = mapped_column(Text)
+    # Which rules skip, under which reason, on which condition, with counts.
+    attribution_json: Mapped[str] = mapped_column(Text, nullable=False)
+    # Real corpus figures describing the gap's shape. Context, never a ranking
+    # input - see ablation/rank.py for why they are not blended into one.
+    corroborating_json: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # What MoSPI would publish, and what it would cost them, in one line each.
+    publish_as: Mapped[str] = mapped_column(Text, nullable=False)
+    effort: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # The corpus as-of date, never a wall clock: two runs over the same corpus
+    # must produce identical rows, and a timestamp would break that for no
+    # reader's benefit.
+    measured_as_of: Mapped[date] = mapped_column(Date, nullable=False)
+    rulebook_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    rulebook_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
