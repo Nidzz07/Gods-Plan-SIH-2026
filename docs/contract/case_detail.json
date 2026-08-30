@@ -1,10 +1,17 @@
 {
-  "_comment": "FROZEN CONTRACT. Worked response for GET /api/cases/{case_id}, shown for fixture A in docs/contract/fixtures.md. backend/app/schemas.py mirrors this file exactly; the two move together or not at all (CLAUDE.md invariant 9). Every number here is re-derived in fixtures.md.",
-
-  "_pinned_note": "Phase 1 re-pinned fixture A from the provisional id WS/MP410/2024-2025/118427, which does not exist in data/raw/, to the real sanctioned work below. Every value in this file was measured from the loaded corpus by the Phase 1 reference pass described in fixtures.md standing caveat 2, and is a contract Phase 3's engine must reproduce.",
-
+  "_comment": "FROZEN CONTRACT. The exact response body of GET /api/cases/{case_id} for fixture A, docs/contract/fixtures.md. backend/app/schemas.py mirrors this file key for key and the two move together or not at all (CLAUDE.md invariant 9). Keys beginning with an underscore are notes ABOUT this file and are not part of the response; backend/tests/test_api.py compares the live response against this file with those keys removed, so the contract is checked rather than described.",
+  "_generated": "Captured in Phase 5 from a running server over the committed corpus, after `python -m ingest.run`, `python -m app.derive_all`, `python -m app.ml.run` and `python -m app.ablation.run`. Every number in it is re-derived in fixtures.md.",
+  "_changed_in_phase_5": [
+    "concentration is a new top-level block. ml/badges.py has emitted it since Phase 3 with no key in this file to land in, and its own docstring says it becomes contractual when the API is built. Tier-4 graph, worth zero points.",
+    "statistical and forecast carry measured values instead of nulls, and gain the keys ml/badges.py actually emits: anomaly_flagged, availability, detail, peer_group_size on the first; risk_percentile, horizon_meaning, availability, outcome, elapsed_days, detail, holdout on the second. z_score stays null because no document in this repository defines which quantity it would be a z-score of.",
+    "rulebook_version_sha256 carries the sha256 of the yaml_snapshot stored in rulebook_versions, replacing PLACEHOLDER-PENDING-PHASE-3-RULEBOOK. The rulebook exists now, so the placeholder is no longer the honest value.",
+    "opened_at is the corpus as-of date at midnight rather than a wall clock, so a rebuild reproduces the audit hash chain byte for byte (app/derive_all.py).",
+    "Every rung, date and lag carries the same key set with nulls where a key does not apply, instead of some rows carrying recommended_amt or note and others omitting them. One row shape for a table component instead of three.",
+    "work gains fy; mp.name is the canonicalised name that joins the allocation export.",
+    "unavailable_fields lists four derived features rather than six entries. It is the derived-feature block - engine/derive.FeatureSet.unavailable_fields() over FEATURE_KEYS - and recommended_amt and certified_amt are raw ladder rungs rather than features. Both still report their own availability, on the fund ladder rung itself, where an officer reads them. first_payment_to_completion_days appears here and did not before, because it is a feature and it is genuinely not applicable on this work.",
+    "duplicate_work's citation.reading and the memo text are the strings engine/ produces, replacing the Phase 0 hand-written versions."
+  ],
   "case_id": "NG-8F0E3213D8",
-
   "work": {
     "id": 63423,
     "work_id": "WS/MP847/2025-2026/160261",
@@ -17,9 +24,9 @@
     "agency_name_raw": "DISTRICT MAGISTRATE JALAUN",
     "status": "Work partially Completed",
     "asset_image_present": null,
+    "fy": "2025-2026",
     "is_synthetic": false
   },
-
   "mp": {
     "id": 91,
     "name": "BABURAM NISHAD",
@@ -28,15 +35,13 @@
     "state": "Uttar Pradesh",
     "term": "2022-2028"
   },
-
   "score": 92,
   "raw_score": 92,
   "score_cap": 100,
   "severity": "HIGH",
   "status": "open",
-  "opened_at": "2026-08-29T14:35:39+05:30",
+  "opened_at": "2026-08-24T00:00:00",
   "data_as_of": "2026-08-24",
-
   "fund_ladder": {
     "rungs": [
       {
@@ -45,19 +50,25 @@
         "amount": 199539,
         "availability": "published",
         "recommended_amt": null,
-        "recommended_equals_sanctioned": null
+        "recommended_equals_sanctioned": null,
+        "note": null
       },
       {
         "key": "disbursed_amt",
         "label": "Disbursed",
         "amount": 119711,
-        "availability": "published"
+        "availability": "published",
+        "recommended_amt": null,
+        "recommended_equals_sanctioned": null,
+        "note": null
       },
       {
         "key": "certified_amt",
         "label": "Certified",
         "amount": null,
         "availability": "not_published",
+        "recommended_amt": null,
+        "recommended_equals_sanctioned": null,
         "note": "MoSPI publishes no utilisation certificate date or certified amount. See docs/domain/DOMAIN-MODEL.md (i), ablation entry 1."
       }
     ],
@@ -66,57 +77,107 @@
         "key": "sanction_to_disbursement",
         "label": "Sanction to disbursement",
         "variance_pct": -40.01,
-        "tolerance_pct": -15,
+        "tolerance_pct": -15.0,
         "state": "open",
+        "unavailable_reason": null,
         "hop_action": "Pull the agency's payment register for this work. Confirm whether the balance is committed against an unpaid bill, unspent, or was returned. If unspent for more than one financial year, the sanction should be revalidated or surrendered rather than left standing."
       },
       {
         "key": "disbursement_to_certification",
         "label": "Disbursement to certification",
         "variance_pct": null,
-        "tolerance_pct": -15,
+        "tolerance_pct": -15.0,
         "state": "unavailable",
         "unavailable_reason": "not_published",
         "hop_action": "Obtain the utilisation certificate from the implementing agency and match the certified amount and asset description against the sanction. If no UC exists for a disbursement older than 12 months, that is a recovery proceeding, not a query."
       }
     ]
   },
-
   "lifecycle_ladder": {
     "dates": [
-      { "key": "recommended_date",    "label": "Recommended",   "date": "2024-12-19", "availability": "published" },
-      { "key": "sanction_date",       "label": "Sanctioned",    "date": "2025-11-17", "availability": "published" },
-      { "key": "first_payment_date",  "label": "First payment", "date": "2025-11-26", "availability": "published" },
-      { "key": "completion_date",     "label": "Completed",     "date": null,         "availability": "not_applicable", "unavailable_reason": "not_applicable" }
+      {
+        "key": "recommended_date",
+        "label": "Recommended",
+        "date": "2024-12-19",
+        "availability": "published",
+        "unavailable_reason": null
+      },
+      {
+        "key": "sanction_date",
+        "label": "Sanctioned",
+        "date": "2025-11-17",
+        "availability": "published",
+        "unavailable_reason": null
+      },
+      {
+        "key": "first_payment_date",
+        "label": "First payment",
+        "date": "2025-11-26",
+        "availability": "published",
+        "unavailable_reason": null
+      },
+      {
+        "key": "completion_date",
+        "label": "Completed",
+        "date": null,
+        "availability": "not_applicable",
+        "unavailable_reason": "not_applicable"
+      }
     ],
     "lags": [
-      { "key": "recommend_to_sanction",      "label": "Recommendation to sanction",  "days": 333,  "state": "computed" },
-      { "key": "sanction_to_first_payment",  "label": "Sanction to first payment",   "days": 9,    "state": "computed" },
-      { "key": "first_payment_to_completion","label": "First payment to completion", "days": null, "state": "unavailable", "unavailable_reason": "not_applicable" }
+      {
+        "key": "recommend_to_sanction",
+        "label": "Recommendation to sanction",
+        "days": 333,
+        "state": "computed",
+        "unavailable_reason": null
+      },
+      {
+        "key": "sanction_to_first_payment",
+        "label": "Sanction to first payment",
+        "days": 9,
+        "state": "computed",
+        "unavailable_reason": null
+      },
+      {
+        "key": "first_payment_to_completion",
+        "label": "First payment to completion",
+        "days": null,
+        "state": "unavailable",
+        "unavailable_reason": "not_applicable"
+      }
     ],
     "last_payment_date": "2025-11-26",
     "payment_count": 1
   },
-
   "gap_hop": "sanction_to_disbursement",
   "slowest_lag": "recommend_to_sanction",
-
   "coverage_pct": 79,
   "coverage_basis": "114 of 144 rulebook weight points were evaluable. Skipped weight is never redistributed.",
-
   "unavailable_fields": [
-    { "field": "recommended_amt",                          "reason": "not_published",  "detail": "This work has no row in the Works_Recommended export, which joins to 14,831 of 27,078 sanctioned works. The recommendation DATE is published in the sanctioned export itself, so sanction_lag_days is still computable." },
-    { "field": "completion_date",                          "reason": "not_applicable", "detail": "Work status is 'Work partially Completed'; no completion has been reported." },
-    { "field": "execution_days",                           "reason": "not_applicable", "detail": "Derived from completion_date, which is not applicable." },
-    { "field": "asset_image_absent",                       "reason": "not_published",  "detail": "The Image column is published only in the completed export. This work has not been reported complete, so no photograph was ever asked for. This is a reporting gap, not a finding that no photograph was filed." },
-    { "field": "certified_amt",                            "reason": "not_published",  "detail": "Not published by MoSPI for any work." },
-    { "field": "variance_disbursement_to_certification",   "reason": "not_published",  "detail": "Derived from certified_amt, which is not published by MoSPI." }
+    {
+      "field": "variance_disbursement_to_certification",
+      "reason": "not_published",
+      "detail": "Derived from a certified amount, which MoSPI does not publish for any work."
+    },
+    {
+      "field": "first_payment_to_completion_days",
+      "reason": "not_applicable",
+      "detail": "The work has not reached both ends of this lag - either no payment or no completion has been reported."
+    },
+    {
+      "field": "execution_days",
+      "reason": "not_applicable",
+      "detail": "No completion has been reported for this work, so there is no completion date to measure execution against."
+    },
+    {
+      "field": "asset_image_absent",
+      "reason": "not_published",
+      "detail": "The Image column is published only in the completed export. This work has not been reported complete, so no photograph was ever asked for. This is a reporting gap, not a finding that no photograph was filed."
+    }
   ],
-
   "rulebook_version": "v1.0.0",
-  "_rulebook_version_sha256_note": "PLACEHOLDER, not a real digest. NIGRANI's rules.yaml does not exist yet: backend/app/rules.yaml is still the inherited LEAKPROOF PDS rulebook and contains none of the ten rule ids below. The field is filled with the sha256 of the yaml_snapshot stored in rulebook_versions when Phase 3 writes the real rulebook. It is deliberately NOT the hash of the current file, because hashing the wrong rulebook would be worse than admitting there is not one yet.",
-  "rulebook_version_sha256": "PLACEHOLDER-PENDING-PHASE-3-RULEBOOK",
-
+  "rulebook_version_sha256": "2e1788d80341b6ac4657ffb7113c2075945347a9d7dea10abcae4f06883925a1",
   "rule_hits": [
     {
       "rule_id": "utilisation_shortfall",
@@ -174,14 +235,14 @@
         "agency": "DISTRICT MAGISTRATE JALAUN",
         "similarity": 1.0,
         "components": {
-          "token_set_ratio": 1.0,
           "partial_ratio": 1.0,
+          "token_set_ratio": 1.0,
           "token_sort_ratio": 1.0
         },
         "method": "rapidfuzz.token_set_ratio over normalised description, blocked by agency_id",
-        "reading": "The descriptions in this cluster are identical after normalisation, so every component reads 1.0. This is exact repetition, not a fuzzy near-match. It is a cluster for review, not an accusation: 15 semi-high-mast LED lights under one district magistrate is very probably 15 street lights. Open the cited works and judge."
+        "reading": "A cluster for review, not an accusation. Repeated works of this kind - street lights across a constituency, hand pumps across a block - are routinely legitimate. Open the cited works and judge."
       },
-      "caveat": "The duplicate_similarity threshold of 0.85 is not yet calibrated and fires on 61% of the corpus (DATA-PROFILE.md section 6). This rule's 18 points are provisional until Phase 7 chooses a scorer and a threshold together."
+      "caveat": "The duplicate_similarity threshold of 0.85 is not yet calibrated and fires on 61% of the corpus (DATA-PROFILE.md section 6). This rule's 18 points are provisional until Phase 7 chooses a scorer and a threshold together. The matched works are cited on this row: open them and judge."
     },
     {
       "rule_id": "sanction_delay",
@@ -211,7 +272,7 @@
       "status": "fired",
       "skip_reason": null,
       "citation": null,
-      "caveat": "Measured against the corpus as-of date 2026-08-24, not against today, so this value is reproducible on re-derivation. This work clears the threshold by one day: 271 against 270."
+      "caveat": "Measured against the corpus as-of date 2026-08-24, not against today, so this value is reproducible on re-derivation."
     },
     {
       "rule_id": "vendor_concentration",
@@ -289,7 +350,6 @@
       "caveat": "The portal publishes one cumulative allocation per member and no per-year breakdown, so this ratio is term-to-date, not per financial year."
     }
   ],
-
   "corroboration": {
     "rule_id": "agency_pattern_bonus",
     "applied": true,
@@ -303,27 +363,72 @@
       "NG-D4BA75C468",
       "NG-436EB11F68",
       "NG-BDC980159E"
-    ],
-    "reading": "This agency already carries 25 other HIGH cases in FY2025-2026. One bad work is an incident; a pattern under one agency in one year is a posture."
+    ]
   },
-
   "statistical": {
     "z_score": null,
     "z_peer_group": "Normal/Others works sanctioned in Uttar Pradesh, FY2025-2026",
-    "anomaly_score": null,
-    "anomaly_model_version": null,
-    "confirms": null,
+    "anomaly_score": 0.076195,
+    "anomaly_model_version": "iso1-411e2bf1cf13",
+    "anomaly_flagged": true,
+    "confirms": true,
     "contribution": 0,
-    "note": "Badge only. Contributes zero points to the score (CLAUDE.md invariant 1). Values are null because the ML tier is feature F7 and has not been built; the keys are present so the contract shape is fixed and the frontend can render the 'not yet computed' state."
+    "availability": "published",
+    "detail": null,
+    "peer_group_size": 439,
+    "note": "Badge only. Contributes zero points to the score (CLAUDE.md invariant 1). The statistical and graph tiers confirm, or fail to confirm, what the rulebook already found; they never move the number."
   },
-
   "forecast": {
-    "delay_risk": null,
-    "horizon_days": 90,
-    "model_version": null,
+    "delay_risk": 2.3e-05,
+    "risk_percentile": 0.4,
+    "horizon_days": 365,
+    "horizon_meaning": "the probability that this work is not reported complete within 365 days of its own sanction date, the threshold the execution_delay rule reads",
+    "model_version": "fc1-95bddcce72bd",
     "contribution": 0,
-    "note": "Illustrative when populated. Trained on a truncated portal sample; the horizon is a demonstration, not a commitment. Contributes zero points to the score. Null because feature F7 has not been built."
+    "availability": "published",
+    "outcome": "open",
+    "elapsed_days": 280,
+    "detail": null,
+    "holdout": {
+      "accuracy": 0.858,
+      "brier": 0.1106,
+      "brier_baseline_constant": 0.1046,
+      "calibration": "Not calibrated. delay_risk orders works by risk; it is not a literal probability. Compare brier against brier_baseline_constant.",
+      "holdout_fraction": 0.25,
+      "holdout_positive_rate": 0.1186,
+      "holdout_works": 2352,
+      "horizon_days": 365,
+      "labelled_works": 12974,
+      "positive_rate": 0.1979,
+      "positives": 2568,
+      "roc_auc": 0.7552,
+      "roc_auc_random_split_not_quoted": 0.9599,
+      "split": "GroupShuffleSplit grouped by implementing agency",
+      "train_works": 10622
+    },
+    "note": "Panel only. Contributes zero points to the score (CLAUDE.md invariant 1). Illustrative: trained on a truncated portal sample, and the horizon is a demonstration rather than a commitment. Read delay_risk as a RANKING, not as a literal probability - on the agency-grouped holdout the model orders works usefully (AUC 0.755) while its probabilities score no better than a constant at the base rate. risk_percentile is the figure meant for the eye."
   },
-
-  "memo": "Work WS/MP847/2025-2026/160261, 'Led Semi High Mast Light (6LED) with 200-watt, 9.5-meter pole', was sanctioned for Rs 1,99,539 on 17 November 2025 by DISTRICT MAGISTRATE JALAUN, on a recommendation made 333 days earlier on 19 December 2024. Rs 1,19,711 has been disbursed across 1 payment, 40.01% below the sanctioned amount, and no payment has been recorded in the 271 days since 26 November 2025. The same description appears on 15 works under this agency; two are cited above for comparison and should be opened before any conclusion is drawn, because repeated works of this kind are often legitimate. This agency carries 25 other HIGH cases in FY2025-2026. Execution time could not be assessed because no completion has been reported, and for the same reason the portal has published nothing about an asset photograph, so 30 of the 144 rulebook points could not be evaluated and this case is scored on 79% coverage. Score 92 of 100, HIGH, under rulebook v1.0.0. This memo is generated from a fixed template, not by a language model."
+  "concentration": {
+    "hhi": 0.4018,
+    "agency": "DISTRICT MAGISTRATE JALAUN",
+    "vendor_count": 4,
+    "top_vendor": "KANHA CONSTRUCTION",
+    "top_vendor_share_pct": 58.53,
+    "shared_vendor_exposure_pct": 0.0,
+    "widest_vendor_span": 1,
+    "component_agencies": 1,
+    "work_vendors": [
+      {
+        "vendor_id": 346,
+        "vendor": "AK ENTERPRISES",
+        "agency_span": 1
+      }
+    ],
+    "model_version": "gr1-9711f430719c",
+    "contribution": 0,
+    "availability": "published",
+    "detail": null,
+    "note": "Badge only. Contributes zero points to the score (CLAUDE.md invariant 1). The statistical and graph tiers confirm, or fail to confirm, what the rulebook already found; they never move the number."
+  },
+  "memo": "Work WS/MP847/2025-2026/160261, 'Led Semi High Mast Light (6LED) with 200-watt, 9.5-meter pole', was sanctioned for Rs 1,99,539 on 17 November 2025 by DISTRICT MAGISTRATE JALAUN, on a recommendation made 333 days earlier on 19 December 2024. Rs 1,19,711 has been disbursed across 1 payment, 40.01% below the sanctioned amount, and no payment has been recorded in the 271 days since 26 November 2025. The same description appears on 15 works under this agency; 2 are cited on the trace row for comparison and should be opened before any conclusion is drawn, because repeated works of this kind are often entirely legitimate. This agency already carries 25 other HIGH cases in FY2025-2026: one bad work is an incident, a pattern under one agency in one year is a posture. Not evaluated: work under execution beyond one year - no completion has been reported for this work and no asset photograph filed - the Image column is published only in the completed export, and this work has not been reported complete, so the portal has published nothing either way. That is 30 rulebook points that could not be assessed either way, so this case is scored on 79% coverage and the missing weight is not redistributed to the rules that did run. Score 92 of 100, HIGH, under rulebook v1.0.0. This memo is generated from a fixed template, not by a language model."
 }
