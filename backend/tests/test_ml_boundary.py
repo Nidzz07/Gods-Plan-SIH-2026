@@ -1,12 +1,19 @@
-"""The tier boundary itself: the arrow only points one way, and a null has a reason.
+"""The tier boundaries themselves: the arrows only point one way, and a null has a reason.
 
 Two things are asserted here, and neither needs the corpus.
 
-**The dependency direction.** `engine/` may not import `ml/`. That is the
-structural half of CLAUDE.md invariant 1: `score.py` cannot reach an anomaly
-score, a delay forecast or a graph centrality figure, because the package they
-live in is not reachable from the package it lives in. A comment promising the
-same thing would be worth nothing the first time somebody added an import.
+**The dependency direction.** `engine/` may not import `ml/`, and neither
+`engine/` nor `ml/` may import `ablation/`. That is the structural half of
+CLAUDE.md invariant 1: `score.py` cannot reach an anomaly score, a delay
+forecast, a graph centrality figure or a data-gap measurement, because the
+packages they live in are not reachable from the package it lives in. A comment
+promising the same thing would be worth nothing the first time somebody added
+an import.
+
+The two arrows are the same claim about two tiers, so they are asserted in one
+file. Splitting them would let one of them be forgotten - which is precisely
+the defect `tests/test_audit.py` records against the inherited suite's
+two-file grep.
 
 **The finding contract.** A finding carries a value or the reason it has none,
 never both and never neither, so a badge that could not be computed cannot
@@ -33,6 +40,7 @@ from app.ml.base import Finding, model_version, rebuild
 APP = Path(__file__).resolve().parent.parent / "app"
 ENGINE = APP / "engine"
 ML = APP / "ml"
+ABLATION = APP / "ablation"
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -98,6 +106,91 @@ def test_no_ml_module_imports_the_scoring_modules(path):
             f"{path.name} imports {name!r}. A badge may read the rulebook and the derived "
             "features; it may not reach the scorer, the audit trail or the memo."
         )
+
+
+def _assert_does_not_import(path: Path, package: str, why: str) -> None:
+    """Fail if this file imports `package`, absolutely or relatively.
+
+    Shared by the three direction tests below so the AST walk is written once.
+    `from ..ablation import measure` parses as level=2, module='ablation', and
+    the dots are what a naive string search misses.
+    """
+    for name in _imported_modules(path):
+        stripped = name.lstrip(".")
+        assert not (stripped == package or stripped.startswith(f"{package}.")), (
+            f"{path.name} imports {name!r}. {why}"
+        )
+        assert not stripped.startswith(f"app.{package}"), f"{path.name} imports {name!r}."
+
+
+@pytest.mark.parametrize("path", sorted(ENGINE.glob("*.py")), ids=lambda p: p.name)
+def test_no_engine_module_imports_the_ablation_package(path):
+    """The scoring path cannot reach the data-gap tier either.
+
+    `ablation/` measures what the rulebook could NOT evaluate. Nothing it
+    produces is a point, a threshold or an input to one, and the directory
+    boundary is what makes that structural rather than promised - the same
+    guarantee `engine/` already has against `ml/`.
+    """
+    _assert_does_not_import(
+        path,
+        "ablation",
+        "Nothing under engine/ may import the ablation package: the score is the "
+        "rulebook plus the corroboration bonus and nothing else (CLAUDE.md invariant 1). "
+        "If this fails, the fix is to move the code, not to relax the test.",
+    )
+
+
+@pytest.mark.parametrize("path", sorted(ML.glob("*.py")), ids=lambda p: p.name)
+def test_no_ml_module_imports_the_ablation_package(path):
+    """Tiers 3 and 4 have no business in the gap measurement either.
+
+    A badge says whether a model confirms what the rulebook found. What the
+    rulebook could not evaluate at all is a different question, answered in a
+    different package, and a badge that reached into it would blur the two.
+    """
+    _assert_does_not_import(
+        path,
+        "ablation",
+        "A badge may read the rulebook and the derived features; it may not reach the "
+        "data-gap measurement.",
+    )
+
+
+@pytest.mark.parametrize("path", sorted(ABLATION.glob("*.py")), ids=lambda p: p.name)
+def test_no_ablation_module_imports_the_ml_package(path):
+    """And the arrow between ablation and ml points nowhere at all.
+
+    `ablation/` reads `engine/` - deliberately, and including
+    `engine.score.coverage_pct`, because a second copy of the coverage formula
+    would eventually disagree with the first. That import is READ-ONLY and it
+    is the point of the one-way arrow: the gap measurement and the case screen
+    must not drift apart on what coverage means.
+
+    `ml/` is different. A duplicate cluster, an anomaly badge and a delay
+    forecast are model outputs; a skipped rule is a fact about MoSPI's export.
+    Nothing in the measurement should depend on a fit, because a report to a
+    ministry that moved when a forest was refitted would not be a measurement.
+    """
+    _assert_does_not_import(
+        path,
+        "ml",
+        "The data-gap measurement is arithmetic over the recorded trace. It reads "
+        "engine/ and it does not read model output: a figure in the MoSPI report must "
+        "not move because a model was refitted.",
+    )
+
+
+def test_the_boundary_walk_reaches_all_three_packages():
+    """The defect guarded against is a boundary test with too small a scope."""
+    for package, path in (("engine", ENGINE), ("ml", ML), ("ablation", ABLATION)):
+        modules = {p.name for p in path.glob("*.py")}
+        assert "__init__.py" in modules, package
+        assert len(modules) > 1, f"{package} has no modules to check"
+    assert {"score.py", "derive.py", "rulebook.py"} <= {p.name for p in ENGINE.glob("*.py")}
+    assert {"measure.py", "rank.py", "report.py", "run.py"} <= {
+        p.name for p in ABLATION.glob("*.py")
+    }
 
 
 def test_the_four_kinds_are_the_four_the_data_model_declares():
