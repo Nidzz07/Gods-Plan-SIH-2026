@@ -18,3 +18,4 @@ rapidfuzz==3.10.1
 # environment but never pinned here, so a fresh checkout could not build the
 # package that uses them.
 scikit-learn==1.5.2
+networkx==3.4.2
