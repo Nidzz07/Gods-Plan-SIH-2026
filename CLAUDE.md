@@ -242,10 +242,37 @@ Backend
 cd backend && python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m ingest.run           # loads data/raw/ into backend/nigrani.db
+
+python -m ingest.run           # data/raw/ -> nigrani.db: 65,270 works and their
+                               #   sanctions, payments, completions, accounts,
+                               #   plus ingest_rejects and the labelled control
+python -m app.ml.run           # ml_findings: the four badge tiers, one row per
+                               #   sanctioned work per kind, all worth zero
+python -m app.ablation.run     # ablation_findings + the regenerated
+                               #   docs/reports/DATA-GAP-RECOMMENDATION.md
+python -m app.derive_all       # cases, rule_hits, rulebook_versions, audit_log
+                               #   and the rollup tables: one case per sanctioned
+                               #   work, its full ten-row trace, its opening
+                               #   audit events, and the dashboard aggregates
+
 pytest -v
 uvicorn app.main:app --reload --port 8000
 ```
+**All four build steps are required.** The API only reads; nothing derives a
+case on the first request. A clone that runs `ingest.run` and then `uvicorn`
+gets a working server with zero cases, which is the most misleading screen the
+product can show — `/health` reports `awaiting_build` rather than `ok` for
+exactly that reason. The corpus tests skip without step 1 and `test_api.py`
+skips without step 4, so `pytest` belongs after the build and not before it.
+
+`ingest.run` drops and recreates every table, so it comes first and everything
+after it must be re-run. The middle three have no dependency on each other and
+may run in any order; each is idempotent by rebuild, so a second run replaces
+its own output rather than doubling it. Re-run `app.derive_all` after any edit
+to `rules.yaml` — until you do, the stored cases are still scored under the
+older snapshot, and `GET /api/rulebook` reports `file_matches_stored_version:
+false` to say so.
+
 Frontend
 ```
 cd frontend && nvm use && npm install && npm run dev     # :5173
