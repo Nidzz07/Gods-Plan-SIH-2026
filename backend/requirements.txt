@@ -14,3 +14,7 @@ numpy==2.1.3
 # publishes one IDA string per district office) but every raw string still
 # passes through it and lands in agency_name_variants for review.
 rapidfuzz==3.10.1
+# The ML tier (F7). Declared in the fixed stack; installed in the working
+# environment but never pinned here, so a fresh checkout could not build the
+# package that uses them.
+scikit-learn==1.5.2

@@ -377,3 +377,56 @@ ROLES = ("ministry", "state_nodal", "district_authority", "member_of_parliament"
 # id is reserved; ingest rejects it with `case_id_collision` if the portal ever
 # publishes it (fixtures.md caveat 3).
 SYNTHETIC_CONTROL_WORK_ID = "WS/MP503/2025-2026/140882"
+
+
+# --------------------------------------------------------------------------
+# The ML tier (F7) - tiers 3 and 4, badges worth ZERO points
+# --------------------------------------------------------------------------
+
+# `ml_findings.kind`. Four kinds, and only the first feeds a rulebook rule:
+# `duplicate_work` reads `duplicate_similarity`, and it is admissible only
+# because its trace row cites the records the number came from
+# (DOMAIN-MODEL.md (h)). The other three are badges. They confirm, or fail to
+# confirm, what the rulebook already found; they never move the number
+# (CLAUDE.md invariant 1).
+ML_KIND_DUPLICATE = "duplicate"
+ML_KIND_ANOMALY = "anomaly"
+ML_KIND_FORECAST = "forecast"
+ML_KIND_GRAPH = "graph"
+ML_KINDS = (ML_KIND_DUPLICATE, ML_KIND_ANOMALY, ML_KIND_FORECAST, ML_KIND_GRAPH)
+
+# Fixed so every fit is reproducible: a badge an auditor cannot reproduce is
+# worth less than no badge. The number is the date this calibration pass was
+# made, carrying no meaning beyond being written down once.
+ML_RANDOM_SEED = 20260830
+
+# IsolationForest's expected outlier share.
+#
+# MEASURED, not defaulted. The forest is fitted on the 3,380 real sanctioned
+# works that carry a complete vector over `ml.anomaly.ANOMALY_FEATURES`; on
+# that same population the rulebook places 37 in HIGH and 338 in MEDIUM, so
+# 375 of 3,380 - 11.09% - sit above the LOW band. Setting the forest's
+# flagging rate to the rulebook's own non-LOW rate on the same population is
+# what makes a "confirms" badge informative: a detector that flagged 50% of
+# the corpus would agree with the rulebook by arithmetic, and one that flagged
+# 0.1% would never agree at all. scikit-learn's 'auto' and the conventional
+# 0.1 were both rejected as unexamined.
+ANOMALY_CONTAMINATION = 0.11
+
+# The smallest peer group in which "unusual among its peers" carries content.
+# Peer group is (category, state, financial year) - the group the frozen
+# contract already names in its `statistical` block. Measured over the 3,380
+# complete vectors: 125 groups, median size 6, largest 439. A floor of 5 sits
+# just below that median, keeps 3,261 of the 3,380 works (96.5%) in 67 groups,
+# and reports the remaining 119 as `not_applicable` rather than calling a work
+# an outlier among two.
+ANOMALY_MIN_PEER_GROUP = 5
+
+# Share of the labelled works held out to report the forecast's accuracy.
+# The split is GROUPED BY IMPLEMENTING AGENCY, never random: works sanctioned
+# by one office in one batch share their features and their fate, so a random
+# split puts siblings on both sides and reports a number the model has not
+# earned. Measured both ways on this corpus - random holdout AUC 0.962,
+# agency-grouped holdout AUC 0.759 - and the grouped figure is the one
+# NIGRANI quotes (see `ml/forecast.py`).
+FORECAST_HOLDOUT_FRACTION = 0.25

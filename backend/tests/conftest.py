@@ -66,6 +66,19 @@ def corpus(db_session, rulebook):
     return Corpus(db_session, rulebook)
 
 
+@pytest.fixture(scope="session")
+def ml_run(corpus):
+    """All four ML tiers, fitted once and shared across the ML test modules.
+
+    Session-scoped because the forest and the classifier are fitted here: a
+    per-test fit would spend a minute proving nothing, and the fits are
+    deterministic anyway (`app.constants.ML_RANDOM_SEED`), so one is enough.
+    """
+    from .ml_harness import MLRun
+
+    return MLRun(corpus)
+
+
 # ---------------------------------------------------------------------------
 # Hand-built inputs, for the branches the corpus does not reach
 # ---------------------------------------------------------------------------
