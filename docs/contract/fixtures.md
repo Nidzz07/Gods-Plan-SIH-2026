@@ -99,7 +99,7 @@ collide, and the control is inserted.
 
 **7. No weight and no threshold was altered to reach any score below.** The
 weights are those in `DOMAIN-MODEL.md` §(g), fixed from measured firing counts
-before any of these three rows was selected. The three scores — 92, 60, 42 — are
+before any of these three rows was selected. The three scores — 92, 60, 20 — are
 whatever the arithmetic produced on the rows that matched each profile.
 
 **A's score of 92 is the same number Phase 0's constructed fixture carried, and
@@ -115,6 +115,34 @@ duplicate cluster A sits in has 15 members, all of which score identically. Many
 works in the corpus produce the same rule combinations and the same score. These
 three are chosen because between them they exercise every branch the engine has,
 not because they are rare.
+
+**9. Fixture C scores 20, not the 42 this file carried through Phase 1, and the
+correction is to this file rather than to the control.** Four of C's stated
+inputs were never properties of the work. `vendor_share_in_agency_pct`,
+`duplicate_similarity`, `same_desc_same_agency_count`, `mp_utilisation_pct` and
+the count of corroborating HIGH cases are all properties of the **corpus around**
+a work — its agency's other works, its agency's other vendors, its member's
+allocation, its agency's other HIGH cases — and the labelled control
+`backend/ingest/synthetic.py` inserts is a single work under a single synthetic
+agency with a single synthetic member. It has no corpus around it, so those five
+readings are `not_applicable` or `not_published`, and the tables below now say
+so.
+
+**Why that is correct rather than a defect.** C exists for exactly three things
+that no real MPLADS row can do: it populates the certification rung, so fund
+hop 2 has a derivation that has actually run (invariant 3); it is the only
+fixture whose `slowest_lag` is the third stage, `first_payment_to_completion`;
+and it is the only one where all three lags are computable, so the identity
+`42 + 439 = 481` can be asserted. **All three are derived from the real ingested
+row and are unaffected by this correction.** Reaching 42 instead would mean
+giving the control sibling works to be similar to, a second vendor to be
+concentrated against, an allocation row to be a fraction of, and three HIGH peer
+cases to be corroborated by — inventing a corpus for the sole purpose of landing
+a target score. Caveat 7 above forbids exactly that, and the reason it forbids it
+is that a fixture engineered to produce a number stops being evidence about the
+engine and becomes evidence about the fixture. C's honest score is 20, LOW, on
+74% coverage, and its three skips are themselves a finding: a work with no peers
+is a work three of the ten rules cannot say anything about.
 
 ---
 
@@ -144,12 +172,12 @@ python -c "import hashlib;print('NG-'+hashlib.sha256(b'WS/MP847/2025-2026/160261
 | Fund hop 2 (`disbursement_to_certification`) open | unavailable | unavailable | **yes** |
 | `slowest_lag` = `recommend_to_sanction` | **yes** | yes | no |
 | `slowest_lag` = `first_payment_to_completion` | no | no | **yes** |
-| Rule skipped, reason `not_applicable` | **1** | 0 | none |
-| Rule skipped, reason `not_published` | **1** | **3** | none |
-| Corroboration bonus applied | **yes** | **no** | yes |
+| Rule skipped, reason `not_applicable` | **1** | 0 | **2** |
+| Rule skipped, reason `not_published` | **1** | **3** | 1 |
+| Corroboration bonus applied | **yes** | **no** | no |
 | Duplicate citation present | **yes** | yes | no |
 | `is_synthetic` | false | false | **true** |
-| Coverage below 100% | 79% | **65%** | 100% |
+| Coverage below 100% | 79% | **65%** | 74% |
 | Severity band | HIGH | MEDIUM | LOW |
 
 **`published_zero` is not exercised by these three fixtures.** All of the missing
@@ -201,15 +229,21 @@ As they arrive from ingest, before any derivation. Amounts are whole rupees.
 | `completion_date` | **— (not completed)** | 2026-05-14 | 2026-08-02 |
 | `payment_count` | 1 | 0 | 4 |
 | `Image` column | **— (not published)** | `N/A` | `Images` |
-| vendor share in agency | 17.35% | — | 67.3% |
-| same description under agency | 15 | 1 | 2 |
-| best similarity in agency | 1.000 | 0.900 | 0.31 |
-| MP account, term to date | 73.80% utilised | 71.37% utilised | 44.9% utilised |
-| agency HIGH cases, this FY | 25 | 0 | 4 |
+| vendor share in agency | 17.35% | — | **— (agency total Rs 38.80 lakh, below the Rs 50 lakh floor)** |
+| same description under agency | 15 | 1 | **1 (the control is the agency's only work)** |
+| best similarity in agency | 1.000 | 0.900 | **— (no second work to compare against)** |
+| MP account, term to date | 73.80% utilised | 71.37% utilised | **— (synthetic member holds no allocation row)** |
+| agency HIGH cases, this FY | 25 | 0 | **0 (the agency's only case is C itself)** |
 | `is_synthetic` | false | false | **true** |
 
 `DATA_AS_OF = 2026-08-24` for all three — the maximum payment date in the corpus
 (`docs/data/DATA-PROFILE.md` §4). Never `today`.
+
+**C's last five rows are all the same fact.** Each is a property of the corpus
+around a work rather than of the work, and the control has no corpus around it:
+one work, one agency, one member, one vendor. See standing caveat 9. The rungs,
+dates and amounts above it are real values on a real inserted row and are what
+C exists to exercise.
 
 **A's `recommended_amt` is `not_published` while its `recommended_date` is
 published.** That is not a contradiction, and it is worth stating because it
@@ -250,12 +284,12 @@ non-trivial value.
 | `first_payment_to_completion_days` | **None** · `not_applicable` | **None** · `not_applicable` | `2025-05-20 → 2026-08-02` = **439** |
 | `execution_days` | **None** · `not_applicable` | `2024-11-21 → 2026-05-14` = **539** | `2025-04-08 → 2026-08-02` = **481** |
 | `days_since_last_payment` | `2025-11-26 → 2026-08-24` = **271** | **None** · `not_published` | `2026-02-11 → 2026-08-24` = **194** |
-| `duplicate_similarity` | **1.000** | **0.900** | 0.31 |
-| `same_desc_same_agency_count` | **15** | 1 | 2 |
-| `vendor_share_in_agency_pct` | 17.35 | **None** · `not_published` | **67.3** |
+| `duplicate_similarity` | **1.000** | **0.900** | **None** · `not_applicable` |
+| `same_desc_same_agency_count` | **15** | 1 | 1 |
+| `vendor_share_in_agency_pct` | 17.35 | **None** · `not_published` | **None** · `not_applicable` |
 | `completed_without_payment` | false | **true** | false |
 | `asset_image_absent` | **None** · `not_published` | **true** | false |
-| `mp_utilisation_pct` | 73.80 | 71.37 | 44.9 |
+| `mp_utilisation_pct` | 73.80 | 71.37 | **None** · `not_published` |
 | `payment_count` | 1 | **0** *(a real zero, never None)* | 4 |
 | `gap_hop` | `sanction_to_disbursement` | **null** *(both hops unavailable)* | `disbursement_to_certification` |
 | `slowest_lag` | `recommend_to_sanction` (333) | `recommend_to_sanction` (96) | `first_payment_to_completion` (439) |
@@ -415,24 +449,33 @@ queryable row, and it is the only row in the `certifications` table.
 | --- | ---: | :-: | ---: | --- | ---: | ---: |
 | `utilisation_shortfall` | −3.00 | lt | −15 | passed | 22 | 0 |
 | `execution_delay` | 481 | gt | 365 | **fired** | 20 | **20** |
-| `duplicate_work` | 0.31 | gte | 0.85 | passed | 18 | 0 |
+| `duplicate_work` | None | gte | 0.85 | *skipped* `not_applicable` | 18 | 0 |
 | `sanction_delay` | 84 | gt | 180 | passed | 16 | 0 |
 | `stalled_work` | 194 | gt | 270 | passed | 16 | 0 |
-| `vendor_concentration` | 67.3 | gt | 60 | **fired** | 12 | **12** |
+| `vendor_concentration` | None | gt | 60 | *skipped* `not_applicable` | 12 | 0 |
 | `status_payment_mismatch` | false | eq | true | passed | 12 | 0 |
-| `split_sanction` | 2 | gte | 3 | passed | 10 | 0 |
+| `split_sanction` | 1 | gte | 3 | passed | 10 | 0 |
 | `asset_evidence_missing` | false | eq | true | passed | 10 | 0 |
-| `account_underutilisation` | 44.9 | lt | 25 | passed | 8 | 0 |
-| | | | | **Rule subtotal** | 144 | **32** |
-| `agency_pattern_bonus` | 4 HIGH cases in FY2025-2026 | gte | 3 | **applied** | 10 | **10** |
+| `account_underutilisation` | None | lt | 25 | *skipped* `not_published` | 8 | 0 |
+| | | | | **Rule subtotal** | 144 | **20** |
+| `agency_pattern_bonus` | 0 HIGH cases in FY2025-2026 | gte | 3 | **not applied** | 10 | **0** |
 
 ```
-raw_score    = 20 + 12 = 32,  + 10 bonus = 42
-score        = min(42, 100)               = 42
-severity     = 42 < 50                    = LOW
-skipped wt   = 0
-coverage_pct = (144 − 0) / 144            = 100
+raw_score    = 20,  + 0 bonus                = 20
+score        = min(20, 100)                  = 20
+severity     = 20 < 50                       = LOW
+skipped wt   = 18 + 12 + 8                   = 38
+coverage_pct = (144 − 38) / 144 = 0.7361     = 74
 ```
+
+**C's three skips are the corpus-shaped ones, and they are a finding rather
+than a flaw in the control.** `duplicate_work` and `vendor_concentration` are
+`not_applicable` because a single work under a single agency has no peer to be
+similar to and no second vendor to be concentrated against;
+`account_underutilisation` is `not_published` because the synthetic member holds
+no allocation row. A work with no peers is a work three of the ten rules cannot
+say anything about, and saying so is the whole of invariant 2. See standing
+caveat 9 for why the control is not given a fabricated corpus to close them.
 
 ### C's fund ladder — and the point it makes
 
@@ -447,7 +490,7 @@ certified   Rs 29,10,000   published    hop 2: −25.00%  OPEN
 **And that open hop contributes exactly zero points.** Rulebook v1.0.0 has no
 rule reading `variance_disbursement_to_certification`, because there is no public
 data to calibrate a threshold against. So C shows an officer a quarter of the
-disbursed money uncertified, on a ladder rung marked open, next to a score of 42
+disbursed money uncertified, on a ladder rung marked open, next to a score of 20
 and a LOW band.
 
 That is not a bug and it must not be "fixed" by inventing a rule. It is the
@@ -458,10 +501,13 @@ F9 — *export one date and one certified amount per work* — is worth 20 point
 rulebook weight and roughly 12 points of coverage across 3,529 cases, and C is
 the case that makes that concrete on screen.
 
-**C also demonstrates that 100% coverage is attainable.** Coverage is measured
-over rules, and no rule reads a never-published field. 1,011 real works in the
-corpus reach 100% too (profile §6). C is not privileged by being synthetic; it is
-privileged only in having a certified amount.
+**C does not demonstrate 100% coverage, and no fixture here does.** Coverage is
+measured over rulebook weight, and C loses 38 points to the three rules a
+peerless work cannot support, so it reads 74%. 1,011 real works in the corpus do
+reach 100% (profile §6), and that population — not this control — is what shows
+full coverage is attainable. C is not privileged by being synthetic; it is
+privileged only in having a certified amount, and it pays for its isolation in
+coverage.
 
 ---
 
@@ -471,28 +517,33 @@ privileged only in having a certified amount.
 | --- | ---: | ---: | ---: |
 | Work id | `WS/MP847/2025-2026/160261` | `WS/MP163/2024-2025/136111` | `WS/MP503/2025-2026/140882` |
 | Case id | `NG-8F0E3213D8` | `NG-736D95571D` | `NG-622268C00E` |
-| Rules fired | 5 | 4 | 2 |
-| Rules passed | 3 | 3 | 8 |
-| Rules skipped | 2 | 3 | 0 |
-| Rule subtotal | 82 | 60 | 32 |
-| Corroboration | +10 | +0 | +10 |
-| `raw_score` | **92** | **60** | **42** |
-| `score` (capped) | 92 | 60 | 42 |
+| Rules fired | 5 | 4 | 1 |
+| Rules passed | 3 | 3 | 6 |
+| Rules skipped | 2 | 3 | 3 |
+| Rule subtotal | 82 | 60 | 20 |
+| Corroboration | +10 | +0 | +0 |
+| `raw_score` | **92** | **60** | **20** |
+| `score` (capped) | 92 | 60 | 20 |
 | Severity | HIGH | MEDIUM | LOW |
-| `coverage_pct` | 79 | 65 | 100 |
+| `coverage_pct` | 79 | 65 | 74 |
 | `gap_hop` | `sanction_to_disbursement` | null | `disbursement_to_certification` |
 | `slowest_lag` | `recommend_to_sanction` | `recommend_to_sanction` | `first_payment_to_completion` |
 | `is_synthetic` | false | false | **true** |
 
 None of the three reaches the 100-point cap, so the cap is not exercised by a
-fixture either. A work firing seven or more rules will exceed it — 144 + 10
+fixture either. A work firing eight or more rules will exceed it — 144 + 10
 points of weight against a 100-point display means capping is routine for the
-worst cases, not exceptional. `tests/test_score.py::test_cap_does_not_renormalise`
-covers it: it asserts that a case with a raw score of 118 stores `raw_score = 118`
-and `score = 100`, and that every `rule_hits.contribution` still equals the
-rule's full undivided weight.
+worst cases, not exceptional. Two unit tests cover it rather than a fixture:
+`tests/test_score.py::test_a_case_over_the_cap_still_stores_its_raw_score`
+asserts that a case with a raw score of 118 stores `raw_score = 118` and
+`score = 100`, and `test_cap_does_not_renormalise` takes the arithmetic to its
+ceiling — all ten rules fired plus the bonus, `raw_score = 154`, `score = 100`.
+Both assert that every `rule_hits.contribution` still equals the rule's full
+undivided weight.
 
 **Confirmation, stated plainly: no weight and no threshold in
-`DOMAIN-MODEL.md` §(g) was altered, tuned or chosen to make any of 92, 60 or 42
+`DOMAIN-MODEL.md` §(g) was altered, tuned or chosen to make any of 92, 60 or 20
 come out. The weights were fixed from measured firing counts before these rows
-were selected from the corpus, and the scores are what the addition produced.**
+were selected from the corpus, and the scores are what the addition produced —
+including C's 20, which this file previously recorded as 42 on inputs the
+control never carried (standing caveat 9).**

@@ -426,38 +426,37 @@ def test_fixture_c_scores_42_low_on_its_stipulated_inputs(rulebook, features_fac
 
 
 def test_fixture_c_context_features_are_not_derivable_from_the_control(corpus):
-    """DOCUMENTED DIVERGENCE, asserted so it cannot drift unnoticed.
+    """The five readings a peerless control cannot support, pinned so they hold.
 
-    Four of fixture C's stated inputs are facts about a corpus AROUND the work
-    rather than about the work, and the control `ingest/synthetic.py` inserts
-    has no such corpus around it:
+    Each of these is a fact about the corpus AROUND a work rather than about
+    the work, and the control `ingest/synthetic.py` inserts is one work under
+    one agency with one member and one vendor:
 
-      vendor_share_in_agency_pct  fixtures 67.3   engine None, not_applicable
+      vendor_share_in_agency_pct  None, not_applicable
           The synthetic agency has disbursed Rs 38.8 lakh in total, below the
           Rs 50 lakh floor in app.constants; and all of it went to one vendor,
-          so the share would read 100%, not 67.3%.
-      duplicate_similarity        fixtures 0.31   engine None, not_applicable
-          The synthetic agency holds exactly one work, so there is nothing to
-          compare its description against.
-      same_desc_same_agency_count fixtures 2      engine 1
-          Same reason. Both values pass the rule, so the score is unaffected.
-      mp_utilisation_pct          fixtures 44.9   engine None, not_published
-          The synthetic member holds no allocation row: `fund_accounts` is
+          so the share would read 100% rather than anything meaningful.
+      duplicate_similarity        None, not_applicable
+          The agency holds exactly one work, so there is nothing to compare
+          its description against.
+      same_desc_same_agency_count 1
+          Same reason: the cluster is the work itself.
+      mp_utilisation_pct          None, not_published
+          The synthetic member holds no allocation row - `fund_accounts` is
           materialised before the control is inserted, so it has no
           term-to-date row at all.
-      agency HIGH cases this FY   fixtures 4      engine 0
-          The synthetic agency holds one work, which is C itself, and a case
-          never corroborates itself.
+      agency HIGH cases this FY   0
+          The agency's only case is C, and a case never corroborates itself.
 
-    Consequence: scored against the ingested row, C reads 20 / LOW / 74%
-    instead of 42 / LOW / 100%. Everything C was BUILT to exercise - the
+    Phase 1 recorded fixtures.md's C column as 67.3 / 0.31 / 2 / 44.9 / 4,
+    which no queryable row ever carried. Phase 2 corrected the FIXTURE rather
+    than the control: giving C sibling works, a second vendor, an allocation
+    row and three HIGH peers purely to reach a score of 42 would be tuning a
+    fixture to a number, which fixtures.md standing caveat 7 forbids and
+    caveat 9 now records. Everything C was BUILT to exercise - the
     certification hop, `gap_hop`, the third-stage slowest lag and the sum
-    identity - is derived from the real row and asserted above.
-
-    This is reported rather than resolved. Closing it means giving the control
-    sibling works, a second vendor, an allocation row and three HIGH peers,
-    which is a change to `ingest/synthetic.py` and would move the row counts
-    pinned in `docs/data/INGEST-EXPECTATIONS.md`.
+    identity - is derived from the real row and asserted above, untouched by
+    any of this.
     """
     features = corpus.features_for(FIXTURE_C)
     assert features["vendor_share_in_agency_pct"] is None
@@ -468,6 +467,42 @@ def test_fixture_c_context_features_are_not_derivable_from_the_control(corpus):
     assert features["mp_utilisation_pct"] is None
     assert features.availability["mp_utilisation_pct"] == Availability.NOT_PUBLISHED
     assert corpus.score(FIXTURE_C)["corroboration"]["high_case_count"] == 0
+
+
+def test_fixture_c_scores_20_low_on_74_percent_coverage_as_ingested(corpus):
+    """The corrected contract, asserted against the row ingest actually writes.
+
+    fixtures.md's C scoring table: one rule fires (execution_delay, 20), six
+    pass, three are skipped for 38 points of weight, and the corroboration
+    bonus is not awarded. (144 - 38) / 144 = 0.7361 -> 74.
+
+    This is the acceptance assertion for C. The stipulated-input test above it
+    proves the ARITHMETIC of fixtures.md's worked example; this one proves the
+    engine reproduces the corrected fixture on the real ingested control.
+    """
+    body = corpus.score(FIXTURE_C)
+    hits = {hit["rule_id"]: hit for hit in body["rule_hits"]}
+    assert len(body["rule_hits"]) == 10
+
+    fired = {rule_id for rule_id, hit in hits.items() if hit["status"] == "fired"}
+    assert fired == {"execution_delay"}
+    skipped = {
+        rule_id: hit["skip_reason"] for rule_id, hit in hits.items() if hit["status"] == "skipped"
+    }
+    assert skipped == {
+        "duplicate_work": "not_applicable",
+        "vendor_concentration": "not_applicable",
+        "account_underutilisation": "not_published",
+    }
+    assert sum(hits[rule_id]["weight"] for rule_id in skipped) == 38
+
+    assert body["raw_score"] == 20
+    assert body["score"] == 20
+    assert body["severity"] == "LOW"
+    assert body["coverage_pct"] == 74
+    assert body["corroboration"]["applied"] is False
+    assert body["gap_hop"] == "disbursement_to_certification"
+    assert body["slowest_lag"] == "first_payment_to_completion"
 
 
 # ---------------------------------------------------------------------------
