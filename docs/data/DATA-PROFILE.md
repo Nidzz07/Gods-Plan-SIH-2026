@@ -605,15 +605,59 @@ are corrected in the changelog at the top of this file: total allocated
 (Rs 23,242 crore → **Rs 11,621.06 crore**) and calamity consents (34 and
 Rs 29.01 crore → **32 and Rs 14.51 crore**).
 
+### Phase 2 derivation decisions — settled and recorded
+
+The two items Phase 1 left open for the derivation layer are decided. Both are
+implemented in `backend/app/engine/derive.py` and both are asserted by tests, so
+this section is the record the code's docstrings point at rather than a plan.
+
+**1. The fund ladder's disbursed rung reads the PAYMENTS ROLLUP, not
+`completions.completed_amt`.** Measured over the sanctioned population:
+
+| Quantity | Value |
+| --- | ---: |
+| Sanctioned works with a published `completed_amt` | **12,953** |
+| — of which also have at least one published payment row | 1,066 |
+| — — of those, the two figures disagree | **178** |
+| — of which have **no payment row at all** | **11,887** |
+
+**Not to be confused with the 1,329 in the changelog above.** That figure
+compares the completed export's amount against the **sanctioned** amount and
+counts 1,329 of the same 12,953 published pairs. The table here compares it
+against the **payments rollup**, which is a different question with a different
+population — only 1,066 of the 12,953 have a payment row to compare against at
+all. Both are correct; they measure different disagreements.
+
+The last row is the whole of the decision. Reading `completed_amt` would make
+`variance_sanction_to_disbursement` computable on 11,887 further works and lift
+`utilisation_shortfall` out of `skipped` on all of them — but it would do so
+from a single total that names no vendor, no date and no payment status, so an
+officer who doubted the resulting flag would have nothing to open. A payment row
+can be walked; a completion total can only be believed. Where both readings
+exist they disagree on 178 of 1,066, which is enough to show they are not
+interchangeable and not enough to prefer the unattributable one.
+
+The consequence is deliberate and visible on fixture B, which publishes a
+`completed_amt` of Rs 9,96,458 and has no payment row: its
+`variance_sanction_to_disbursement` is `not_published` rather than computed from
+a number nobody can trace, and `utilisation_shortfall` is skipped, not passed.
+Both columns remain stored, so the alternative reading is still available to a
+later pass — it was unselected, not discarded.
+
+**2. The 163 works completed before their first recorded payment keep a signed
+`first_payment_to_completion`, never clamped and never dropped.** The earliest
+is negative by 446 days. Neither source row is malformed — the completed export
+and the expenditure export simply disagree — so this is not an `ingest_rejects`
+case, and clamping to zero would erase the disagreement instead of showing it.
+The negative value travels into the lifecycle ladder where an officer can see
+it. Two consequences follow and are intended: `slowest_lag` can never select a
+negative lag over a positive one, and `execution_days` is unaffected, because it
+is computed directly from the sanction and completion dates rather than as the
+sum of the two payment-side lags (`DOMAIN-MODEL.md` §c).
+
 ### Open, for the next measurement pass
 
 - **`duplicate_similarity` is uncalibrated.** Threshold 0.85 on
   `token_set_ratio` fires on 61% of the corpus. Phase 7 must choose a scorer and
   a threshold together and record the resulting distribution here before
   `duplicate_work` contributes its 18 points to anything shown to an officer.
-- **The 163 works completed before their first payment** need a stated
-  derivation-layer rule in Phase 2.
-- **The completed export's disbursed amount disagrees with the sum of the
-  expenditure rows** on an unmeasured share of works. Both are stored
-  (`completions.completed_amt` and the `payments` rollup); which one the fund
-  ladder's disbursed rung reads is a Phase 2 decision and must be recorded here.

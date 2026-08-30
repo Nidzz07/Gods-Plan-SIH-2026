@@ -325,14 +325,16 @@ def disbursed_amount(payments) -> tuple[int | None, Availability]:
     """The disbursed rung: the sum of this work's published payment amounts.
 
     **Phase 2 decision, recorded in DATA-PROFILE.md section 10.** The completed
-    export also publishes an `Amount Disbursed` figure, and the two disagree on
-    1,329 of 12,953 published pairs. The ladder reads the PAYMENTS ROLLUP,
-    because a payment row names its vendor, its date and its status and can
-    therefore be walked by an officer, while the completion figure is a single
-    unattributable total. The consequence is visible and deliberate: fixture B
-    publishes a completed amount of 996,458 and has no payment row, so its
-    `variance_sanction_to_disbursement` is `not_published` rather than computed
-    from a number nobody can trace.
+    export also publishes an `Amount Disbursed` figure: 12,953 sanctioned works
+    carry one, 1,066 of those also carry a payment row, and on 178 of that 1,066
+    the two figures disagree. The ladder reads the PAYMENTS ROLLUP, because a
+    payment row names its vendor, its date and its status and can therefore be
+    walked by an officer, while the completion figure is a single unattributable
+    total. The cost is explicit: 11,887 works have a completed amount and no
+    payment row, and this rung reports `not_published` on every one of them
+    rather than computing a variance from a number nobody can open. Fixture B is
+    one of them - a completed amount of 996,458, no payment row, and
+    `utilisation_shortfall` skipped rather than passed.
 
     Returns `not_published` when no payment row joins, and `published_zero`
     when payments exist and sum to zero - a real zero is a fact about the work,
