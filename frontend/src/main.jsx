@@ -11,6 +11,7 @@ import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
 
 import App from './App.jsx'
+import { AuthProvider } from './auth.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -20,7 +21,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
-      <App />
+      {/* Inside the router, not outside it: the provider signs a person out
+          when any request comes back 401, and the screens that react to that
+          are routes. */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

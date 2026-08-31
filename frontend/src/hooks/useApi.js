@@ -70,7 +70,14 @@ export function useApi(path) {
       .catch((err) => {
         // data goes to null on failure. A page shows either an error or a
         // result, never an error above the stale rows it replaced.
-        if (live) setSettled({ key, data: null, error: err.message })
+        //
+        // The ApiError itself is stored, not err.message. A page has to be
+        // able to tell 404 (this row is not in your scope, or does not exist —
+        // the API will not say which) from 403 (your role cannot ask this
+        // question) from 0 (the backend is not running), and those need three
+        // different sentences on screen. The message is still there as
+        // error.message for anything that only wants the text.
+        if (live) setSettled({ key, data: null, error: err })
       })
 
     // A page can be navigated away from mid-request; without this the response
