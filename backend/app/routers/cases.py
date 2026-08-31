@@ -36,14 +36,21 @@ corpus-wide context `derive_all` used - proved for every work in the corpus by
 not asserted here. It costs 5-60 ms instead of 5 s.
 
 **Role scoping.** Every case-bearing query in this file goes through
-`scoped_cases()`, which today returns the unfiltered select because
-authentication is Phase 7. That one function is where the predicate lands:
-`Work.state_id == S` for a State Nodal officer, `Work.district == D` for a
-District Authority, `Work.mp_id == M` for a member - applied BEFORE the
-query-parameter filters, so a filter can only narrow the scope and never widen
-it, and an out-of-scope case id returns 404 rather than 403 so that a status
-code cannot confirm the existence of another district's case. The full
-endpoint-by-endpoint commitment is `docs/api/ROLE-SCOPING-PLAN.md`.
+`scoping.scoped_cases(user)`, which returns the base select already narrowed to
+what the caller's role may reach - `Work.state_id == S` for a State Nodal
+officer, `state_id == S AND district == D` for a District Authority,
+`Work.mp_id == M` for a member. It is applied BEFORE the query-parameter
+filters below, so `?district=` can only narrow the scope further and never
+reach outside it, and an out-of-scope case id returns 404 rather than 403 so
+that a status code cannot confirm the existence of another district's case.
+Nothing in this file filters rows in Python after a query has run. The rules
+live in `routers/scoping.py`; the endpoint-by-endpoint commitment they keep is
+`docs/api/ROLE-SCOPING-PLAN.md`.
+
+**The two writes are refused to the member of parliament**, through
+`auth.require_write`, before the case is even fetched. An MP can see, and
+cannot annotate, escalate, resolve or recompute: the scheme's subject does not
+adjudicate the scheme's findings (DOMAIN-MODEL.md (k)).
 """
 
 from __future__ import annotations
@@ -63,6 +70,7 @@ from ..constants import (
     ML_KIND_GRAPH,
     Availability,
 )
+from ..auth import get_current_user, require_write
 from ..db import get_db
 from ..engine import derive as derive_mod
 from ..engine import memo as memo_mod
@@ -84,9 +92,11 @@ from ..models import (
     RulebookVersion,
     Sanction,
     State,
+    User,
     Work,
 )
 from ..schemas import CaseDetail, CaseListItem, CaseListPage, NoteIn, NoteOut, RecomputeOut
+from .scoping import scope_works, scoped_cases
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -109,23 +119,15 @@ NOT_MATERIALISED = (
 
 
 # ---------------------------------------------------------------------------
-# Scoping - the one place Phase 7's predicate lands
+# Reading the corpus, through the caller's scope
 # ---------------------------------------------------------------------------
+#
+# `scoped_cases` and `scope_works` live in `routers/scoping.py`. They are
+# imported rather than restated here so that the audit question - "where is the
+# predicate?" - has one answer for the whole package.
 
 
-def scoped_cases(db: Session) -> Select:
-    """The base select every case query in the API starts from.
-
-    Returns cases joined to their work, unfiltered. Phase 7 adds exactly one
-    `.where(...)` here, taken from the authenticated role, and every endpoint
-    below inherits it without changing. Nothing in this file filters rows in
-    Python after the query has run: that would be scoping in the application,
-    and the row would already have left the database (CLAUDE.md invariant 10).
-    """
-    return select(Case, Work).join(Work, Work.id == Case.work_id)
-
-
-def list_query(db: Session) -> Select:
+def list_query(user: User) -> Select:
     """The ranked list, as one join rather than a row-at-a-time lookup.
 
     Every column a triage row shows is selected here, so a page of 50 costs one
@@ -135,8 +137,12 @@ def list_query(db: Session) -> Select:
 
     `agencies` is an OUTER join: `works.agency_id` is null where the portal
     published a blank implementing agency, and those cases are still cases.
+
+    Scoped to `user` before it is returned, so every caller of this helper -
+    the ranked list, the district queue, a member's worst cases - inherits the
+    predicate without having to remember it.
     """
-    return (
+    query = (
         select(
             Case.case_id,
             Work.work_id_canon,
@@ -164,6 +170,9 @@ def list_query(db: Session) -> Select:
         .join(Sanction, Sanction.work_id == Work.id)
         .outerjoin(Agency, Agency.id == Work.agency_id)
     )
+    # The role predicate, on the select rather than on its results, and before
+    # any endpoint's own filters (CLAUDE.md invariant 10).
+    return scope_works(query, user)
 
 
 def list_item(row) -> CaseListItem:
@@ -191,14 +200,15 @@ def list_item(row) -> CaseListItem:
     )
 
 
-def _case_or_404(db: Session, case_id: str) -> tuple[Case, Work]:
+def _case_or_404(db: Session, case_id: str, user: User) -> tuple[Case, Work]:
     """One case, through the scoped select. 404 when it is not in scope.
 
-    404 rather than 403 on purpose: once roles exist, a 403 would confirm that
-    another district's case id is real, which is a scoping leak spelled with a
-    status code.
+    404 rather than 403 on purpose: a 403 would confirm that another district's
+    case id is real, which is a scoping leak spelled with a status code. A case
+    outside the caller's scope is indistinguishable from a case id that was
+    never issued, which is exactly as much as the caller is entitled to learn.
     """
-    row = db.execute(scoped_cases(db).where(Case.case_id == case_id)).first()
+    row = db.execute(scoped_cases(user).where(Case.case_id == case_id)).first()
     if row is None:
         raise HTTPException(status_code=404, detail=f"No case {case_id}")
     return row[0], row[1]
@@ -537,6 +547,7 @@ def build_case_detail(db: Session, case: Case, work: Work) -> dict:
 @router.get("", response_model=CaseListPage)
 def list_cases(
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
     severity: str | None = Query(default=None, description="HIGH, MEDIUM or LOW"),
     state: str | None = Query(default=None),
     district: str | None = Query(default=None),
@@ -554,11 +565,13 @@ def list_cases(
 ):
     """The ranked case list. Highest score first - that IS the triage order.
 
-    Filters narrow; they never widen. Once Phase 7 lands, the role predicate is
-    applied in `scoped_cases()` before any of these, so `?district=` cannot
-    reach outside the caller's own scope.
+    Filters narrow; they never widen. The role predicate is already on the
+    select `list_query` returns, applied before any of the filters below, so
+    `?district=` cannot reach outside the caller's own scope - it can only
+    select a subset of what that scope already allows. A District Authority
+    passing another district's name gets an empty page, not that district.
     """
-    query = list_query(db)
+    query = list_query(user)
     if severity:
         query = query.where(Case.severity == severity.upper())
     if state:
@@ -591,21 +604,46 @@ def list_cases(
 
 
 @router.get("/{case_id}", response_model=CaseDetail)
-def get_case(case_id: str, db: Session = Depends(get_db)):
-    """One case sheet: both ladders, the trace, coverage, badges and the memo."""
-    case, work = _case_or_404(db, case_id)
+def get_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """One case sheet: both ladders, the trace, coverage, badges and the memo.
+
+    The same object for every role that can reach it. What a role changes is
+    which cases it can reach, never which keys a case carries - so a District
+    Authority reading a case in their district gets exactly what the Ministry
+    gets (DOMAIN-MODEL.md (k), `schemas.py`).
+    """
+    case, work = _case_or_404(db, case_id, user)
     return CaseDetail(**build_case_detail(db, case, work))
 
 
 @router.post("/{case_id}/notes", response_model=NoteOut, status_code=201)
-def add_note(case_id: str, note: NoteIn, db: Session = Depends(get_db)):
+def add_note(
+    case_id: str,
+    note: NoteIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_write),
+):
     """An officer's note. It lands in the audit trail and nowhere else.
 
     There is no notes table: a note IS an audit event (DOMAIN-MODEL.md (j)),
     hash-chained like every other row, so a note cannot be edited or removed
     after the fact any more than a score can.
+
+    The actor comes from the token. Until Phase 6 the caller declared which role
+    was writing and the trail recorded what was declared, which made the actor
+    line on an append-only row a client-supplied string; it is now the
+    authenticated role and the authenticated user id, so the trail records who
+    wrote a note rather than who said they did.
+
+    Refused outright to the member of parliament by `require_write`, before the
+    case is fetched - so an out-of-scope note cannot reach `audit_log` and a
+    member's attempt does not even confirm whether the case exists.
     """
-    case, _work = _case_or_404(db, case_id)
+    case, _work = _case_or_404(db, case_id, user)
 
     text = note.text.strip()
     if not text:
@@ -614,8 +652,9 @@ def add_note(case_id: str, note: NoteIn, db: Session = Depends(get_db)):
     row = log(
         db,
         EVENT_NOTE_ADDED,
-        note.actor_role,
+        user.role,
         case_id=case.case_id,
+        actor_id=user.id,
         payload={"text": text},
     )
     db.commit()
@@ -637,7 +676,11 @@ def add_note(case_id: str, note: NoteIn, db: Session = Depends(get_db)):
 
 
 @router.post("/{case_id}/recompute", response_model=RecomputeOut)
-def recompute(case_id: str, db: Session = Depends(get_db)):
+def recompute(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_write),
+):
     """Re-derive this case against its OWN rulebook snapshot and report what moved.
 
     Wired straight to `engine.audit.recompute`, which reads the snapshot stored
@@ -648,9 +691,14 @@ def recompute(case_id: str, db: Session = Depends(get_db)):
 
     The stored case is left exactly as it was. If the two disagree, the
     disagreement is the finding.
+
+    Refused to the member of parliament, and the resulting `SCORE_RECOMPUTED`
+    row carries the officer who asked for it rather than a default role.
     """
-    case, work = _case_or_404(db, case_id)
-    outcome = recompute_case(db, case, lambda: features_for(db, work))
+    case, work = _case_or_404(db, case_id, user)
+    outcome = recompute_case(
+        db, case, lambda: features_for(db, work), actor_role=user.role, actor_id=user.id
+    )
     db.commit()
     return RecomputeOut(
         case_id=case.case_id,

@@ -30,12 +30,24 @@ than an error, because nobody would know to doubt it.
   MoSPI's export as undelivered money. The size of that population travels
   beside the sum as `cases_without_expenditure_row`.
 
-Role scoping (Phase 7): `/national` becomes Ministry-only, `/state/{state}`
-requires `state == S` for a State Nodal officer, `/district/{district}`
-requires `district == D` for a District Authority, and `/mp/{mp_id}` is
-invisible to the District role entirely - a district officer has no business
-seeing a member's aggregate account position (DOMAIN-MODEL.md (k)). See
-`docs/api/ROLE-SCOPING-PLAN.md`.
+**Role scoping is by GRAIN here, and that is a different question from the
+case list's.** A rollup row is an aggregate over a population, so there is no
+row-level predicate to add: either a role reads a grain or it does not.
+`/national` is Ministry-only; `/state/{state}` requires `state == S` for a
+State Nodal officer and is out of reach for the district and member roles;
+`/district/{district}` requires the district to lie in `S` for a State Nodal
+officer and to BE `D` for a District Authority; `/mp/{mp_id}` is the member's
+own row, a member seated in `S` for a State Nodal officer, and invisible to the
+District role entirely - a district officer has no business seeing a member's
+aggregate account position (DOMAIN-MODEL.md (k)). The checks live in
+`routers/scoping.py` and refuse with 403: a state name or a member id is
+published by MoSPI, so there is nothing about its existence to conceal, which
+is the opposite of the case-id situation and why that one 404s instead.
+
+**The two case lists these endpoints embed are row-scoped as well**, through
+`cases.list_query(user)`, so the district queue and a member's worst cases
+carry the same predicate the ranked list does rather than a second one written
+here. See `docs/api/ROLE-SCOPING-PLAN.md`.
 """
 
 from __future__ import annotations
@@ -44,10 +56,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from ..constants import DATA_AS_OF, FY_TERM_TO_DATE
+from ..auth import get_current_user, require_role
+from ..constants import DATA_AS_OF, FY_TERM_TO_DATE, ROLE_MINISTRY
 from ..db import get_db
 from ..engine.rulebook import load as load_rulebook
-from ..models import MP, Case, Constituency, FundAccount, State, Work
+from ..models import MP, Case, Constituency, FundAccount, State, User, Work
 from ..schemas import (
     AccountLadder,
     AccountLadderRung,
@@ -59,6 +72,7 @@ from ..schemas import (
     StateAnalytics,
 )
 from .cases import list_item, list_query
+from .scoping import check_district_grain, check_mp_grain, check_state_grain
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -98,6 +112,29 @@ def _fresh_or_503(db: Session) -> None:
         raise HTTPException(status_code=503, detail=f"{STALE} (rollup {rolled}, cases {stored})")
 
 
+def _state_ids(db: Session) -> dict:
+    """Every state name to its id. 36 rows, so this is one query and not a join."""
+    return {name: state_id for state_id, name in db.execute(select(State.id, State.name))}
+
+
+def _district_state(db: Session, district: str) -> tuple[int | None, str | None]:
+    """Which state this district's cases sit in, resolved before the grain check.
+
+    District names repeat across states in this corpus, so the check cannot be
+    made on the name. Reads `works` rather than `rollup_district` because the
+    rollup carries the state name and not its id, and the comparison is on the
+    id: two spellings of one state would otherwise be two states.
+    """
+    row = db.execute(
+        select(Work.state_id, State.name)
+        .join(State, State.id == Work.state_id)
+        .join(Case, Case.work_id == Work.id)
+        .where(Work.district == district)
+        .limit(1)
+    ).first()
+    return (row[0], row[1]) if row is not None else (None, None)
+
+
 def _rows(db: Session, sql: str, **params) -> list[RollupRow]:
     return [RollupRow(**dict(row._mapping)) for row in db.execute(text(sql), params).all()]
 
@@ -129,9 +166,15 @@ def _totalled(rows: list[RollupRow], **identity) -> RollupRow:
 @router.get("/national", response_model=NationalAnalytics)
 def national(
     db: Session = Depends(get_db),
+    _user: User = Depends(require_role(ROLE_MINISTRY)),
     top: int = Query(default=10, ge=1, le=32, description="how many states in the HIGH ranking"),
 ):
-    """State-level rollups: case counts by band, value at risk, worst states."""
+    """State-level rollups: case counts by band, value at risk, worst states.
+
+    Ministry-only. Every other role reads its own grain: a state nodal officer's
+    equivalent view is `/state/{their state}`, and a national ranking of states
+    is not a narrower version of that - it is a different question.
+    """
     _fresh_or_503(db)
     states = _rows(
         db, f"SELECT state, districts, agencies, {ROLLUP_COLUMNS} FROM rollup_state ORDER BY state"
@@ -161,8 +204,18 @@ def national(
 
 
 @router.get("/state/{state}", response_model=StateAnalytics)
-def state_analytics(state: str, db: Session = Depends(get_db)):
-    """The districts inside one state, ranked by HIGH count."""
+def state_analytics(
+    state: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """The districts inside one state, ranked by HIGH count.
+
+    The grain check runs against the resolved state id rather than the name, so
+    a caller cannot reach their own state's rollup under a different spelling,
+    nor another state's under theirs.
+    """
+    check_state_grain(user, state, _state_ids(db))
     _fresh_or_503(db)
     districts = _rows(
         db,
@@ -185,6 +238,7 @@ def state_analytics(state: str, db: Session = Depends(get_db)):
 def district_analytics(
     district: str,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
     limit: int = Query(default=50, ge=1, le=500, description="cases in the queue"),
 ):
     """One district's case queue, plus which agencies the cases sit under.
@@ -192,7 +246,15 @@ def district_analytics(
     The agency summary is the district's answer to "who is this happening
     under" - the same question the F4 corroboration bonus asks per case, asked
     over the district instead of over one work.
+
+    A district name is not unique - `AGRA`, `KAITHAL`, `PILIBHIT` and
+    `SHAHJAHANPUR` each name a district in five different states - so the grain
+    check compares the district's own state against the caller's rather than
+    trusting the name. A State Nodal officer asking for a name their state does
+    not carry is refused, whichever other state does carry it.
     """
+    district_state_id, district_state_name = _district_state(db, district)
+    check_district_grain(user, district, district_state_name, district_state_id)
     _fresh_or_503(db)
     summary_rows = _rows(
         db,
@@ -209,7 +271,7 @@ def district_analytics(
         district=district,
     )
     queue = db.execute(
-        list_query(db)
+        list_query(user)
         .where(Work.district == district, Case.is_synthetic.is_(False))
         .order_by(Case.score.desc(), Case.raw_score.desc(), Case.coverage_pct.desc(), Case.case_id)
         .limit(limit)
@@ -229,6 +291,7 @@ def district_analytics(
 def mp_analytics(
     mp_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
     limit: int = Query(default=20, ge=1, le=200, description="worst cases to list"),
 ):
     """One member's account ladder, work portfolio and utilisation percentile.
@@ -244,8 +307,18 @@ def mp_analytics(
     computed live from `fund_accounts` - 419 rows, not 27,079 - and the peer
     group is named in the response rather than left for the reader to assume it
     is national.
+
+    A member reads their own row and no other. The district authority reads none
+    at all, including their own district's members: a member's aggregate account
+    position is not evidence about any work in a district, and the one derived
+    value the district needs, `mp_utilisation_pct`, travels with each case's own
+    trace (DOMAIN-MODEL.md (k)).
     """
     mp = db.get(MP, mp_id)
+    # The grain check needs the member's own state, so the row is fetched
+    # first - but the check runs before the 404, so a refused role learns
+    # nothing about whether the id exists.
+    check_mp_grain(user, mp_id, mp.state_id if mp is not None else None)
     if mp is None:
         raise HTTPException(status_code=404, detail=f"No MP {mp_id}")
     _fresh_or_503(db)
@@ -310,7 +383,7 @@ def mp_analytics(
         mp_id=mp_id,
     )
     worst = db.execute(
-        list_query(db)
+        list_query(user)
         .where(Work.mp_id == mp_id, Case.is_synthetic.is_(False))
         .order_by(Case.score.desc(), Case.raw_score.desc(), Case.coverage_pct.desc(), Case.case_id)
         .limit(limit)

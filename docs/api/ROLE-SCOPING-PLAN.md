@@ -1,22 +1,37 @@
-# ROLE-SCOPING-PLAN — how each endpoint will be scoped in Phase 7
+# ROLE-SCOPING-PLAN — how each endpoint is scoped
 
 CLAUDE.md invariant 10: *role scoping is enforced server-side, in the query.
 Never by hiding rows in the UI. A District Authority token must not be able to
 fetch another district's cases by editing a URL.*
 
-Phase 5 built the API layer. Phase 7 adds authentication. This document is the
-commitment made in between: it names, endpoint by endpoint, the exact predicate
-that will be added to each query, so that adding auth is a filter and not a
-rewrite. The authority for what each role may see is
-`docs/domain/DOMAIN-MODEL.md` §(k).
+Phase 5 built the API layer. **Phase 6 added authentication and implemented
+every predicate below.** This document was the commitment made in between: it
+named, endpoint by endpoint, the exact predicate that would be added to each
+query, so that adding auth would be a filter and not a rewrite. The authority
+for what each role may see is `docs/domain/DOMAIN-MODEL.md` §(k).
 
-**Nothing here is implemented yet, and the code says so.** Every router in
-`backend/app/routers/` reads today as if the caller were the Ministry role,
-which is the widest scope, so no endpoint is currently narrower than it will
-be — adding auth can only remove rows, never add them. That direction matters:
-a scope that had to be widened later would mean the demo had been showing
-officers less than they are entitled to, and a scope that has to be narrowed is
-the ordinary case.
+**Status: implemented.** The predicates live in `backend/app/routers/scoping.py`
+and `backend/tests/test_role_scoping.py` asserts them — including a test that
+compiles each role's select and reads the `WHERE` clause, because every
+response-body test in that file could in principle be satisfied by fetching
+everything and dropping rows in Python, which is the failure invariant 10 names.
+
+Two things were carried out differently from the plan below, and both are
+recorded here rather than left as a diff to notice:
+
+1. **A District Authority is scoped on `state_id AND district`, not on
+   `district` alone.** The plan said `Work.district == D`. The corpus refutes
+   it: `AGRA`, `KAITHAL`, `PILIBHIT` and `SHAHJAHANPUR` each name a district in
+   five different states of `works`, and eight more names appear in three, so
+   the plan's predicate would have handed a Uttar Pradesh officer the Madhya
+   Pradesh district of the same name. The implemented predicate is strictly
+   narrower than the one promised, which is the safe direction.
+2. **`GET /api/audit/chain` is Ministry-only**, which the plan did not mention.
+   Every other audit read is scoped by a case; the chain walk is over the whole
+   84,629-row trail at once and has no case to be scoped by.
+
+Everything else is as written below. The original wording is kept in the present
+tense because it still describes the code.
 
 ---
 
@@ -32,6 +47,9 @@ id, taken from the authenticated token and never from a query parameter.
 | `district_authority` | `works.district == D` | notes, recompute, escalation |
 | `member_of_parliament` | `works.mp_id == M` | **nothing. Read-only** |
 
+The `district_authority` row is implemented as `works.state_id == S AND
+works.district == D`; see the two deviations above.
+
 The MP role is read-only everywhere. The scheme's subject does not adjudicate
 the scheme's findings.
 
@@ -39,14 +57,18 @@ the scheme's findings.
 
 ## Where the predicate goes, endpoint by endpoint
 
-Every case-bearing query in `routers/` already goes through one helper,
-`routers/cases.scoped_cases(db)`, which today returns the unfiltered select.
-Phase 7 changes that one function and the four endpoints below inherit it.
+Every case-bearing query in `routers/` goes through one helper. It moved from
+`routers/cases.scoped_cases(db)` to `routers/scoping.scoped_cases(user)` when it
+gained a predicate, so that the audit question — *where is the filter?* — has one
+answer for the whole package rather than one per router. `scope_works(query,
+user)` applies the same predicate to the bare work select and to the ranked-list
+join; the three `check_*_grain` functions beside it decide which aggregate views
+a role may ask for at all.
 
-| Endpoint | Predicate added in Phase 7 | Where |
+| Endpoint | Predicate | Where |
 | --- | --- | --- |
-| `GET /api/cases` | `Work.state_id == S` · `Work.district == D` · `Work.mp_id == M` | `cases.scoped_cases()`, before the severity/state/district/agency filters are applied, so a query parameter can only narrow the scope further and never widen it |
-| `GET /api/cases/{case_id}` | the same predicate, applied to the single-row select | `cases.get_case()` — the lookup becomes `scoped_cases(db).where(Case.case_id == case_id)`. A case outside the scope returns **404, not 403**: an officer must not be able to learn that another district's case exists by reading a status code |
+| `GET /api/cases` | `Work.state_id == S` · `Work.district == D` · `Work.mp_id == M` | `scoping.scoped_cases()`, before the severity/state/district/agency filters are applied, so a query parameter can only narrow the scope further and never widen it |
+| `GET /api/cases/{case_id}` | the same predicate, applied to the single-row select | `cases.get_case()` — the lookup is `scoped_cases(user).where(Case.case_id == case_id)`. A case outside the scope returns **404, not 403**: an officer must not be able to learn that another district's case exists by reading a status code |
 | `POST /api/cases/{case_id}/notes` | the same predicate, plus `role != member_of_parliament` | `cases.add_note()` — the case is fetched through `scoped_cases` before anything is written, so an out-of-scope note cannot reach `audit_log` |
 | `POST /api/cases/{case_id}/recompute` | the same predicate, plus `role != member_of_parliament` | `cases.recompute_case()` — same fetch, same 404 |
 | `GET /api/works/{work_id}` | `Work.state_id == S` · `Work.district == D` · `Work.mp_id == M` | `works.get_work()` — the work select, not a post-filter |
@@ -55,8 +77,11 @@ Phase 7 changes that one function and the four endpoints below inherit it.
 | `GET /api/analytics/state/{state}` | `state == S` for `state_nodal`; Ministry unrestricted; District and MP roles do not reach this grain | `analytics.state_analytics()` |
 | `GET /api/analytics/district/{district}` | `district == D` for `district_authority`; `district` must lie in `S` for `state_nodal` | `analytics.district_analytics()` |
 | `GET /api/analytics/mp/{mp_id}` | `mp_id == M` for the MP role. **Invisible to `district_authority` entirely** — a district officer has no business seeing an MP's aggregate account position, and the one derived value they need, `mp_utilisation_pct`, reaches them through the case trace where it is already scoped to that case's MP | `analytics.mp_analytics()` |
-| `GET /api/rulebook` | readable by all four roles. `PUT` (Phase 7) is Ministry-only | `rulebook.get_rulebook()` |
+| `GET /api/rulebook` | readable by all four roles — everyone judged by a rule is entitled to read it, and it names no state, district, agency or member. `PUT`, when it lands, is Ministry-only | `rulebook.get_rulebook()` |
 | `GET /api/ablation/report` | Ministry-only. It is a report about MoSPI's own publishing, not a finding about any state, district or member | `ablation.get_report()` |
+| `GET /api/audit/chain` | Ministry-only. Not in the original plan: every other audit read is scoped by a case, and this one walks the whole trail | `audit.get_chain()` |
+| `POST /api/auth/login` | the only unauthenticated route under `/api`. `GET /api/auth/me` returns exactly one row — the caller's own — which is the narrowest scope there is | `auth.login()` |
+| `GET /health` | unauthenticated, deliberately. Liveness plus four counts `DATA-PROFILE.md` already publishes; behind a login, an outage and a bad password would look the same from outside | `main.health()` |
 
 ## Three things this plan deliberately does not do
 
@@ -77,7 +102,7 @@ reading `rollup_district WHERE state_id = S` sees exactly the districts in
 their state, computed the same way the Ministry's copy was — so two officers
 can never be shown two different numbers for the same district.
 
-## The one thing Phase 7 must add that is not a filter
+## The one thing that is not a filter
 
 `audit_log` for the MP role. Every other scope is a `WHERE` clause; this one is
 a redaction of a payload field on rows that are otherwise visible. It is called

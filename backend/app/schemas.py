@@ -725,11 +725,13 @@ class NoteIn(BaseModel):
     """
 
     text: str = Field(min_length=1, max_length=4000)
-    # Phase 6 replaces this with the authenticated user's role; until then the
-    # caller declares it and the audit row records what was declared. It is
-    # constrained to the four roles so the trail cannot carry a role that does
-    # not exist.
-    actor_role: Role = "district_authority"
+
+    # There is no `actor_role` field here any more, and its absence is the
+    # point. Until Phase 6 the caller declared which role was writing and the
+    # trail recorded what was declared, which made the actor line on an
+    # append-only row a client-supplied string. It now comes from the token,
+    # together with `audit_log.actor_id`, so the trail records who wrote a note
+    # rather than who said they did.
 
 
 class AuditEventOut(BaseModel):

@@ -19,9 +19,16 @@ Deliberately independent of `cases`. Three things need this:
 otherwise. Null means "not a sanctioned work, or the build step has not run",
 never "no findings".
 
-Role scoping (Phase 7) filters the work select itself -
-`Work.state_id == S`, `Work.district == D`, `Work.mp_id == M` - and returns 404
-rather than 403 for a work out of scope. See `docs/api/ROLE-SCOPING-PLAN.md`.
+**Role scoping filters the work select itself**, never its result: the
+predicate `routers/scoping.work_predicate` returns for the caller's role is
+added to the `select` that fetches the row, and a work outside it comes back as
+404 rather than 403 - the same answer a work id that was never published gets,
+so a status code cannot confirm that another district's work exists.
+
+That scope reaches further than the case list does. `works` holds 65,270 rows
+against 27,079 cases, so a member browsing here can see their own unsanctioned
+recommendations - which have no case and are still theirs - and cannot see
+anybody else's. See `docs/api/ROLE-SCOPING-PLAN.md`.
 """
 
 from __future__ import annotations
@@ -30,6 +37,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import get_current_user
 from ..constants import canonical_work_id
 from ..db import get_db
 from ..models import (
@@ -41,26 +49,34 @@ from ..models import (
     Payment,
     Sanction,
     State,
+    User,
     Vendor,
     Work,
 )
 from ..schemas import WorkDetail
 from .cases import _mp_ref, _work_ref
+from .scoping import scope_works
 
 router = APIRouter(prefix="/works", tags=["works"])
 
 
 @router.get("/{work_id:path}", response_model=WorkDetail)
-def get_work(work_id: str, db: Session = Depends(get_db)):
+def get_work(
+    work_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """One work as published: rungs, dates, payments and the source file.
 
     The path is declared `:path` because a portal work id contains slashes -
     `WS/MP847/2025-2026/160261` - and the id is canonicalised before the lookup
     (uppercased, all whitespace including embedded tabs removed), so a caller
     who copies an id straight off the portal, tabs and all, still finds the row.
+
+    The role predicate is on this select, not on what it returns.
     """
     canon = canonical_work_id(work_id)
-    work = db.scalar(select(Work).where(Work.work_id_canon == canon))
+    work = db.scalar(scope_works(select(Work), user).where(Work.work_id_canon == canon))
     if work is None:
         raise HTTPException(status_code=404, detail=f"No work {work_id}")
 

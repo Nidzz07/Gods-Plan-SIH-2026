@@ -397,13 +397,18 @@ def test_a_note_becomes_an_audit_event_and_nothing_else(client):
     before = get(client, f"/api/audit/{CASE_B}")["events"]
     response = client.post(
         f"/api/cases/{CASE_B}/notes",
-        json={"text": "Payment register requested.", "actor_role": "district_authority"},
+        json={"text": "Payment register requested."},
     )
     assert response.status_code == 201
     written = response.json()["event"]
     assert written["event"] == "NOTE_ADDED"
     assert written["payload"] == {"text": "Payment register requested."}
-    assert written["actor_role"] == "district_authority"
+    # From the token, not from the request body: `NoteIn` no longer carries a
+    # declared role, and this client is signed in as Ministry. The actor line on
+    # an append-only row records who wrote a note rather than who said they did
+    # (tests/test_role_scoping.py asserts the same fact per role).
+    assert written["actor_role"] == "ministry"
+    assert written["actor_id"] is not None
 
     after = get(client, f"/api/audit/{CASE_B}")
     assert len(after["events"]) == len(before) + 1

@@ -30,8 +30,22 @@ being harmless. And `severity_band_effect` is a floor and a ceiling, never a
 point estimate, because saying how many rules would fire is defensible while
 saying which works they fire on is fabrication.
 
-Role scoping (Phase 7): Ministry-only. It is a report about MoSPI's own
-publishing rather than a finding about any state, district or member.
+**Ministry-only, and DOMAIN-MODEL.md (k) did not settle it.** The matrix has
+a row for every table this API reads except `ablation_findings`, which did not
+exist when the matrix was written. The call made here, and now recorded in that
+matrix: this is a report about MoSPI's own publishing - which fields the
+ministry does not publish, and what the rulebook cannot evaluate for their
+absence. It names no state, district, agency or member and contains no finding
+about anyone; what it contains is a criticism of the data source, addressed to
+the data source. A state nodal officer reading it would learn nothing about
+their state, and a member reading it would learn only that the system that
+scores their works has gaps - which the case sheet already tells them, per
+case, in `unavailable_fields`.
+
+The narrower reason to gate it: `GET /api/rulebook` is readable by all four
+roles because the rulebook is the document by which an officer is being judged,
+and everyone judged by a rule is entitled to read it. That argument does not
+extend to a recommendation the ministry has not acted on yet.
 """
 
 from __future__ import annotations
@@ -45,9 +59,16 @@ from sqlalchemy.orm import Session
 from ..ablation.fields import FIELDS
 from ..ablation.rank import RANKING_CRITERION, RANKING_CRITERION_DETAIL
 from ..ablation.report import ADDRESSEE, METHOD, TITLE
-from ..constants import RULE_WEIGHT_TOTAL, SEVERITY_HIGH, SEVERITY_LOW, SEVERITY_MEDIUM
+from ..auth import require_role
+from ..constants import (
+    ROLE_MINISTRY,
+    RULE_WEIGHT_TOTAL,
+    SEVERITY_HIGH,
+    SEVERITY_LOW,
+    SEVERITY_MEDIUM,
+)
 from ..db import get_db
-from ..models import AblationFinding, Case
+from ..models import AblationFinding, Case, User
 
 router = APIRouter(prefix="/ablation", tags=["ablation"])
 
@@ -119,7 +140,10 @@ def _finding(row: AblationFinding) -> dict:
 
 
 @router.get("/report")
-def get_report(db: Session = Depends(get_db)):
+def get_report(
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(ROLE_MINISTRY)),
+):
     """The ranked field table and the full measurement, as measured and stored.
 
     No response model, matching `GET /api/rulebook`: what comes back is a

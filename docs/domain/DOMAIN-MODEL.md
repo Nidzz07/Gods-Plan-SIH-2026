@@ -909,9 +909,11 @@ Let `S` = the user's state, `D` = the user's district, `M` = the user's MP id.
 | `audit_log` | all | rows for visible cases | rows for visible cases | rows for own cases, **excluding other actors' note text** |
 | `rulebook_versions` | all, **write** | all, read | all, read | all, read |
 | `ml_findings` | all | via `works` | via `works` | via `works` |
+| `ablation_findings` | **all** | none | none | none |
 | `ingest_rejects` | **all** | none | none | none |
+| `users` | own row via `/api/auth/me` | own row | own row | own row |
 
-Four rows carry a deliberate decision:
+Six rows carry a deliberate decision:
 
 - **`fund_accounts` is invisible to a District Authority.** A district officer
   has no business seeing an MP's aggregate account position; it is not evidence
@@ -927,3 +929,38 @@ Four rows carry a deliberate decision:
 - **`ingest_rejects` is Ministry-only.** It contains raw rejected source lines,
   including the two malformed rows, and it is a data-quality artefact rather
   than a finding about anyone.
+- **`ablation_findings` is Ministry-only**, added to this matrix in Phase 6
+  when the API gained authentication. §(i)'s report is a criticism of the data
+  source addressed to the data source: it names no state, district, agency or
+  member, and it recommends what MoSPI should publish rather than finding
+  anything about anyone. A state nodal officer would learn nothing about their
+  state from it, and a member would learn only that the system scoring their
+  works has gaps — which their own case sheet already tells them, per case, in
+  `unavailable_fields`. The rulebook is readable by all four roles for the
+  opposite reason: everyone judged by a rule is entitled to read the rule.
+- **`users` is only ever read one row at a time, by its own holder.** There is
+  no endpoint that lists accounts, and no self-registration: accounts are
+  provisioned by `python -m app.seed_users`, because in a real deployment an
+  officer's district is granted to them rather than chosen by them.
+
+### How the matrix is enforced
+
+Every predicate above is a `WHERE` clause added to the select that fetches the
+rows, in `backend/app/routers/scoping.py`, never a filter applied after
+`.all()` — the row would already have left the database, which is the failure
+CLAUDE.md invariant 10 names. `backend/tests/test_role_scoping.py` asserts it
+both ways: through HTTP, by editing URLs the way an officer could, and against
+the compiled SQL of each role's select.
+
+Two status codes, and which applies is a question about secrecy. An
+out-of-scope **row id** — a case, a work — returns **404**, indistinguishable
+from an id that was never issued, because a 403 would confirm that another
+district's case exists. An out-of-scope **grain** — a state's rollup, a
+member's account — returns **403**: state names and member ids are published by
+MoSPI, so there is nothing about their existence to conceal.
+
+**The `works` row for a District Authority is `state_id == S AND district == D`,
+not `district == D`.** District names are not unique in this corpus: `AGRA`,
+`KAITHAL`, `PILIBHIT` and `SHAHJAHANPUR` each name a district in five different
+states, and eight more names appear in three. The state travels with the
+district everywhere the district is used.

@@ -26,9 +26,20 @@ comes out of the YAML:
   `python -m app.derive_all`, and the case list is showing scores from the
   older rulebook until the build step is re-run.
 
-`PUT /api/rulebook`, which creates a new version and never mutates one, is
-Phase 7 along with the auth that makes "which officer changed it" answerable.
-Nothing here writes.
+**Readable by all four roles, deliberately, and that is a scoping decision
+rather than an omission.** The rulebook is the document by which a work is being
+judged: an officer whose district carries a flagged case, and a member whose
+recommendation carries one, are both entitled to read the rule that produced it
+and check the arithmetic. A rulebook only its author may read is not an
+explainable system, it is an assertion. It names no state, district, agency or
+member, so there is nothing here to scope by - which is why this router takes
+`get_current_user` and no predicate. DOMAIN-MODEL.md (k) already says as much:
+`rulebook_versions` is "all, read" for three roles and "all, write" for the
+ministry.
+
+`PUT /api/rulebook`, which creates a new version and never mutates one, is a
+later phase; when it lands it is Ministry-only, and the auth added in Phase 6 is
+what makes "which officer changed it" answerable at all. Nothing here writes.
 """
 
 from __future__ import annotations
@@ -39,16 +50,20 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import get_current_user
 from ..db import get_db
 from ..engine import derive as derive_mod
 from ..engine.rulebook import RULES_PATH, load, severity_bands, validate, weight_total
-from ..models import Case, RulebookVersion
+from ..models import Case, RulebookVersion, User
 
 router = APIRouter(prefix="/rulebook", tags=["rulebook"])
 
 
 @router.get("")
-def get_rulebook(db: Session = Depends(get_db)):
+def get_rulebook(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
     """The rulebook in force, its stored versions, and whether they agree.
 
     Validated against the derived feature dictionary before it is returned, so
