@@ -70,6 +70,8 @@ Availability = Literal["published", "not_published", "published_zero", "not_appl
 # `published` is absent on purpose: a rule that read a value is never skipped.
 SkipReason = Literal["not_published", "published_zero", "not_applicable"]
 House = Literal["lok_sabha", "rajya_sabha"]
+# `app.constants.ROLES` spelled as a type. The four personas and no fifth.
+Role = Literal["ministry", "state_nodal", "district_authority", "member_of_parliament"]
 GapHop = Literal["sanction_to_disbursement", "disbursement_to_certification"]
 SlowestLag = Literal[
     "recommend_to_sanction", "sanction_to_first_payment", "first_payment_to_completion"
@@ -723,13 +725,11 @@ class NoteIn(BaseModel):
     """
 
     text: str = Field(min_length=1, max_length=4000)
-    # Phase 7 replaces this with the authenticated user's role; until then the
+    # Phase 6 replaces this with the authenticated user's role; until then the
     # caller declares it and the audit row records what was declared. It is
     # constrained to the four roles so the trail cannot carry a role that does
     # not exist.
-    actor_role: Literal[
-        "ministry", "state_nodal", "district_authority", "member_of_parliament"
-    ] = "district_authority"
+    actor_role: Role = "district_authority"
 
 
 class AuditEventOut(BaseModel):
@@ -839,3 +839,77 @@ class Health(BaseModel):
     rulebook_version: str | None = None
     ml_findings: int
     ablation_findings: int
+
+
+# ---------------------------------------------------------------------------
+# Identity and scope. Not part of the frozen case-detail contract: what a role
+# changes is which rows a query returns, never which keys a case carries
+# (schemas module docstring, DOMAIN-MODEL.md (k)).
+# ---------------------------------------------------------------------------
+
+
+class LoginIn(BaseModel):
+    """POST /api/auth/login.
+
+    There is no registration shape here and there will not be one. Accounts are
+    provisioned by `python -m app.seed_users`, which is how a government
+    deployment grants access and also what keeps a scope from being chosen by
+    the person it restricts.
+    """
+
+    email: str = Field(min_length=3, max_length=200)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class ScopeOut(BaseModel):
+    """The rows this account may reach, named rather than left to be inferred.
+
+    All four keys are present on every response, null where the role does not
+    use them, so a client renders one shape instead of four. `describes` is the
+    same fact in a sentence, for a screen that shows the officer what they are
+    looking at without translating a null pattern into English itself.
+    """
+
+    state: str | None = None
+    state_id: int | None = None
+    district: str | None = None
+    mp_id: int | None = None
+    mp_name: str | None = None
+    describes: str
+
+
+class MeOut(BaseModel):
+    """GET /api/auth/me - who the token belongs to, and what it can reach.
+
+    `can_write` is stated rather than left for the frontend to derive from the
+    role, because the derivation is a rule about the domain and not about the
+    screen: the member of parliament is read-only everywhere (DOMAIN-MODEL.md
+    (k)), and a UI that recomputed that would be a second place it could be got
+    wrong. The server refuses the write regardless - this key is what lets the
+    screen not offer a button that would be refused.
+    """
+
+    id: int
+    email: str
+    display_name: str
+    role: Role
+    is_active: bool
+    can_write: bool
+    scope: ScopeOut
+
+
+class TokenOut(BaseModel):
+    """The signed access token, plus who it is for and when it stops working.
+
+    `expires_at` travels with the token so a client can see the session end
+    coming rather than discovering it as a 401 mid-form. `user` is embedded so
+    a login is one round trip: the screen that follows a login needs the role
+    and the scope immediately, and a second call to `/api/auth/me` for facts the
+    server already had would be a round trip spent on nothing.
+    """
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    expires_in_hours: int
+    user: MeOut

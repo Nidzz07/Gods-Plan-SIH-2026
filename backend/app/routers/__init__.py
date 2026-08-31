@@ -1,5 +1,6 @@
-"""The API routers. Six, all read-only except two appends to the audit trail.
+"""The API routers. Seven, all read-only except two appends to the audit trail.
 
+    auth       sign in, and read back who you are and what your role reaches
     cases      the ranked list, the case sheet, notes and recompute
     works      the published record, before NIGRANI concluded anything
     rulebook   rules.yaml as parsed, plus what is stored in rulebook_versions

@@ -16,21 +16,26 @@ appears below it is transcribed from `fixtures.md` and from nowhere else.
 from __future__ import annotations
 
 import json
-import shutil
 from collections import defaultdict
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, select, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, text
 
 from app.constants import RULE_WEIGHT_TOTAL, case_id_for
-from app.db import DB_PATH, get_db
 from app.engine import derive as derive_mod
 from app.models import Sanction, Work
 
-from .conftest import FIXTURE_A, FIXTURE_B, FIXTURE_C
+from .accounts import ROLE_MINISTRY_EMAIL
+from .conftest import (
+    FIXTURE_A,
+    FIXTURE_B,
+    FIXTURE_C,
+    api_client,
+    copy_corpus,
+    provision_accounts,
+    sessionmaker_on,
+)
 
 pytestmark = pytest.mark.corpus
 
@@ -88,65 +93,17 @@ EXPECTED = {
 
 
 # ---------------------------------------------------------------------------
-# A server over a copy of the corpus
+# The server these tests read
 # ---------------------------------------------------------------------------
-
-
-def _sessionmaker_on(path: Path):
-    """A session factory on one SQLite file, with foreign keys enforced.
-
-    The pragma listener is the same one `app/db.py` installs and for the same
-    reason: SQLite ignores foreign keys unless asked, per connection, every
-    time, and a test database that did not enforce them would be a weaker
-    database than the one the API actually runs against.
-    """
-    engine = create_engine(
-        f"sqlite:///{path}", connect_args={"check_same_thread": False}, future=True
-    )
-
-    @event.listens_for(engine, "connect")
-    def _foreign_keys(dbapi_connection, _record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    return engine, sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-
-
-def _copy_corpus(destination: Path) -> Path:
-    if not DB_PATH.exists():
-        pytest.skip(f"{DB_PATH} not found - run `python -m ingest.run` first.")
-    shutil.copy2(DB_PATH, destination)
-    return destination
-
-
-@pytest.fixture(scope="session")
-def api_session_factory(tmp_path_factory):
-    engine, factory = _sessionmaker_on(
-        _copy_corpus(tmp_path_factory.mktemp("api") / "nigrani.db")
-    )
-    yield factory
-    engine.dispose()
-
-
-@pytest.fixture(scope="session")
-def client(api_session_factory):
-    """A TestClient whose every request reads the copied corpus."""
-    from app.main import app
-
-    def override():
-        session = api_session_factory()
-        try:
-            yield session
-        finally:
-            session.close()
-
-    app.dependency_overrides[get_db] = override
-    with TestClient(app) as test_client:
-        if test_client.get("/health").json()["cases"] == 0:
-            pytest.skip("no cases in the corpus - run `python -m app.derive_all` first.")
-        yield test_client
-    app.dependency_overrides.clear()
+#
+# `client` is a session-scoped fixture in `conftest.py`, shared with the auth
+# and scoping modules: one copy of the corpus, one set of seeded accounts, one
+# TestClient signed in as MINISTRY. The Ministry role is the widest scope
+# (DOMAIN-MODEL.md (k)), so every acceptance assertion below still describes
+# the whole corpus - and that this file passes unchanged under a real token is
+# itself the claim, that adding authentication narrowed nobody entitled to the
+# rows. `sessionmaker_on` and `copy_corpus` come from the same place, for the
+# two tests further down that need a corpus copy of their own.
 
 
 def get(client, url, **params):
@@ -740,7 +697,7 @@ def test_the_materialisation_step_is_idempotent(tmp_path):
     """
     from app.derive_all import materialise
 
-    engine, factory = _sessionmaker_on(_copy_corpus(tmp_path / "nigrani.db"))
+    engine, factory = sessionmaker_on(copy_corpus(tmp_path / "nigrani.db"))
     try:
         with factory() as session:
             before = session.execute(
@@ -792,7 +749,7 @@ def test_the_analytics_endpoints_refuse_a_stale_rollup(tmp_path):
     """
     from app.derive_all import rebuild_rollups
 
-    engine, factory = _sessionmaker_on(_copy_corpus(tmp_path / "nigrani.db"))
+    engine, factory = sessionmaker_on(copy_corpus(tmp_path / "nigrani.db"))
     try:
         with engine.begin() as connection:
             # A rollup built over strictly fewer cases than `cases` holds.
@@ -806,23 +763,14 @@ def test_the_analytics_endpoints_refuse_a_stale_rollup(tmp_path):
                 )
             )
 
-        from app.main import app
-
-        def override():
-            session = factory()
-            try:
-                yield session
-            finally:
-                session.close()
-
-        app.dependency_overrides[get_db] = override
-        try:
-            with TestClient(app) as stale_client:
-                response = stale_client.get("/api/analytics/national")
-                assert response.status_code == 503
-                assert "derive_all" in response.json()["detail"]
-        finally:
-            app.dependency_overrides.clear()
+        # Signed in as Ministry, because `/api/analytics/national` is
+        # Ministry-only: an anonymous request would 401 and prove nothing about
+        # the staleness guard.
+        provision_accounts(factory)
+        with api_client(factory, email=ROLE_MINISTRY_EMAIL) as stale_client:
+            response = stale_client.get("/api/analytics/national")
+            assert response.status_code == 503
+            assert "derive_all" in response.json()["detail"]
     finally:
         engine.dispose()
 

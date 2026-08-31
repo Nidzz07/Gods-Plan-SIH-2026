@@ -2,7 +2,7 @@
 
     cd backend && uvicorn app.main:app --reload --port 8000
 
-App, CORS, `/health`, and the six routers. Every route lives under `/api`; the
+App, CORS, `/health`, and the seven routers. Every route lives under `/api`; the
 prefix is applied here rather than repeated in each router, so the contract in
 PROJECT-BRIEF.md has exactly one place it can drift from.
 
@@ -17,6 +17,15 @@ The two writes the API does perform, notes and recompute, only ever append to
 `audit_log`. No endpoint anywhere in this application edits or removes a row of
 the trail, and no helper capable of doing so exists in `backend/` (CLAUDE.md
 invariant 4).
+
+**Everything under `/api` requires a token. `/health` does not.** `/health` is
+liveness plus four row counts and it is what a load balancer, a judge and a
+developer all reach for first; putting it behind a login would mean an outage
+and a bad password looked the same from outside. It reveals corpus totals that
+`docs/data/DATA-PROFILE.md` already publishes, and no row about any state,
+district or member. Every other route is scoped or role-gated - see
+`docs/api/ROLE-SCOPING-PLAN.md`, and `tests/test_role_scoping.py`, which walks
+this application's own route table rather than trusting a list.
 
 **`create_all` is deliberately not called here.** The inherited app created
 missing tables on import, which is convenient and, on this project, wrong: an
@@ -35,7 +44,7 @@ from fastapi import Depends
 from .constants import DATA_AS_OF
 from .db import get_db
 from .models import AblationFinding, Case, MLFinding, RulebookVersion, Work
-from .routers import ablation, analytics, audit, cases, rulebook, works
+from .routers import ablation, analytics, audit, auth, cases, rulebook, works
 from .schemas import Health
 
 app = FastAPI(
@@ -46,7 +55,7 @@ app = FastAPI(
         "re-derive on paper and an auditor can reproduce months later against the rulebook "
         "snapshot the case was scored under."
     ),
-    version="0.5.0",
+    version="0.6.0",
 )
 
 # Vite dev server only. No wildcard: the demo runs on one known origin.
@@ -96,6 +105,9 @@ def health(db: Session = Depends(get_db)):
     )
 
 
+# Declared first so the sign-in route reads first in the generated OpenAPI
+# page: it is the one route a caller can reach before they have anything.
+app.include_router(auth.router, prefix="/api")
 app.include_router(cases.router, prefix="/api")
 app.include_router(works.router, prefix="/api")
 app.include_router(rulebook.router, prefix="/api")
