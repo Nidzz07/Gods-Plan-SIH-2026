@@ -55,6 +55,8 @@ backend/
     schemas.py         Pydantic shapes — MUST mirror docs/contract/case_detail.json
     constants.py       every shared literal, defined once (invariant 7)
     rules.yaml         F2 rulebook, loaded at runtime, never imported as constants
+    auth.py            hashing, JWT issuance, get_current_user, require_role
+    seed_users.py      the four demo accounts — a build step, run last
     engine/
       reconcile.py     F1  fund ladder (2 hops) + lifecycle ladder (3 lags)
       derive.py        derived feature dictionary (DOMAIN-MODEL.md (f))
@@ -66,6 +68,7 @@ backend/
       ablation.py      F9  mask a field, re-score, measure coverage delta
     ml/                F7  duplicates, anomaly badge, delay forecast, graph
     routers/
+      scoping.py       the role predicate — every WHERE clause, in one place
   ingest/              CSV loaders, canonicalisation, ingest_rejects
   seed.py              labelled synthetic controls only — never bulk fake data
   tests/
@@ -123,7 +126,11 @@ Breaking any of these breaks either the pitch or the honesty of the product.
    it, do not just do it.
 10. **Role scoping is enforced server-side, in the query.** Never by hiding rows
     in the UI. A District Authority token must not be able to fetch another
-    district's cases by editing a URL.
+    district's cases by editing a URL. Every predicate lives in
+    `app/routers/scoping.py`; `tests/test_role_scoping.py` asserts it both
+    through HTTP and against the compiled SQL, because a response-body test
+    alone would also pass against a server that fetched everything and dropped
+    rows in Python — which is the failure this invariant names.
 11. **Ingestion never silently drops a row.** Every rejected row is written to
     `ingest_rejects` with a reason. Load counts must reconcile:
     loaded + rejected = rows in file, asserted by a test.
@@ -254,6 +261,9 @@ python -m app.derive_all       # cases, rule_hits, rulebook_versions, audit_log
                                #   and the rollup tables: one case per sanctioned
                                #   work, its full ten-row trace, its opening
                                #   audit events, and the dashboard aggregates
+python -m app.seed_users       # the four demo accounts, one per role, each bound
+                               #   to a scope CHOSEN from the derived corpus, with
+                               #   generated passwords printed once to stdout
 
 pytest -v
 uvicorn app.main:app --reload --port 8000
@@ -264,6 +274,20 @@ gets a working server with zero cases, which is the most misleading screen the
 product can show — `/health` reports `awaiting_build` rather than `ok` for
 exactly that reason. The corpus tests skip without step 1 and `test_api.py`
 skips without step 4, so `pytest` belongs after the build and not before it.
+
+`seed_users` is fifth and last. It comes after `derive_all` because it picks
+its state, district and member by counting derived cases rather than from a
+list written into the script, and refuses to write an account onto a scope with
+no cases — a login that opens onto an empty screen is indistinguishable from a
+broken one. It is idempotent by email address and prints its generated
+passwords once; nothing in the repository stores a password. `ingest.run` drops
+`users` along with everything else, so accounts do not survive a re-ingest and
+re-running this is how you get them back. The test suite seeds its own accounts
+on a copy of the corpus and does not need this step.
+
+Every route under `/api` requires a bearer token from `POST /api/auth/login`.
+`/health` does not, deliberately: behind a login, an outage and a bad password
+would look the same from outside.
 
 `ingest.run` drops and recreates every table, so it comes first and everything
 after it must be re-run. The middle three have no dependency on each other and

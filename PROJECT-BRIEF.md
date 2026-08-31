@@ -77,8 +77,13 @@ The lifecycle ladder shows exactly where the time went.
 
 **Honest scoping:** the role switcher is a dropdown over seeded accounts, not an
 identity provider. Passwords are hashed with `passlib[bcrypt]` and sessions
-carry a `python-jose` JWT, so the server-side scoping is real. The login screen
-is a demo.
+carry a `python-jose` JWT, so the server-side scoping is real — a token cannot
+reach another district's rows, and the tests prove it by editing URLs rather
+than by trusting the client not to. The login screen is a demo, and what that
+means concretely: accounts are provisioned by `python -m app.seed_users` and
+there is no registration, no password reset, no refresh flow, no revocation
+list and no rate limiting. A token is valid for twelve hours and the only way
+to end a session early is to deactivate the account.
 
 ---
 
@@ -257,7 +262,8 @@ at all (CLAUDE.md invariant 9).
 Principal endpoints:
 
 ```
-POST   /api/auth/login
+POST   /api/auth/login                 the only unauthenticated route under /api
+GET    /api/auth/me                    the caller's role and the rows it reaches
 GET    /api/cases                      role-scoped list, filter + sort
 GET    /api/cases/{case_id}            the frozen contract shape
 POST   /api/cases/{case_id}/notes
