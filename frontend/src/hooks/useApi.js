@@ -16,8 +16,8 @@ import { apiFetch } from '../api.js'
 // every page renders its skeleton on `loading` and its content on `data` as two
 // separate tests, so both appeared at once — grey placeholder bars stacked on
 // top of a fully drawn table. It showed up wherever a second request followed a
-// first: the Auditor's case dropdown changing the path, or reload() after a
-// note was posted.
+// first: a case list filter changing the path, or reload() after a note was
+// posted.
 //
 // So the three are no longer independent. One piece of state holds the settled
 // response TOGETHER WITH the request it belongs to, and `loading` is derived by
@@ -34,7 +34,9 @@ import { apiFetch } from '../api.js'
 // It also fixes a correctness bug that mattered more than the cosmetics: while
 // a new case's audit trail was in flight, the PREVIOUS case's events stayed on
 // screen under the new case's heading. An append-only trail that shows the
-// wrong case's rows, however briefly, is worse than one that shows nothing.
+// wrong case's rows, however briefly, is worse than one that shows nothing —
+// and under role scoping it is worse still, because the rows left on screen
+// may belong to a case the new request was about to be refused.
 export function useApi(path) {
   // The request identity. nonce is part of it so reload() re-fetches the same
   // path and is correctly treated as a new request rather than as one already

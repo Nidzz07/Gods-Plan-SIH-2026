@@ -42,9 +42,9 @@ const LIFT =
 // ---------------------------------------------------------------------------
 
 // TIER 1 — primary. Solid navy, white text. At most one per screen: the action
-// the screen exists for. Recompute on Auditor, Record note on Inspector, and
-// the role choices on the sign-in screen, which are the only thing that page
-// does. Hover darkens the fill and lifts; active drops it back down.
+// the screen exists for. Sign in on the login screen, Recompute on a case
+// sheet, Record note on a district queue. Hover darkens the fill and lifts;
+// active drops it back down.
 export const BUTTON_PRIMARY =
   'inline-block rounded border border-navy bg-navy px-4 py-2 text-body-secondary font-medium text-white ' +
   `${MOTION} ${LIFT} ` +
@@ -84,9 +84,9 @@ export const SORT_HEAD = `text-table-header uppercase ${TERTIARY}`
 // deliberately NOT applied to informational panels: a hover response on a card
 // that cannot be clicked promises a click that never happens.
 //
-// No border-colour change here on purpose — the Officer and Inspector rows
-// carry their severity as a coloured left-border, and a hover rule setting all
-// four border colours would wipe it out under the cursor.
+// No border-colour change here on purpose — the case list rows carry their
+// severity as a coloured left-border, and a hover rule setting all four border
+// colours would wipe it out under the cursor.
 export const CARD_INTERACTIVE =
   `${CARD} ${MOTION} hover:-translate-y-px hover:bg-surface-sunk ` +
   'active:translate-y-0 active:bg-surface-sunk'
@@ -96,12 +96,12 @@ export const CARD_INTERACTIVE =
 //
 // AT REST IT IS NOT NAVY, and that is the point. The primary tier's solid navy
 // was written for an inline button that IS the action — one per screen, so the
-// fill reads as emphasis. Three of them stacked full-width stop reading as
-// three things to choose between and start reading as a filled table, because
+// fill reads as emphasis. Several of them stacked full-width stop reading as
+// things to choose between and start reading as a filled table, because
 // nothing distinguishes one row from the next. So the card rests as a bordered
 // surface, the way a set of options should, and the navy arrives on
 // interaction — hover and keyboard focus both invert it. The weight lands
-// where the reader is actually pointing rather than on all three at once.
+// where the reader is actually pointing rather than on all of them at once.
 //
 // `group` is part of the token: the contents invert with the card, and they
 // key off this class.
@@ -131,7 +131,8 @@ export const COLUMN_HEAD = 'text-table-header uppercase text-ink-secondary'
 export const CAPTION = 'mt-1 text-body-secondary text-ink-secondary'
 
 // Body copy and the standard table cell. Numeric cells add `num` for
-// tabular figures and `text-right` for alignment.
+// tabular figures and `text-right` for alignment — every rupee amount, lag in
+// days, score and percentage in the app goes through CELL_NUM.
 export const BODY = 'text-body text-ink'
 export const CELL = 'text-table-cell text-ink'
 export const CELL_MUTED = 'text-table-cell text-ink-secondary'

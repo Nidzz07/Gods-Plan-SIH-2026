@@ -38,12 +38,12 @@ import { LogoMark } from './Logo.jsx'
 //      between cards, the gaps between sections, and the tail below the last
 //      row. That is the only place it is allowed to be.
 //
-// One component with a `variant` prop rather than five hand-rolled
+// One component with a `variant` prop rather than seven hand-rolled
 // backgrounds, so those three rules have exactly one place to be broken.
 
-// Uniform across the five tiling motifs. A variant is allowed to differ in
-// what it draws, not in how loud it is — that is what stops one page's texture
-// creeping up on the others.
+// Uniform across the tiling motifs. A variant is allowed to differ in what it
+// draws, not in how loud it is — that is what stops one page's texture creeping
+// up on the others.
 //
 // Every motif draws at a 1-unit line weight and lands between 2% and 4% ink
 // coverage per tile, so no page's texture is meaningfully heavier than
@@ -78,69 +78,88 @@ function Tiled({ id, width, height, children }) {
   )
 }
 
+// The five drawings, named for what they DRAW. The map at the bottom binds
+// them to pages, and two pages are allowed to share one — a state's district
+// table and the national state table are the same ledger read at two grains,
+// and giving them two different textures would suggest a difference in kind
+// that is not there.
+
+// A ruled register. Horizontal rules at a fixed line pitch with a column rule
+// at wide intervals: the ground of a bound ledger a ranked table is written
+// onto.
+//
+// 32px line pitch, not 24. At 3.5% the tighter ruling was invisible either
+// way; at 10% it read as hatching rather than as a ruled register, and it was
+// the densest of the five. Opening it up settles both.
+const REGISTER = (
+  <Tiled id="motif-register" width={160} height={32}>
+    <path d="M0 31.5H160" stroke="currentColor" strokeWidth="1" />
+    <path d="M0.5 0V32" stroke="currentColor" strokeWidth="1" />
+  </Tiled>
+)
+
+// The ladder itself, abstracted: runs of nodes joined in a chain, the links
+// stopping at the end of each run rather than continuing, so it reads as
+// repeated chains and not as a lattice.
+const CHAIN = (
+  <Tiled id="motif-chain" width={200} height={64}>
+    <path d="M18.5 32H69.5M74.5 32H125.5M130.5 32H181.5" stroke="currentColor" strokeWidth="1" />
+    <rect x="13.5" y="29.5" width="5" height="5" fill="currentColor" />
+    <rect x="69.5" y="29.5" width="5" height="5" fill="currentColor" />
+    <rect x="125.5" y="29.5" width="5" height="5" fill="currentColor" />
+    <rect x="181.5" y="29.5" width="5" height="5" fill="currentColor" />
+  </Tiled>
+)
+
+// Stacked rules of uneven length, all flush left. The shape a block of clauses
+// makes on a page when you are too far away to read it.
+const CLAUSES = (
+  <Tiled id="motif-clauses" width={240} height={72}>
+    <rect x="0" y="8" width="208" height="1" fill="currentColor" />
+    <rect x="0" y="24" width="160" height="1" fill="currentColor" />
+    <rect x="0" y="40" width="224" height="1" fill="currentColor" />
+    <rect x="0" y="56" width="112" height="1" fill="currentColor" />
+  </Tiled>
+)
+
+// A dotted route with waypoints. The path returns to its starting height at
+// the tile edge so it joins across tiles instead of breaking into visible
+// seams.
+const ROUTE = (
+  <Tiled id="motif-route" width={96} height={48}>
+    <path d="M0 38H24V14H72V38H96" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
+    <rect x="22.5" y="12.5" width="3" height="3" fill="currentColor" />
+    <rect x="70.5" y="12.5" width="3" height="3" fill="currentColor" />
+  </Tiled>
+)
+
+// A timeline scale: vertical rules at a wide pitch with ticks stepped along
+// them. The one motif that runs vertically, because what it sits behind is
+// read as a sequence in time rather than as a table.
+const TIMELINE = (
+  <Tiled id="motif-timeline" width={56} height={48}>
+    <path d="M12.5 0V48" stroke="currentColor" strokeWidth="1" />
+    <path d="M12.5 12H20.5M12.5 36H20.5" stroke="currentColor" strokeWidth="1" />
+  </Tiled>
+)
+
 const VARIANTS = {
-  // Officer — a ruled register. Horizontal rules at a fixed line pitch with a
-  // column rule at wide intervals: the ground of a bound ledger the ranked
-  // list is written onto.
-  officer: (
-    // 32px line pitch, not 24. At 3.5% the tighter ruling was invisible either
-    // way; at 10% it read as hatching rather than as a ruled register, and it
-    // was the densest of the five. Opening it up settles both.
-    <Tiled id="motif-officer" width={160} height={32}>
-      <path d="M0 31.5H160" stroke="currentColor" strokeWidth="1" />
-      <path d="M0.5 0V32" stroke="currentColor" strokeWidth="1" />
-    </Tiled>
-  ),
+  // Ministry and State Nodal both read a ranked table of the tier below them —
+  // states under the ministry, districts under the state. One ledger, two
+  // grains, one ground.
+  ministry: REGISTER,
+  state: REGISTER,
 
-  // Case Detail — the ladder itself, abstracted: runs of four nodes joined in
-  // a chain, the links stopping at the end of each run rather than continuing,
-  // so it reads as repeated four-hop chains and not as a lattice.
-  case: (
-    <Tiled id="motif-case" width={200} height={64}>
-      <path d="M18.5 32H69.5M74.5 32H125.5M130.5 32H181.5" stroke="currentColor" strokeWidth="1" />
-      <rect x="13.5" y="29.5" width="5" height="5" fill="currentColor" />
-      <rect x="69.5" y="29.5" width="5" height="5" fill="currentColor" />
-      <rect x="125.5" y="29.5" width="5" height="5" fill="currentColor" />
-      <rect x="181.5" y="29.5" width="5" height="5" fill="currentColor" />
-    </Tiled>
-  ),
+  // A District Authority's screen is a queue of works to go and look at, which
+  // is the one screen in the build that ends in somebody travelling.
+  district: ROUTE,
 
-  // Rulebook — stacked rules of uneven length, all flush left. The shape a
-  // block of clauses makes on a page when you are too far away to read it.
-  rulebook: (
-    <Tiled id="motif-rulebook" width={240} height={72}>
-      <rect x="0" y="8" width="208" height="1" fill="currentColor" />
-      <rect x="0" y="24" width="160" height="1" fill="currentColor" />
-      <rect x="0" y="40" width="224" height="1" fill="currentColor" />
-      <rect x="0" y="56" width="112" height="1" fill="currentColor" />
-    </Tiled>
-  ),
+  // A member's account is read year by year: allocated, sanctioned, disbursed,
+  // per financial year. That is a sequence in time, not a table.
+  mp: TIMELINE,
 
-  // Inspector — a dotted route with waypoints. The path returns to its
-  // starting height at the tile edge so it joins across tiles instead of
-  // breaking into visible seams.
-  inspector: (
-    <Tiled id="motif-inspector" width={96} height={48}>
-      <path
-        d="M0 38H24V14H72V38H96"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeDasharray="3 3"
-      />
-      <rect x="22.5" y="12.5" width="3" height="3" fill="currentColor" />
-      <rect x="70.5" y="12.5" width="3" height="3" fill="currentColor" />
-    </Tiled>
-  ),
-
-  // Auditor — a timeline scale: vertical rules at a wide pitch with ticks
-  // stepped along them. The one motif that runs vertically, because the trail
-  // it sits behind is read as a sequence in time rather than as a table.
-  auditor: (
-    <Tiled id="motif-auditor" width={56} height={48}>
-      <path d="M12.5 0V48" stroke="currentColor" strokeWidth="1" />
-      <path d="M12.5 12H20.5M12.5 36H20.5" stroke="currentColor" strokeWidth="1" />
-    </Tiled>
-  ),
+  case: CHAIN,
+  rulebook: CLAUSES,
 
   // Sign-in — the mark itself as a watermark. Large enough that its frame
   // falls outside the reading column, so what sits behind the text is the
@@ -157,10 +176,10 @@ export default function PageMotif({ variant }) {
   if (!motif) return null
 
   // The sign-in watermark is one drawing rather than a repeating tile, and it
-  // differs from the five tiling motifs in both respects that matter here: it
-  // takes the lighter opacity (see OPACITY_MARK), and it is not masked,
-  // because fading its top 200px would cut the top edge off the frame and
-  // leave a mark that looks broken rather than faint.
+  // differs from the tiling motifs in both respects that matter here: it takes
+  // the lighter opacity (see OPACITY_MARK), and it is not masked, because
+  // fading its top 200px would cut the top edge off the frame and leave a mark
+  // that looks broken rather than faint.
   const tiling = variant !== 'signin'
 
   return (

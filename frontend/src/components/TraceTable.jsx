@@ -1,4 +1,4 @@
-import { TRACE_ROW } from '../severity.js'
+import { OPERATOR_SYMBOL, SKIP_REASON, TRACE_ROW } from '../severity.js'
 import { COLUMN_HEAD } from '../ui.js'
 import SectionHeading from './SectionHeading.jsx'
 
@@ -16,15 +16,42 @@ import SectionHeading from './SectionHeading.jsx'
 // Reading, Threshold and Weight are right-aligned with tabular figures: they
 // are three columns of measurements, and a reader compares them down the
 // column, not across the row.
+//
+// TWO ADDITIONS OVER THE INHERITED TABLE, both required rather than decorative.
+//
+// The threshold cell prints the OPERATOR with the number — `< -15`, not `-15`.
+// The whole claim of this product is that an officer can re-derive the score
+// on paper, and a threshold with no comparison in front of it is half of the
+// arithmetic. The inherited table could omit it because its rulebook was all
+// one direction; NIGRANI's ten rules run in four (lt, gt, gte, eq).
+//
+// A skipped row NAMES ITS SKIP REASON. Invariant 2 requires that "not
+// published by MoSPI" and "published as zero" stay distinguishable end to end
+// — in the derived features, in rule_hits.skip_reason, in the contract, and on
+// screen. This is the "on screen". A grey italic row saying only "no reading"
+// would collapse a reporting failure by MoSPI into a fact about the work, and
+// those are different findings that belong to different people.
 
-const GRID = 'grid grid-cols-[1fr_120px_120px_88px_96px] items-center gap-4'
+const GRID = 'grid grid-cols-[1fr_140px_120px_88px_96px] items-center gap-4'
+
+// A trace value is a float, an integer, a boolean or null. It is printed as
+// the rulebook stores it rather than prettified: `true`, not `Yes`, because
+// the row beside it says `= true` and the reader is checking one against the
+// other. Floats keep two decimals, which is the precision the fund ladder
+// reconciles at.
+function traceValue(value) {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'boolean') return String(value)
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  return String(value)
+}
 
 export default function TraceTable({ hits }) {
   return (
     <section>
       <SectionHeading title="Reasoning trace">
-        Every rule in the rulebook, what it read, and what it did about it — including the rules
-        that passed and the ones there was no reading for.
+        Every rule in the rulebook, what it read, what it compared that against, and what it did
+        about it — including the rules that passed and the ones there was no reading for.
       </SectionHeading>
 
       {/* bg-bg on the header row for the same reason the heading is plated: the
@@ -41,6 +68,9 @@ export default function TraceTable({ hits }) {
       <ul>
         {hits.map((hit) => {
           const state = TRACE_ROW[hit.status] ?? TRACE_ROW.passed
+          const reading = traceValue(hit.raw_value)
+          const operator = OPERATOR_SYMBOL[hit.operator] ?? hit.operator
+
           return (
             <li
               key={hit.rule_id}
@@ -50,26 +80,50 @@ export default function TraceTable({ hits }) {
               // order written here, so the greyed row would win or lose at
               // random. Same radius and shadow tokens, background left to the
               // state.
-              className={`${GRID} ${state.row} mt-2 rounded border-y border-r border-border border-l-4 ${state.border} px-4 py-4 shadow-card`}
+              className={`${state.row} mt-2 rounded border-y border-r border-border border-l-4 ${state.border} px-4 py-4 shadow-card`}
             >
-              <span>
-                <span className="block text-table-cell">{hit.label}</span>
-                <span className="block text-meta-label text-ink-muted">{hit.rule_id}</span>
-              </span>
+              <div className={GRID}>
+                <span>
+                  <span className="block text-table-cell">{hit.label}</span>
+                  <span className="block text-meta-label text-ink-muted">{hit.rule_id}</span>
+                </span>
 
-              <span className="num text-right text-table-cell">
-                {/* A null reading is the whole point of a skipped row: there
-                    was nothing to quote. */}
-                {hit.raw_value ?? 'no reading'}
-              </span>
+                <span className="num text-right text-table-cell">
+                  {/* A null reading is the whole point of a skipped row: there
+                      was nothing to quote. The reason it was missing goes
+                      underneath, because "no reading" alone does not say
+                      whether MoSPI never published the field or the work has
+                      simply not reached the stage that produces it. */}
+                  {reading ?? 'no reading'}
+                  {hit.status === 'skipped' && hit.skip_reason ? (
+                    <span className="block text-meta-label normal-case not-italic text-ink-muted">
+                      {SKIP_REASON[hit.skip_reason] ?? hit.skip_reason}
+                    </span>
+                  ) : null}
+                </span>
 
-              <span className="num text-right text-table-cell">{hit.threshold}</span>
+                {/* The comparison, not just the number. `< -15` is what an
+                    officer re-derives against; `-15` on its own is not. */}
+                <span className="num text-right text-table-cell">
+                  {operator} {traceValue(hit.threshold)}
+                </span>
 
-              <span className="num text-right text-table-cell">
-                {hit.status === 'fired' ? `+${hit.contribution}` : '—'}
-              </span>
+                <span className="num text-right text-table-cell">
+                  {hit.status === 'fired' ? `+${hit.contribution}` : '—'}
+                </span>
 
-              <span className={`text-table-cell ${state.labelClass}`}>{state.label}</span>
+                <span className={`text-table-cell ${state.labelClass}`}>{state.label}</span>
+              </div>
+
+              {/* The caveat travels with the flag, on the same row, not in a
+                  footnote — declared limitation 6 is explicit that the
+                  completed-without-payment signal is partly a truncation
+                  artefact and that the caveat has to travel with it. */}
+              {hit.caveat ? (
+                <p className="mt-2 max-w-3xl text-body-secondary not-italic text-ink-secondary">
+                  {hit.caveat}
+                </p>
+              ) : null}
             </li>
           )
         })}

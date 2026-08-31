@@ -33,10 +33,10 @@
   }
 
   /* Tabular figures everywhere a number is read as data rather than as prose.
-     Scores, variances, kilograms and timestamps all sit in columns that a
-     reader compares vertically; proportional digits make 11,015 and 10,980
-     different widths and the comparison stops working. Applied globally here
-     so no page has to remember it. */
+     Scores, variances, rupee amounts, lag days and timestamps all sit in
+     columns that a reader compares vertically; proportional digits make
+     1,99,539 and 1,19,711 different widths and the comparison stops working.
+     Applied globally here so no page has to remember it. */
   table,
   th,
   td,

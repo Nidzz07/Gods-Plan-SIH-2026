@@ -2,19 +2,19 @@
 // dependency, and so the stroke can inherit whatever ground it lands on —
 // navy on the cream pages, white on the navy sidebar.
 //
-// WHAT IT IS, and why it is this and not something else. The product is a
-// four-hop ladder of readings that steps down where grain left the chain, and
-// a rule underneath it that the reading has to be defensible against. So the
-// device is exactly that: a stepped line descending twice, a solid baseline
-// beneath it, both held inside a square frame.
+// WHAT IT IS, and why it is this and not something else. NIGRANI reconstructs
+// a ladder for every work — sanctioned steps down to disbursed, disbursed
+// steps down to certified — and holds the reading against a rulebook it has to
+// be defensible under. So the device is exactly that: a stepped line
+// descending twice, a solid rule beneath it, both held inside a square frame.
 //
 // The frame is the point of the whole thing. A bounded device containing one
 // simple figure is what a registry stamp, a passport-office crest or a tax
 // form's letterhead looks like, and it is the opposite of the soft blob with a
-// gradient in it that every tool ships with now. Everything here is
-// therefore deliberately flat: no gradient, no second colour, no bevel, no
-// rounded corners at all — a 4px radius on a 32px mark would read as a
-// software icon, and this is meant to read as an emblem.
+// gradient in it that every tool ships with now. Everything here is therefore
+// deliberately flat: no gradient, no second colour, no bevel, no rounded
+// corners at all — a 4px radius on a 32px mark would read as a software icon,
+// and this is meant to read as an emblem.
 //
 // Geometry is on a 32-unit grid so it survives being scaled: the 2.5-unit
 // stroke is 2.2px at the 28px sidebar size and 5px at the 64px sign-in size,
@@ -28,8 +28,8 @@ export function LogoMark({ size = 32, className = '' }) {
       viewBox="0 0 32 32"
       fill="none"
       className={className}
-      // Decorative in every placement: the word LEAKPROOF is always beside it
-      // or under it, so a screen reader announcing the mark as well would just
+      // Decorative in every placement: the word NIGRANI is always beside it or
+      // under it, so a screen reader announcing the mark as well would just
       // say the name twice.
       aria-hidden="true"
       focusable="false"
@@ -57,7 +57,7 @@ export function Logo({ className = '' }) {
       <LogoMark size={28} />
       {/* section-heading carries its own 600 weight, so font-semibold is not
           repeated here — the named size token IS the whole style. */}
-      <span className="font-display text-section-heading tracking-wide">LEAKPROOF</span>
+      <span className="font-display text-section-heading tracking-wide">NIGRANI</span>
     </span>
   )
 }

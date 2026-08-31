@@ -8,20 +8,30 @@
 //
 // Sentence case ("High", not "HIGH") — the tag is a label, not an alarm.
 //
-// This is the pattern for COMPACT INLINE status: a rule's severity in a config
-// table, a complaint's open/closed state, an audit event's type. It is NOT for
-// full data rows — those keep the coloured left-border (Officer list, trace
-// table), and the two patterns never appear on the same element.
+// This is the pattern for COMPACT INLINE status: a rule's severity in the
+// rulebook table, a case's open/resolved state, an audit event's type. It is
+// NOT for full data rows — those keep the coloured left-border (case list,
+// trace table), and the two patterns never appear on the same element.
 
 const TONES = {
+  // Severity, as the rulebook and the case both spell it.
   high: 'bg-coral/15 text-coral',
   medium: 'bg-gold/15 text-gold',
   low: 'bg-green/15 text-green',
+
+  // Case status, the four the backend admits. Gold for the two states that
+  // still want somebody's attention, green for the one that no longer does.
+  // `escalated` takes coral because it is the only status that has moved a
+  // case onto another officer's desk — that is a state worth spotting from
+  // across a queue.
   open: 'bg-gold/15 text-gold',
-  closed: 'bg-green/15 text-green',
-  // For labels that classify without ranking — audit event types, for
-  // instance. Reaching for a severity colour there would spend signal on
-  // something that carries none.
+  under_review: 'bg-gold/15 text-gold',
+  escalated: 'bg-coral/15 text-coral',
+  resolved: 'bg-green/15 text-green',
+
+  // For labels that classify without ranking — audit event types, a role
+  // name, a skip reason. Reaching for a severity colour there would spend
+  // signal on something that carries none.
   neutral: 'bg-surface-sunk text-ink-secondary',
 }
 
@@ -35,9 +45,9 @@ function sentenceCase(text) {
 export default function Tag({ tone = 'neutral', children, className = '' }) {
   return (
     <span
-      // transition-colors so a tag that swaps tone — the Inspector note
-      // outcome going from Recorded to Not recorded, say — crossfades rather
-      // than snapping. Same 150ms as every other state change in the app.
+      // transition-colors so a tag that swaps tone — a case going from Open to
+      // Escalated, say — crossfades rather than snapping. Same 150ms as every
+      // other state change in the app.
       className={`inline-block rounded px-2 py-1 text-meta-label transition-colors duration-150 ease-out ${
         TONES[tone] ?? TONES.neutral
       } ${className}`}
