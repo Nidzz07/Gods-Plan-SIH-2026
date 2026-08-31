@@ -1,5 +1,5 @@
 {
-  "name": "leakproof-frontend",
+  "name": "nigrani-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,9 +11,14 @@
   "dependencies": {
     "@fontsource/fraunces": "^5.0.20",
     "@fontsource/inter": "^5.0.20",
+    "@tanstack/react-table": "^8.21.3",
+    "date-fns": "^4.4.0",
+    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2"
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.26.2",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
