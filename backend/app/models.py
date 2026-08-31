@@ -29,6 +29,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -41,7 +42,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .constants import Availability
+from .constants import ROLES, Availability
 from .db import Base
 
 # One shared column type for every availability companion, so the enum cannot
@@ -53,6 +54,17 @@ AvailabilityType = Enum(
     name="availability",
     native_enum=False,
     values_callable=lambda enum_cls: [member.value for member in enum_cls],
+    validate_strings=True,
+)
+
+# `users.role`, built from `constants.ROLES` rather than restated, so the four
+# personas are spelled in exactly one place (invariant 7). Same rendering as
+# above: a VARCHAR plus a CHECK, which SQLite honours and a generic client can
+# still read.
+RoleType = Enum(
+    *ROLES,
+    name="user_role",
+    native_enum=False,
     validate_strings=True,
 )
 
@@ -861,3 +873,105 @@ class AblationFinding(Base):
     measured_as_of: Mapped[date] = mapped_column(Date, nullable=False)
     rulebook_version: Mapped[str] = mapped_column(String(16), nullable=False)
     rulebook_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# Accounts and role scoping
+# ---------------------------------------------------------------------------
+
+
+class User(Base):
+    """An officer's account, and the scope their role is bound to.
+
+    **Why the scope lives in columns here rather than in its own table.** A user
+    holds exactly one scope, it never changes without the account changing, and
+    which column carries it is determined by `role` and nothing else. A
+    `user_scopes` table would be a strict one-to-one join, an extra query on
+    every authenticated request, and a second place a scope could go missing -
+    for a cardinality that is one. The columns are nullable because only the
+    relevant one is populated per role, and `ck_user_scope_matches_role` below
+    is what stops "nullable" from meaning "optional".
+
+    **Which column each role populates** (DOMAIN-MODEL.md (k)):
+
+    | Role | `scope_state_id` | `scope_district` | `scope_mp_id` |
+    | --- | --- | --- | --- |
+    | `ministry` | null | null | null |
+    | `state_nodal` | **set** | null | null |
+    | `district_authority` | **set** | **set** | null |
+    | `member_of_parliament` | null | null | **set** |
+
+    **A District Authority is bound to a state AND a district, not to a district
+    alone, and the corpus is why.** District names are not unique across states:
+    `AGRA`, `KAITHAL`, `PILIBHIT` and `SHAHJAHANPUR` each appear in five
+    different states in `works`, and eight more names appear in three. Scoping
+    on `Work.district == D` by itself would hand a Uttar Pradesh officer the
+    Madhya Pradesh district of the same name, which is the exact leak invariant
+    10 exists to prevent. The predicate is `state_id == S AND district == D`.
+
+    **There is no self-registration.** Accounts are created by
+    `python -m app.seed_users`, which is how a government deployment would
+    provision access and also what keeps a scope from being chosen by the person
+    it restricts. It is a declared limitation: this table has no password-reset
+    path, no lockout counter and no session store, and PROJECT-BRIEF.md already
+    says the login is a demo over seeded accounts rather than an identity
+    provider.
+
+    **`password_hash` is a passlib bcrypt digest.** No plaintext password
+    reaches this table, this repository or a log line.
+    """
+
+    __tablename__ = "users"
+    __table_args__ = (
+        # The scope shape is enforced by the database, not only by the code that
+        # writes it. A row that reached this table with a role and the wrong
+        # scope would be a silent authorisation defect - a `state_nodal` with a
+        # null state would fall through to an unfiltered query unless every
+        # reader remembered to check, and readers forget. This constraint means
+        # the row cannot exist.
+        CheckConstraint(
+            "(role = 'ministry' AND scope_state_id IS NULL AND scope_district IS NULL "
+            "  AND scope_mp_id IS NULL) OR "
+            "(role = 'state_nodal' AND scope_state_id IS NOT NULL AND scope_district IS NULL "
+            "  AND scope_mp_id IS NULL) OR "
+            "(role = 'district_authority' AND scope_state_id IS NOT NULL "
+            "  AND scope_district IS NOT NULL AND scope_mp_id IS NULL) OR "
+            "(role = 'member_of_parliament' AND scope_state_id IS NULL "
+            "  AND scope_district IS NULL AND scope_mp_id IS NOT NULL)",
+            name="ck_user_scope_matches_role",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # The login identifier. Unique and stored lower-cased by `app/auth.py`, so
+    # two accounts cannot differ only by the capitalisation of an address.
+    email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True, index=True)
+    # passlib bcrypt. Never a plaintext password, never a reversible encoding.
+    password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    # One of constants.ROLES, rendered as a VARCHAR plus a CHECK the same way
+    # every availability companion is, so the file stays readable in a generic
+    # SQLite client.
+    role: Mapped[str] = mapped_column(RoleType, nullable=False, index=True)
+
+    # What an officer is called on screen and in an audit row's actor line.
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    # A revoked account, kept rather than deleted: `audit_log.actor_id` points
+    # at this row and a trail whose actor vanished is a weaker trail. Login
+    # refuses an inactive user; nothing removes one.
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    # The scope. Exactly the columns the role's row in the table above marks
+    # "set" are non-null; the CHECK constraint enforces it.
+    scope_state_id: Mapped[int | None] = mapped_column(ForeignKey("states.id"), index=True)
+    # `works.district` is a plain string on `works` and so it is one here.
+    # Compared exactly, uppercased at seed time the way ingest canonicalises it.
+    scope_district: Mapped[str | None] = mapped_column(String(120), index=True)
+    scope_mp_id: Mapped[int | None] = mapped_column(ForeignKey("mps.id"), index=True)
+
+    scope_state: Mapped["State | None"] = relationship()
+    scope_mp: Mapped["MP | None"] = relationship()

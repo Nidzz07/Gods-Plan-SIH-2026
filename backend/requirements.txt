@@ -19,3 +19,11 @@ rapidfuzz==3.10.1
 # package that uses them.
 scikit-learn==1.5.2
 networkx==3.4.2
+# Authentication (Phase 6). Declared in CLAUDE.md's fixed stack and in
+# PROJECT-BRIEF.md's honest-scoping note since Stage 0, but never pinned here -
+# the same defect the ML pins above record. bcrypt is pinned to 4.0.1 because
+# passlib 1.7.4 reads `bcrypt.__about__`, which 4.1 removed: the pairing works
+# and emits a warning on every hash otherwise.
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0

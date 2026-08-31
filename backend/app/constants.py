@@ -366,7 +366,54 @@ AUDIT_EVENTS = (
     "INGEST_COMPLETED",
 )
 
-ROLES = ("ministry", "state_nodal", "district_authority", "member_of_parliament")
+# --------------------------------------------------------------------------
+# Roles (F-auth, DOMAIN-MODEL.md (k))
+# --------------------------------------------------------------------------
+
+# The four personas, spelled once. `schemas.py` types itself off these, the
+# `users.role` CHECK constraint is built from these, and `audit_log.actor_role`
+# is validated against these - so a fifth role is one edit here and nowhere
+# else (invariant 7).
+ROLE_MINISTRY = "ministry"
+ROLE_STATE_NODAL = "state_nodal"
+ROLE_DISTRICT_AUTHORITY = "district_authority"
+ROLE_MEMBER_OF_PARLIAMENT = "member_of_parliament"
+
+ROLES = (
+    ROLE_MINISTRY,
+    ROLE_STATE_NODAL,
+    ROLE_DISTRICT_AUTHORITY,
+    ROLE_MEMBER_OF_PARLIAMENT,
+)
+
+# The roles that may write. The member is read-only everywhere: the scheme's
+# subject does not adjudicate the scheme's findings (DOMAIN-MODEL.md (k)).
+WRITE_ROLES = (ROLE_MINISTRY, ROLE_STATE_NODAL, ROLE_DISTRICT_AUTHORITY)
+
+# How long an issued access token stays valid.
+#
+# TWELVE HOURS, and that is a demo figure rather than a security one. There is
+# no refresh flow, no revocation list and no session store in this prototype,
+# so the expiry is the only thing that ends a session: a 30-minute production
+# token would put a re-login in the middle of a judging walkthrough, and a
+# 30-day one would be indefensible even for a demo. Twelve hours covers one
+# working day of the walkthrough and expires before the next.
+#
+# PROJECT-BRIEF.md already declares the login as a demo over seeded accounts
+# rather than an identity provider. This constant is the same statement in a
+# number, and it is stated rather than oversold.
+TOKEN_TTL_HOURS = 12
+
+# HS256, not RS256. One process signs and the same process verifies; an
+# asymmetric pair would add a key-distribution story with no second verifier to
+# tell it to.
+JWT_ALGORITHM = "HS256"
+
+# The environment variable the signing secret is read from. There is a
+# development fallback in `app/auth.py` and it is labelled there, loudly: a
+# deployment that does not set this is signing with a value that is in the
+# repository, which is a demo posture and is never described as anything else.
+JWT_SECRET_ENV = "NIGRANI_JWT_SECRET"
 
 # --------------------------------------------------------------------------
 # The synthetic control (docs/contract/fixtures.md, fixture C)
