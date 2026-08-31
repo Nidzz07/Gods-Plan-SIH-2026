@@ -20,10 +20,15 @@ export default function NotFound() {
             is a 404 that drifts. */}
         <div className={`${CARD} min-h-region max-w-4xl p-8`}>
           <p className="text-body-secondary text-ink-secondary">
-            Check the address, or start again from the ranked case list.
+            Check the address, or start again from your own screen. Note that a case id outside
+            your role&rsquo;s scope answers exactly like one that was never issued — the API will
+            not confirm that another district&rsquo;s case exists, so a mistyped id and a real one
+            you cannot reach look the same from here, deliberately.
           </p>
+          {/* `/` is a redirect to whichever landing route this role owns, so
+              one link works for all four without this page knowing which. */}
           <Link to="/" className={`${BUTTON} mt-4 inline-block`}>
-            Back to the case list
+            Back to your own screen
           </Link>
         </div>
       </div>

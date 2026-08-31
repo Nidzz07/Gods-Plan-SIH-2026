@@ -1,28 +1,32 @@
-import { useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from './components/Layout.jsx'
 import NotFound from './pages/NotFound.jsx'
 import SignIn from './pages/SignIn.jsx'
+import { AUTH_LOADING, AUTH_SIGNED_IN, useAuth } from './auth.jsx'
+import { ROLE_HOME } from './roles.js'
 
-// The shell, mid-rebuild. The inherited project's five domain screens have
-// been removed — they described shops, consignments and complaints, and none
-// of that vocabulary survives the move to MPLADS — and NIGRANI's own screens
-// arrive over the commits that follow this one. What is left standing is the
-// part that DID port: the sign-in door, the layout chrome, and the design
-// system underneath both.
+// The router. Role no longer lives here — it lives in the session, and the
+// session lives in AuthProvider — so App is back to being what its name says.
 //
-// Everything under the layout therefore falls through to the 404 for now,
-// which is a real screen with the app's own header band rather than a blank
-// route, so the shell can still be walked end to end while it is empty.
-export default function App() {
-  const [role, setRole] = useState(null)
+// `/` is a redirect rather than a screen. Four roles have four landing routes
+// and none of them is the index; a shared index would be one component
+// guessing which of four dashboards it was, and that guess belongs to the
+// router.
+function Index() {
+  const { status, user } = useAuth()
+  if (status === AUTH_LOADING) return null
+  if (status !== AUTH_SIGNED_IN || !user) return <Navigate to="/sign-in" replace />
+  return <Navigate to={ROLE_HOME[user.role] ?? '/sign-in'} replace />
+}
 
+export default function App() {
   return (
     <Routes>
-      <Route path="/sign-in" element={<SignIn onSelect={setRole} />} />
+      <Route path="/sign-in" element={<SignIn />} />
 
-      <Route element={<Layout role={role} onRoleChange={setRole} />}>
+      <Route element={<Layout />}>
+        <Route index element={<Index />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

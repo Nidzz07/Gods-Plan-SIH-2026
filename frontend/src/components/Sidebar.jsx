@@ -3,19 +3,15 @@ import { NavLink } from 'react-router-dom'
 import { ROLE_NAV } from '../roles.js'
 import { Logo } from './Logo.jsx'
 
-// The nav is per role and lives in roles.js — three items for every role: that
-// role's own workspace screen, then Case Detail and the Rulebook, which all
-// three roles read. Only the first item changes with the role; the other two
-// are the same links on every list, because every role opens cases and every
-// role has reason to check the document the scores were derived from.
+// The nav is per role and lives in roles.js.
 //
-// Case Detail points at the demo case; once the officer list is real it will be
-// reached by clicking a row, and it stays in the nav for now so the shell can
-// be walked end to end.
-//
-// Filtering here is wayfinding, not access control: a screen that is off this
-// list is still reachable by typing its address, and nothing about the data
-// behind it changes with the role.
+// Filtering here is wayfinding, not access control, and the reason that
+// sentence survives the arrival of real auth is worth stating: a screen that
+// is off this list is still reachable by typing its address. What has changed
+// is what happens next — the API behind it applies the caller's predicate and
+// answers 403 or 404, so an address typed into the bar now reaches a refusal
+// rather than another district's rows. The sidebar is the menu; the query is
+// the boundary.
 
 function navClasses({ isActive }) {
   // Green edge bar plus a green-tinted ground. This is a navigation
@@ -29,7 +25,7 @@ function navClasses({ isActive }) {
     : `${base} border-transparent text-white/60 hover:border-white/20 hover:text-white`
 }
 
-export default function Sidebar({ role }) {
+export default function Sidebar({ user }) {
   return (
     <aside className="flex w-sidebar shrink-0 flex-col bg-navy">
       <div className="flex h-topbar items-center px-6">
@@ -40,7 +36,7 @@ export default function Sidebar({ role }) {
       </div>
 
       <nav className="flex flex-col gap-1 py-4">
-        {(ROLE_NAV[role] ?? []).map((item) => (
+        {(ROLE_NAV[user.role] ?? []).map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={navClasses}>
             {item.label}
           </NavLink>
@@ -48,9 +44,12 @@ export default function Sidebar({ role }) {
       </nav>
 
       {/* meta-label bakes its own 1.4 line-height, so leading-relaxed is gone
-          rather than overriding half the token. */}
+          rather than overriding half the token. The line names what the corpus
+          actually is: a truncated download of the MPLADS portal, which is a
+          declared limitation and therefore belongs on every screen rather than
+          on one. */}
       <div className="mt-auto px-6 py-6 text-meta-label text-white/40">
-        Synthetic data, seed 4521.
+        Truncated MPLADS portal sample.
         <br />
         Demo build — not a system of record.
       </div>
