@@ -1,11 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from './components/Layout.jsx'
+import Alerts from './pages/Alerts.jsx'
 import CaseDetail from './pages/CaseDetail.jsx'
 import District from './pages/District.jsx'
 import Member from './pages/Member.jsx'
 import Ministry from './pages/Ministry.jsx'
 import NotFound from './pages/NotFound.jsx'
+import Rulebook from './pages/Rulebook.jsx'
 import SignIn from './pages/SignIn.jsx'
 import StateNodal from './pages/StateNodal.jsx'
 import { AUTH_LOADING, AUTH_SIGNED_IN, useAuth } from './auth.jsx'
@@ -48,6 +50,14 @@ export default function App() {
             exactly as an id that was never issued does, and the screen renders
             that refusal rather than resolving which of the two it was. */}
         <Route path="cases/:caseId" element={<CaseDetail />} />
+
+        {/* Two more screens that belong to no single role. The rulebook is
+            readable by all four - everyone judged by a rule may read it - and
+            writable by the ministry alone, which the page enforces as
+            wayfinding and the server enforces as fact. The alert inbox is
+            scoped per role by the same predicate the case list uses. */}
+        <Route path="rulebook" element={<Rulebook />} />
+        <Route path="alerts" element={<Alerts />} />
 
         <Route path="*" element={<NotFound />} />
       </Route>

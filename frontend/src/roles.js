@@ -57,11 +57,24 @@ export const ROLE_HOME = {
 // The rulebook is on all four lists, and that is a decision from the scoping
 // matrix rather than an oversight: everyone judged by a rule is entitled to
 // read the rule. Writing it is Ministry-only, and the server enforces that.
+// The rulebook is on all four lists, and that is a decision from the scoping
+// matrix rather than an oversight: everyone judged by a rule is entitled to
+// read the rule. Writing it is Ministry-only and the server enforces that.
+//
+// Alerts are on all four too, for a different reason: the queue is scoped, so
+// each role's link opens their own inbox and the member's is read-only. A role
+// with no alerts in scope gets an empty state that says why, which is a better
+// answer than a missing menu item.
+const SHARED_NAV = [
+  { to: '/alerts', label: 'Alerts' },
+  { to: '/rulebook', label: 'Rulebook' },
+]
+
 export const ROLE_NAV = {
-  [MINISTRY]: [{ to: '/ministry', label: 'National overview', end: true }],
-  [STATE_NODAL]: [{ to: '/state', label: 'State overview', end: true }],
-  [DISTRICT_AUTHORITY]: [{ to: '/district', label: 'Case queue', end: true }],
-  [MEMBER_OF_PARLIAMENT]: [{ to: '/member', label: 'My account', end: true }],
+  [MINISTRY]: [{ to: '/ministry', label: 'National overview', end: true }, ...SHARED_NAV],
+  [STATE_NODAL]: [{ to: '/state', label: 'State overview', end: true }, ...SHARED_NAV],
+  [DISTRICT_AUTHORITY]: [{ to: '/district', label: 'Case queue', end: true }, ...SHARED_NAV],
+  [MEMBER_OF_PARLIAMENT]: [{ to: '/member', label: 'My account', end: true }, ...SHARED_NAV],
 }
 
 // Which role owns each landing route. A role standing on another role's
