@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from './components/Layout.jsx'
+import CaseDetail from './pages/CaseDetail.jsx'
 import District from './pages/District.jsx'
 import Member from './pages/Member.jsx'
 import Ministry from './pages/Ministry.jsx'
@@ -39,6 +40,14 @@ export default function App() {
         <Route path="state" element={<StateNodal />} />
         <Route path="district" element={<District />} />
         <Route path="member" element={<Member />} />
+
+        {/* One case sheet for all four roles, and it belongs to none of them —
+            so it is absent from the owner map in roles.js and nobody standing
+            on it is moved off. Which cases a role can REACH is decided by the
+            server's predicate: an id outside the caller's scope answers 404,
+            exactly as an id that was never issued does, and the screen renders
+            that refusal rather than resolving which of the two it was. */}
+        <Route path="cases/:caseId" element={<CaseDetail />} />
 
         <Route path="*" element={<NotFound />} />
       </Route>
