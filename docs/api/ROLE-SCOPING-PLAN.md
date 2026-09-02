@@ -16,7 +16,7 @@ compiles each role's select and reads the `WHERE` clause, because every
 response-body test in that file could in principle be satisfied by fetching
 everything and dropping rows in Python, which is the failure invariant 10 names.
 
-Three things were carried out differently from the plan below, and both are
+Four things were carried out differently from the plan below, and both are
 recorded here rather than left as a diff to notice:
 
 1. **A District Authority is scoped on `state_id AND district`, not on
@@ -29,7 +29,17 @@ recorded here rather than left as a diff to notice:
 2. **`GET /api/audit/chain` is Ministry-only**, which the plan did not mention.
    Every other audit read is scoped by a case; the chain walk is over the whole
    84,629-row trail at once and has no case to be scoped by.
-3. **`GET /api/analytics/district/{district}` resolves the district by state and
+3. **Four endpoints reached this table late**, and the omission is recorded
+   rather than quietly closed. `POST /api/rulebook` and the three `/api/alerts`
+   routes were added after this plan was last revised and went a full phase
+   without a row here. Their scoping was correct in the code and tested from the
+   day they landed — `tests/test_rulebook_edit.py` and `tests/test_alerts.py`
+   both assert the refusals — but this document is the endpoint-by-endpoint
+   commitment, and an endpoint missing from it is an endpoint nobody checked
+   against the matrix. A route audit now enumerates the running application's
+   own route table and compares it against this table; it found these four.
+
+4. **`GET /api/analytics/district/{district}` resolves the district by state and
    name together**, which deviation 1 required and the endpoint did not
    originally do. It looked the name up with `WHERE works.district = :district
    LIMIT 1` and filtered its rollups on the bare name, so for the 61 district
@@ -89,6 +99,10 @@ a role may ask for at all.
 | `GET /api/analytics/district/{district}` | `district == D` **and `state_id == S`** for `district_authority`; `district` must lie in `S` for `state_nodal`. The state is read from the caller's own row for both, never from the request; the Ministry, which has no state of its own, passes `?state=` and is refused with the candidates named if it omits one on a district name that several states carry | `analytics.district_analytics()` |
 | `GET /api/analytics/mp/{mp_id}` | `mp_id == M` for the MP role. **Invisible to `district_authority` entirely** — a district officer has no business seeing an MP's aggregate account position, and the one derived value they need, `mp_utilisation_pct`, reaches them through the case trace where it is already scoped to that case's MP | `analytics.mp_analytics()` |
 | `GET /api/rulebook` | readable by all four roles — everyone judged by a rule is entitled to read it, and it names no state, district, agency or member. `PUT`, when it lands, is Ministry-only | `rulebook.get_rulebook()` |
+| `POST /api/rulebook` | **Ministry only.** `require_role(ministry)` refuses every other role with 403, before the edit is parsed. This is the write half of the `rulebook_versions` row of DOMAIN-MODEL.md §(k), which reads "all, **write**" for the ministry and "all, read" for the other three | `rulebook.edit_rulebook()` — the edit creates a NEW version and mutates none, and rescores nothing: every stored case keeps the snapshot it was scored under (invariant 5) |
+| `GET /api/alerts` | `Alert.state_id == S` · `Alert.state_id == S AND Alert.district == D` · `Alert.mp_id == M` | `alerts.alert_predicate()` — the alert rows carry their own denormalised scope columns, and the district predicate uses **both terms**, never the district name alone. 61 of the 634 district names carrying cases belong to more than one state, and that exact class of bug has already been found once in `analytics.py`; `tests/test_alerts.py` provisions two officers in two states holding one district name and reads both inboxes |
+| `POST /api/alerts/{alert_id}/acknowledge` | the same predicate, plus `role != member_of_parliament` | `alerts.acknowledge()` — the alert is fetched through the scoped select first, so an out-of-scope id returns **404, not 403**, for the same reason a case does |
+| `POST /api/alerts/{alert_id}/escalate` | the same predicate, plus `role != member_of_parliament` | `alerts.escalate()` — same fetch, same 404. The escalation target comes from `constants.ESCALATES_TO` keyed on the caller's own role, never from the request |
 | `GET /api/ablation/report` | Ministry-only. It is a report about MoSPI's own publishing, not a finding about any state, district or member | `ablation.get_report()` |
 | `GET /api/audit/chain` | Ministry-only. Not in the original plan: every other audit read is scoped by a case, and this one walks the whole trail | `audit.get_chain()` |
 | `POST /api/auth/login` | the only unauthenticated route under `/api`. `GET /api/auth/me` returns exactly one row — the caller's own — which is the narrowest scope there is | `auth.login()` |
