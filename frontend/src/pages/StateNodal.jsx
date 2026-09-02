@@ -7,7 +7,7 @@ import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel } from '../components/Skeleton.jsx'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatCrore } from '../severity.js'
+import { formatCount, formatMoney } from '../severity.js'
 import { CAPTION, CARD, COLUMN_HEAD } from '../ui.js'
 
 // The State Nodal landing screen, deliberately minimal — see Ministry.jsx for
@@ -73,10 +73,10 @@ export default function StateNodal() {
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Sanctioned" value={formatCrore(data.summary.sanctioned_amt)} />
+                <Figure label="Sanctioned" value={formatMoney(data.summary.sanctioned_amt)} />
                 <Figure
                   label="Undisbursed"
-                  value={formatCrore(data.summary.undisbursed_amt)}
+                  value={formatMoney(data.summary.undisbursed_amt)}
                   note="Only on cases whose first fund hop is open."
                 />
                 <Figure label="Worst score" value={data.summary.worst_score} />
@@ -119,7 +119,7 @@ export default function StateNodal() {
                       {formatCount(row.medium_cases)}
                     </span>
                     <span className="num text-right text-table-cell text-ink">
-                      {formatCrore(row.sanctioned_amt)}
+                      {formatMoney(row.sanctioned_amt)}
                     </span>
                     <span className="num text-right text-table-cell text-ink">
                       {formatCount(row.corroborated_cases)}

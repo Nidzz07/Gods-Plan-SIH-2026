@@ -8,7 +8,7 @@ import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatCrore } from '../severity.js'
+import { formatCount, formatMoney } from '../severity.js'
 import { CAPTION } from '../ui.js'
 
 // The District Authority landing screen — the case queue, deliberately minimal.
@@ -74,7 +74,7 @@ export default function District() {
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Figure label="Cases" value={formatCount(data.summary.cases)} />
                 <Figure label="High" value={formatCount(data.summary.high_cases)} />
-                <Figure label="Sanctioned" value={formatCrore(data.summary.sanctioned_amt)} />
+                <Figure label="Sanctioned" value={formatMoney(data.summary.sanctioned_amt)} />
                 <Figure
                   label="Mean coverage"
                   value={`${data.summary.mean_coverage_pct}%`}

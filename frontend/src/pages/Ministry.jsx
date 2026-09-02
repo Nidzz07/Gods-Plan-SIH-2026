@@ -5,7 +5,7 @@ import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel } from '../components/Skeleton.jsx'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatCrore } from '../severity.js'
+import { formatCount, formatMoney } from '../severity.js'
 import { CAPTION, CARD, COLUMN_HEAD } from '../ui.js'
 
 // The Ministry landing screen, deliberately minimal.
@@ -61,10 +61,10 @@ export default function Ministry() {
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Sanctioned" value={formatCrore(data.sanctioned_amt)} />
+                <Figure label="Sanctioned" value={formatMoney(data.sanctioned_amt)} />
                 <Figure
                   label="Undisbursed"
-                  value={formatCrore(data.undisbursed_amt)}
+                  value={formatMoney(data.undisbursed_amt)}
                   note="Sanctioned minus disbursed, and only on cases whose first fund hop is open. A work with no expenditure row contributes nothing."
                 />
                 <Figure
@@ -130,10 +130,10 @@ export default function Ministry() {
                             {formatCount(row.medium_cases)}
                           </span>
                           <span className="num text-right text-table-cell text-ink">
-                            {formatCrore(row.sanctioned_amt)}
+                            {formatMoney(row.sanctioned_amt)}
                           </span>
                           <span className="num text-right text-table-cell text-ink">
-                            {formatCrore(row.undisbursed_amt)}
+                            {formatMoney(row.undisbursed_amt)}
                           </span>
                         </li>
                       ))}

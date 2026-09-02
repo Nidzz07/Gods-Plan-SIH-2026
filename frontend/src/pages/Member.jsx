@@ -8,7 +8,7 @@ import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatCrore, formatRupees } from '../severity.js'
+import { formatCount, formatMoney, formatRupees } from '../severity.js'
 import { CAPTION, CARD, COLUMN_HEAD, LABEL } from '../ui.js'
 
 // The Member of Parliament landing screen — the account ladder, deliberately
@@ -89,7 +89,7 @@ export default function Member() {
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Figure label="Cases" value={formatCount(data.portfolio?.cases)} />
                 <Figure label="High" value={formatCount(data.portfolio?.high_cases)} />
-                <Figure label="Sanctioned" value={formatCrore(data.portfolio?.sanctioned_amt)} />
+                <Figure label="Sanctioned" value={formatMoney(data.portfolio?.sanctioned_amt)} />
                 <Figure
                   label="Utilisation percentile"
                   value={

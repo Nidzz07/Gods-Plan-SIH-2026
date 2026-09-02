@@ -144,18 +144,48 @@ export function formatCount(value) {
 }
 
 // An exact rupee figure, for a case sheet where an officer reconciles against
-// a sanction order. Charts do NOT use this — see formatCrore.
+// a sanction order. Charts do NOT use this — see formatMoney.
 export function formatRupees(value) {
   return value === null || value === undefined ? null : `₹${INDIAN.format(value)}`
 }
 
-// Aggregate money, in crore. The UI conventions are explicit that an axis
-// carries rupees in crore or lakh and never a raw integer, and a national
-// total written out in rupees is fourteen digits nobody reads. One decimal: at
-// crore scale the second one is noise.
-export function formatCrore(value) {
+// Aggregate money, scaled. The UI conventions are explicit that an axis carries
+// rupees in crore OR LAKH and never a raw integer, and a national total written
+// out in rupees is fourteen digits nobody reads. One decimal: at either scale
+// the second one is noise.
+//
+// TWO DEFECTS FIXED HERE, both of which show up the moment aggregates reach a
+// chart axis or a district table.
+//
+// It did not group its integer part. `(value / 1e7).toFixed(1)` printed
+// "₹2107.5 cr" beside figures that every other formatter in this file groups
+// lakh-and-crore, so the one number on the screen large enough to need
+// separators was the one number that did not get them. It goes through the same
+// en-IN formatter as the rest now.
+//
+// It was crore-only, and 342 of the 710 districts in this corpus carry less
+// than one crore. A district holding Rs 2,00,000 printed "₹0.0 cr", which reads
+// as nothing at all rather than as a small amount — on nearly half the rows of
+// the district table. Below a crore it drops to lakh, which is the other unit
+// the conventions name and the one an officer uses for a figure that size.
+//
+// Named for the job rather than the unit, because the unit is now the
+// function's decision and not the caller's.
+const CRORE = 10000000
+const LAKH = 100000
+const SCALED = new Intl.NumberFormat('en-IN', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+})
+
+export function formatMoney(value) {
   if (value === null || value === undefined) return null
-  return `₹${(value / 10000000).toFixed(1)} cr`
+  // Signed, so a negative aggregate scales on its magnitude rather than
+  // landing in lakh because the minus sign made it smaller than a crore.
+  const magnitude = Math.abs(value)
+  return magnitude >= CRORE
+    ? `₹${SCALED.format(value / CRORE)} cr`
+    : `₹${SCALED.format(value / LAKH)} lakh`
 }
 
 export function formatPct(value) {
