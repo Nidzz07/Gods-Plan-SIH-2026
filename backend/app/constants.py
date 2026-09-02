@@ -308,6 +308,24 @@ RULE_STATUS_SKIPPED = "skipped"
 
 CASE_STATUSES = ("open", "under_review", "escalated", "resolved")
 
+# F8's alert lifecycle. Four states, and deliberately NOT the same four a case
+# has: a case is a finding about a work and an alert is a message about a case,
+# so a case can be `under_review` while the alert that raised it is already
+# `acknowledged`. Spelled here once, and the `alerts.status` CHECK constraint,
+# the schema Literal and the run script all read it from here (invariant 7).
+ALERT_STATUSES = ("open", "acknowledged", "escalated", "closed")
+
+# Which role an escalation is addressed to, per the role doing the escalating.
+# A district officer escalates to their state; a state officer escalates to the
+# ministry; the ministry has nobody above it and escalates to itself, which is
+# recorded honestly rather than refused - a ministry analyst marking a case as
+# escalated is a real act with a real audit row, it just has no higher desk.
+ESCALATES_TO = {
+    "district_authority": "state_nodal",
+    "state_nodal": "ministry",
+    "ministry": "ministry",
+}
+
 # An agency's total disbursement must clear this floor before
 # `vendor_concentration` may fire, so a small agency with one work does not
 # read as concentrated. Rs 50 lakh (DOMAIN-MODEL.md (g) rule 6).

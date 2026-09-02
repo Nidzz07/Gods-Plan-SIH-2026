@@ -261,6 +261,10 @@ python -m app.derive_all       # cases, rule_hits, rulebook_versions, audit_log
                                #   and the rollup tables: one case per sanctioned
                                #   work, its full ten-row trace, its opening
                                #   audit events, and the dashboard aggregates
+python -m app.alerts_run       # alerts: one per HIGH case, routed by the scope
+                               #   its work carries. Idempotent BY CASE, not by
+                               #   rebuild - a re-run tops the inbox up and never
+                               #   resets an acknowledgement
 python -m app.seed_users       # the four demo accounts, one per role, each bound
                                #   to a scope CHOSEN from the derived corpus, with
                                #   generated passwords printed once to stdout
@@ -268,14 +272,24 @@ python -m app.seed_users       # the four demo accounts, one per role, each boun
 pytest -v
 uvicorn app.main:app --reload --port 8000
 ```
-**All four build steps are required.** The API only reads; nothing derives a
+**All five build steps are required.** The API only reads; nothing derives a
 case on the first request. A clone that runs `ingest.run` and then `uvicorn`
 gets a working server with zero cases, which is the most misleading screen the
 product can show — `/health` reports `awaiting_build` rather than `ok` for
 exactly that reason. The corpus tests skip without step 1 and `test_api.py`
 skips without step 4, so `pytest` belongs after the build and not before it.
 
-`seed_users` is fifth and last. It comes after `derive_all` because it picks
+`alerts_run` is fifth and `seed_users` sixth. `alerts_run` reads stored cases
+and writes `alerts`, so it needs `derive_all` to have run; it does not read
+`users`, so it does not care whether the accounts exist yet. It is the ONE build
+step that is idempotent by row rather than by rebuild, and deliberately so:
+`alerts.status`, `acknowledged_at` and `escalated_at` record an officer's
+decisions rather than a finding, and they are the only things in the database
+that a re-derive cannot reproduce. Dropping and rebuilding that table the way
+the other steps rebuild theirs would throw them away, so a second run inserts
+only what is new.
+
+`seed_users` is last. It comes after `derive_all` because it picks
 its state, district and member by counting derived cases rather than from a
 list written into the script, and refuses to write an account onto a scope with
 no cases — a login that opens onto an empty screen is indistinguishable from a

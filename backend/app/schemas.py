@@ -996,3 +996,60 @@ class RulebookEditOut(BaseModel):
     note: str
     recompute_hint: str
 
+
+# ---------------------------------------------------------------------------
+# Alerts (F8)
+# ---------------------------------------------------------------------------
+
+
+AlertStatus = Literal["open", "acknowledged", "escalated", "closed"]
+
+
+class AlertOut(BaseModel):
+    """One routed alert. Scoped exactly as the case it points at."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    case_id: str
+    severity: Severity
+    # Null where an alert is about a case as a whole rather than one rule.
+    rule_id: str | None = None
+    message: str
+    status: AlertStatus
+    created_at: datetime
+    acknowledged_at: datetime | None = None
+    escalated_at: datetime | None = None
+    escalated_to: str | None = None
+    state: str | None = None
+    district: str | None = None
+    score: int | None = None
+    work_id: str | None = None
+    description: str | None = None
+
+
+class AlertPage(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[AlertOut]
+
+
+class EscalationOut(BaseModel):
+    """The result of an escalation, including whether anything was actually sent.
+
+    `delivered` is false in the default configuration and the wording around it
+    is deliberate. NIGRANI escalates into an in-app queue and an audit event;
+    the SMTP path exists, is off unless a mail host is configured, and logs what
+    it would have sent. A response that said "notified" would be claiming a
+    delivery that did not happen (PROJECT-BRIEF.md, declared limitation 8).
+    """
+
+    alert: AlertOut
+    dry_run: bool
+    delivered: bool
+    recipient: str
+    subject: str
+    body: str
+    transport: str
+    detail: str

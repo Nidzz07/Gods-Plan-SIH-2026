@@ -322,7 +322,11 @@ scoping decisions, not defects.
    expenditure export joins to only 3,529 sanctioned works. The caveat travels
    with the flag.
 7. **Login is a demo.** Scoping is server-side and real; identity is seeded.
-8. **Escalation queues in-app** and writes an audit event. It sends no email.
+8. **Escalation queues in-app** and writes an audit event. It sends no email in
+   the shipped configuration. An SMTP path exists and is switched off unless a
+   mail host is configured; with none configured it composes the message,
+   returns it unsent and reports `delivered: false`. The word on screen is
+   "queued", never "notified".
 9. **Agency canonicalisation is fuzzy.** `rapidfuzz` merges typo variants; a
    merge that an officer disputes is a UI-visible decision, not a silent one.
 10. **A duplicate cluster is a candidate for review, never an accusation.**

@@ -35,6 +35,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -975,3 +976,99 @@ class User(Base):
 
     scope_state: Mapped["State | None"] = relationship()
     scope_mp: Mapped["MP | None"] = relationship()
+
+
+class Alert(Base):
+    """F8 - one routed early warning about one case.
+
+    **Why this is a table and not a query.** An alert could be derived on every
+    request by re-running "which cases are HIGH", and it deliberately is not,
+    for the same reason `rollup_state` exists: a view recomputed per request
+    cannot carry state. An alert accumulates decisions - somebody acknowledged
+    it, somebody escalated it, at what time and to whom - and those are facts
+    about the administration's handling of a finding, not about the finding. A
+    derived list would lose all of them on the next refresh.
+
+    **Scope columns are denormalised on purpose.** `state_id` and `district` are
+    copied from the alert's work rather than reached through
+    `case -> work -> state`. Two reasons, and the second is the important one.
+    The list endpoint filters on them directly, so a role-scoped inbox is one
+    indexed predicate rather than a three-table join. And they let the alert
+    predicate be written in exactly the shape the case predicate already has -
+    `state_id == S AND district == D`, both terms, never the district name
+    alone. District names repeat across states in this corpus (61 of the 634
+    carrying cases belong to more than one state), and the same class of bug has
+    already been found once in the analytics router; carrying the state id on
+    the row is what stops it being reintroduced here.
+
+    **`rule_id` is nullable and is not a foreign key.** An alert can be about a
+    case as a whole rather than about one rule firing, and a rule id is a
+    string in a YAML document that an officer may edit - it is not a row. A
+    foreign key here would either forbid editing the rulebook or leave dangling
+    references; the id is recorded as what it is, the name of the rule that was
+    the loudest contributor when the alert was raised.
+    """
+
+    __tablename__ = "alerts"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('open', 'acknowledged', 'escalated', 'closed')",
+            name="ck_alert_status",
+        ),
+        # One open alert per case per kind. The run script is idempotent by this
+        # rather than by rebuilding the table, because rebuilding would discard
+        # every acknowledgement an officer had made - the one thing in this
+        # table that is not re-derivable from the cases.
+        UniqueConstraint("case_id", "kind", name="uq_alert_case_kind"),
+        Index("ix_alert_scope", "state_id", "district"),
+        Index("ix_alert_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # NOT a foreign key, and the reason is the build sequence rather than
+    # laziness. `python -m app.derive_all` DROPS and rebuilds `cases` on every
+    # run; a database-level reference from a table that must SURVIVE that rebuild
+    # would make the drop fail, and the only ways out would be to delete the
+    # alerts with the cases - throwing away the acknowledgements this table
+    # exists to keep - or to skip the rebuild. Neither is acceptable.
+    #
+    # What makes the plain column safe is invariant 8: a case id is derived from
+    # the work id and never from row order, so a re-derive over the same corpus
+    # reproduces exactly the same ids and every alert still points at its own
+    # case. Over a DIFFERENT corpus some alerts may be left pointing at nothing;
+    # the list endpoint inner-joins `cases`, so an orphan stops appearing rather
+    # than erroring, and `alerts_run` counts orphans on every run so they are
+    # visible instead of silent.
+    case_id: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+
+    # What raised it. `severity_high` today; the column exists so a second kind
+    # (a coverage collapse, an agency pattern) can be added without the
+    # uniqueness rule above meaning "one alert per case, ever".
+    kind: Mapped[str] = mapped_column(String(32), nullable=False, default="severity_high")
+    severity: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
+    rule_id: Mapped[str | None] = mapped_column(String(64))
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="open", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime)
+    acknowledged_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # The ROLE an escalation was addressed to, from `constants.ESCALATES_TO`.
+    # Not a user id: escalation goes to a desk, not to a named officer, and the
+    # desk outlives whoever is sitting at it.
+    escalated_to: Mapped[str | None] = mapped_column(String(24))
+    escalated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+
+    # The scope, copied from the work. See the class docstring.
+    state_id: Mapped[int | None] = mapped_column(ForeignKey("states.id"), index=True)
+    district: Mapped[str | None] = mapped_column(String(120), index=True)
+    mp_id: Mapped[int | None] = mapped_column(ForeignKey("mps.id"), index=True)
+
+    # Explicit join condition, since there is no foreign key for SQLAlchemy to
+    # infer one from. `viewonly` because nothing writes a case through an alert.
+    case: Mapped["Case"] = relationship(
+        primaryjoin="foreign(Alert.case_id) == Case.case_id", viewonly=True
+    )

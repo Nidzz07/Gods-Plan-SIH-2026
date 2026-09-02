@@ -694,16 +694,31 @@ def test_the_scoped_context_derives_the_fixtures_identically(db_session, corpus)
 def test_the_materialisation_step_is_idempotent(tmp_path):
     """Run it twice, same case count, same scores, same hash chain.
 
-    Run one is whatever produced the copied database; run two happens here. The
-    audit chain is compared as well as the scores, because every timestamp the
-    build writes is `DATA_AS_OF` rather than a wall clock - which is what makes
-    the chain a property of the corpus rather than of the moment somebody
+    BOTH runs happen here, and that is a correction rather than a flourish. This
+    test used to take run one to be "whatever produced the copied database",
+    which held only while `derive_all` was the last build step to touch
+    `audit_log`. It is not any more: `python -m app.alerts_run` appends an
+    `ALERT_RAISED` row per HIGH case afterwards, and a note or a recompute
+    appends more during normal use. `materialise` drops and rebuilds the trail -
+    documented, and what its own command output warns about - so comparing a
+    corpus that had been through the whole build sequence against one that had
+    been through `derive_all` alone was comparing two different things and
+    calling the difference a failure of idempotence.
+
+    Two runs of the step against each other is what the word actually claims.
+
+    The audit chain is compared as well as the scores, because every timestamp
+    the build writes is `DATA_AS_OF` rather than a wall clock - which is what
+    makes the chain a property of the corpus rather than of the moment somebody
     happened to run the command.
     """
     from app.derive_all import materialise
 
     engine, factory = sessionmaker_on(copy_corpus(tmp_path / "nigrani.db"))
     try:
+        with factory() as session:
+            materialise(session)
+
         with factory() as session:
             before = session.execute(
                 text(

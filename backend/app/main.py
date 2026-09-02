@@ -44,7 +44,7 @@ from fastapi import Depends
 from .constants import DATA_AS_OF
 from .db import get_db
 from .models import AblationFinding, Case, MLFinding, RulebookVersion, Work
-from .routers import ablation, analytics, audit, auth, cases, rulebook, works
+from .routers import ablation, alerts, analytics, audit, auth, cases, rulebook, works
 from .schemas import Health
 
 app = FastAPI(
@@ -114,3 +114,4 @@ app.include_router(rulebook.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(ablation.router, prefix="/api")
+app.include_router(alerts.router, prefix="/api")
