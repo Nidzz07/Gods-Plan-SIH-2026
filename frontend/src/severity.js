@@ -143,6 +143,25 @@ export function formatCount(value) {
   return value === null || value === undefined ? null : INDIAN.format(value)
 }
 
+// A count with its noun, agreeing in number.
+//
+// Written once because the dashboards say this constantly — "7,032 cases across
+// 74 districts", "1 case under 1 implementing agency" — and because the corpus
+// makes the singular a REAL case rather than a theoretical one: 342 of the 710
+// districts carry a handful of cases and several carry exactly one, as does the
+// whole of Meghalaya. A screen reading "1 cases across 1 districts" is a screen
+// a judge stops trusting on the small numbers, which are exactly the ones a
+// district officer is looking at.
+//
+// The plural is passed rather than derived, because the nouns this app counts
+// are not all regular: "agency" pluralises to "agencies" and no rule short of a
+// dictionary gets that from the singular.
+export function countNoun(value, singular, plural) {
+  const count = formatCount(value)
+  if (count === null) return null
+  return `${count} ${value === 1 ? singular : plural}`
+}
+
 // An exact rupee figure, for a case sheet where an officer reconciles against
 // a sanction order. Charts do NOT use this — see formatMoney.
 export function formatRupees(value) {

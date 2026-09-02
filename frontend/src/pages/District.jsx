@@ -15,6 +15,7 @@ import {
   HOP_LABEL,
   LAG_LABEL,
   SEVERITY_BORDER,
+  countNoun,
   formatCount,
   formatMoney,
   formatRupees,
@@ -174,10 +175,9 @@ export default function District() {
           <>
             <section>
               <SectionHeading title="This district">
-                {formatCount(data.summary.cases)} cases under{' '}
-                {formatCount(data.agencies.length)}{' '}
-                {data.agencies.length === 1 ? 'implementing agency' : 'implementing agencies'} in{' '}
-                {data.state}, as of {data.data_as_of}.
+                {countNoun(data.summary.cases, 'case', 'cases')} under{' '}
+                {countNoun(data.agencies.length, 'implementing agency', 'implementing agencies')}{' '}
+                in {data.state}, as of {data.data_as_of}.
               </SectionHeading>
 
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -271,7 +271,13 @@ export default function District() {
             <div className="mt-8">
               <ScopedTable
                 title="Queue"
-                caption={`The ${formatCount(data.cases.length)} highest-scoring of this district's ${formatCount(data.summary.cases)} cases. Severity is the coloured edge on each row and the word in its own column. Every row opens the same case sheet every other role opens.`}
+                caption={`${
+                  data.summary.cases === 1
+                    ? `This district's only case`
+                    : data.cases.length === data.summary.cases
+                      ? `All ${countNoun(data.summary.cases, 'case', 'cases')} in this district`
+                      : `The ${formatCount(data.cases.length)} highest-scoring of this district's ${formatCount(data.summary.cases)} cases`
+                }. Severity is the coloured edge on each row and the word in its own column. Every row opens the same case sheet every other role opens.`}
                 columns={columns}
                 data={data.cases}
                 initialSort={[{ id: 'score', desc: true }]}

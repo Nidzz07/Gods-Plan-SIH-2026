@@ -115,6 +115,14 @@ export default function RankedBar({
                 tick={{ ...AXIS_TICK, fill: INK }}
                 axisLine={false}
                 tickLine={false}
+                // EVERY category gets its label. Recharts thins category ticks
+                // by default, and on a one-row chart it drops the only one —
+                // which is how a district implemented by a single agency ended
+                // up drawing one unlabelled bar. That is the exact case the
+                // chart exists to describe, and an unlabelled bar describes
+                // nothing. These charts are short by construction, so there is
+                // no row count at which thinning would be wanted.
+                interval={0}
               />
               <Tooltip
                 content={<ChartTooltip valueFormat={valueFormat} />}

@@ -15,6 +15,7 @@ import {
   LAG_LABEL,
   SEVERITY_BORDER,
   SKIP_REASON,
+  countNoun,
   formatCount,
   formatMoney,
   formatRupees,
@@ -290,7 +291,7 @@ export default function Member() {
             <div className="mt-8">
               <ScopedTable
                 title="Recommendations that scored worst"
-                caption={`The ${formatCount(data.worst_cases.length)} highest-scoring of this member's cases, across every district and every year. Opening one shows the lifecycle ladder, which is where a delay is attributed to the stage it actually occurred in.`}
+                caption={`The ${countNoun(data.worst_cases.length, 'highest-scoring case', 'highest-scoring cases')} this member recommended, across every district and every year. Opening one shows the lifecycle ladder, which is where a delay is attributed to the stage it actually occurred in.`}
                 columns={columns}
                 data={data.worst_cases}
                 initialSort={[{ id: 'score', desc: true }]}

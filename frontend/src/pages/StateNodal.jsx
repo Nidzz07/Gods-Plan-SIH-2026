@@ -12,7 +12,7 @@ import StatPair from '../components/StatPair.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { SEVERITY_SERIES } from '../chart.js'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatMoney } from '../severity.js'
+import { countNoun, formatCount, formatMoney } from '../severity.js'
 import { CAPTION } from '../ui.js'
 
 // The State Nodal dashboard — the Ministry's view one level down, over the
@@ -150,8 +150,9 @@ export default function StateNodal() {
           <>
             <section>
               <SectionHeading title="Case load">
-                {formatCount(data.summary.cases)} cases across {data.districts.length}{' '}
-                {data.districts.length === 1 ? 'district' : 'districts'}, as of {data.data_as_of}.
+                {countNoun(data.summary.cases, 'case', 'cases')} across{' '}
+                {countNoun(data.districts.length, 'district', 'districts')}, as of{' '}
+                {data.data_as_of}.
               </SectionHeading>
 
               <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -196,7 +197,7 @@ export default function StateNodal() {
             <div className="mt-8">
               <RankedBar
                 title="Severity mix across districts"
-                caption={`The ${distribution.length} districts in ${data.state} carrying the most HIGH cases, worst first, each bar split by severity band. This says whether the state's problem is concentrated in a few districts or spread across many — it is a distribution, not a trend.`}
+                caption={`${distribution.length === 1 ? `The one district in ${data.state}` : `The ${distribution.length} districts in ${data.state} carrying the most HIGH cases, worst first`}, each bar split by severity band. This says whether the state's problem is concentrated in a few districts or spread across many — it is a distribution, not a trend.`}
                 data={distribution}
                 categoryKey="district"
                 series={SEVERITY_SERIES}
@@ -224,7 +225,7 @@ export default function StateNodal() {
             <div className="mt-8">
               <ScopedTable
                 title={`Every district in ${data.state}`}
-                caption={`All ${data.districts.length} districts carrying at least one case. Sortable on any column — click a heading. Corroborated counts the cases where the agency pattern-of-conduct bonus applied.`}
+                caption={`${data.districts.length === 1 ? 'The one district' : `All ${countNoun(data.districts.length, 'district', 'districts')}`} carrying at least one case. Sortable on any column — click a heading. Corroborated counts the cases where the agency pattern-of-conduct bonus applied.`}
                 columns={columns}
                 data={data.districts}
                 initialSort={[{ id: 'high_cases', desc: true }]}

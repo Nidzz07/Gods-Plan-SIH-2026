@@ -12,7 +12,7 @@ import StatPair from '../components/StatPair.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { CORAL } from '../chart.js'
 import { useApi } from '../hooks/useApi.js'
-import { formatCount, formatMoney } from '../severity.js'
+import { countNoun, formatCount, formatMoney } from '../severity.js'
 import { CAPTION } from '../ui.js'
 
 // The Ministry dashboard — the national view, over states.
@@ -191,7 +191,7 @@ export default function Ministry() {
             <div className="mt-8">
               <RankedBar
                 title="States by HIGH case count"
-                caption={`The ${ranked.length} states carrying at least one HIGH case, worst first. Ranked on HIGH count, then on the value sitting behind an open fund hop — two states with one HIGH case each are not equally urgent if one has crore behind it. No map: MPLADS publishes no boundary geometry and none is invented here.`}
+                caption={`${countNoun(ranked.length, 'state', 'states')} carrying at least one HIGH case, worst first. Ranked on HIGH count, then on the value sitting behind an open fund hop — two states with one HIGH case each are not equally urgent if one has crore behind it. No map: MPLADS publishes no boundary geometry and none is invented here.`}
                 data={ranked}
                 categoryKey="state"
                 series={[{ key: 'high_cases', label: 'High cases', color: CORAL }]}
@@ -205,7 +205,7 @@ export default function Ministry() {
             <div className="mt-8">
               <ScopedTable
                 title="Every state in the sample"
-                caption={`All ${data.states.length} states carrying at least one case. Sortable on any column — click a heading. Coverage is weighted by case count, so a district of four does not count as much as one of seven thousand.`}
+                caption={`${data.states.length === 1 ? 'The one state' : `All ${countNoun(data.states.length, 'state', 'states')}`} carrying at least one case. Sortable on any column — click a heading. Coverage is weighted by case count, so a district of four does not count as much as one of seven thousand.`}
                 columns={columns}
                 data={data.states}
                 initialSort={[{ id: 'high_cases', desc: true }]}
@@ -215,7 +215,7 @@ export default function Ministry() {
 
             <section className="mt-8">
               <SectionHeading title="Highest-scoring HIGH cases">
-                The {FEED_LIMIT} worst cases anywhere in the sample, across every state. Ranked by
+                The {countNoun(feed.data?.items.length ?? FEED_LIMIT, 'worst case', 'worst cases')} anywhere in the sample, across every state. Ranked by
                 score, which is this product&rsquo;s triage order — not by recency, because every
                 case in this corpus was opened by one derivation run and they all carry the same
                 timestamp.
