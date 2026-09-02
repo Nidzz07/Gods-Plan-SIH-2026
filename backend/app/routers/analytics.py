@@ -57,7 +57,13 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user, require_role
-from ..constants import DATA_AS_OF, FY_TERM_TO_DATE, ROLE_MINISTRY
+from ..constants import (
+    DATA_AS_OF,
+    FY_TERM_TO_DATE,
+    ROLE_DISTRICT_AUTHORITY,
+    ROLE_MINISTRY,
+    ROLE_STATE_NODAL,
+)
 from ..db import get_db
 from ..engine.rulebook import load as load_rulebook
 from ..models import MP, Case, Constituency, FundAccount, State, User, Work
@@ -117,22 +123,116 @@ def _state_ids(db: Session) -> dict:
     return {name: state_id for state_id, name in db.execute(select(State.id, State.name))}
 
 
-def _district_state(db: Session, district: str) -> tuple[int | None, str | None]:
-    """Which state this district's cases sit in, resolved before the grain check.
+def _state_name(db: Session, state_id: int | None) -> str | None:
+    """One state's name by id, or None. The inverse of `_state_ids`."""
+    return db.scalar(select(State.name).where(State.id == state_id)) if state_id else None
 
-    District names repeat across states in this corpus, so the check cannot be
-    made on the name. Reads `works` rather than `rollup_district` because the
-    rollup carries the state name and not its id, and the comparison is on the
-    id: two spellings of one state would otherwise be two states.
+
+def _district_states(db: Session, district: str) -> list[tuple[int, str]]:
+    """EVERY state carrying a district of this name with at least one case.
+
+    A LIST, and the plural in the name is the whole bug fix. This returned one
+    arbitrary row before - `WHERE district = :district LIMIT 1`, unordered - and
+    a district name does not identify a district in this corpus. 61 of the 634
+    district names carrying cases appear in more than one state: 53 in two, four
+    in three, one in four, and `AGRA`, `PILIBHIT` and `SHAHJAHANPUR` in five
+    each. `ALWAR` is a district of Rajasthan with 70 cases AND a district of
+    Uttar Pradesh with one.
+
+    What the arbitrary pick cost, in the three places it reached:
+
+      * The grain check compared the WRONG state's id against the caller's, so a
+        District Authority legitimately scoped to Uttar Pradesh/ALWAR was
+        refused their own district with the self-contradicting sentence "Your
+        scope is 'ALWAR' and it is not 'ALWAR'".
+      * The rollup queries selected on the name alone, so a Ministry analyst
+        reading ALWAR got Rajasthan's 70 cases and Uttar Pradesh's one SUMMED
+        into a single row describing no district that exists.
+      * The agency list likewise mixed the implementing agencies of two
+        different districts a thousand kilometres apart.
+
+    Ordered by state name so the disambiguation message a caller gets back is
+    stable rather than depending on row order.
     """
-    row = db.execute(
-        select(Work.state_id, State.name)
-        .join(State, State.id == Work.state_id)
-        .join(Case, Case.work_id == Work.id)
-        .where(Work.district == district)
-        .limit(1)
-    ).first()
-    return (row[0], row[1]) if row is not None else (None, None)
+    return [
+        (row[0], row[1])
+        for row in db.execute(
+            select(Work.state_id, State.name)
+            .join(State, State.id == Work.state_id)
+            .join(Case, Case.work_id == Work.id)
+            .where(Work.district == district)
+            .group_by(Work.state_id, State.name)
+            .order_by(State.name)
+        ).all()
+    ]
+
+
+def _resolve_district_state(
+    db: Session, user: User, district: str, state: str | None
+) -> tuple[int | None, str | None]:
+    """Which state's district of this name the caller is asking about.
+
+    **The state comes from the caller's own row wherever the role has one, and
+    never from the client.** A State Nodal officer and a District Authority are
+    both bound to a state id in `users` (models.User, `ck_user_scope_matches_role`),
+    so for them the second term of the predicate is already known server-side
+    and a client-supplied one could only ever be redundant or a lie. That is
+    also why the route did not need to change shape: for three of the four roles
+    there was never a missing parameter, only a query that failed to use one it
+    already had.
+
+    The Ministry is the one role with no state of its own, so it is the one role
+    that may pass `?state=`. When it does not, an unambiguous name resolves on
+    its own and an ambiguous one is refused with the candidates named - because
+    the alternative, summing several districts that share a name into one row,
+    is the correctness half of this bug and answering it silently is worse than
+    asking the caller which one they meant.
+
+    Returns `(state_id, state_name)`, or `(None, None)` to mean "not in this
+    caller's reach", which `check_district_grain` turns into the 403.
+    """
+    if user.role == ROLE_DISTRICT_AUTHORITY:
+        # Their own state, unconditionally. Whether the district NAME is theirs
+        # is the grain check's question, and whether it holds cases is the 404's;
+        # neither is answered by looking the name up across the corpus.
+        return user.scope_state_id, _state_name(db, user.scope_state_id)
+
+    if user.role == ROLE_STATE_NODAL:
+        carriers = {state_id for state_id, _ in _district_states(db, district)}
+        if user.scope_state_id not in carriers:
+            # Not a district of their state. Refused as a grain (403) with the
+            # state that DOES carry the name left unsaid: naming it would tell
+            # an officer of one state about the districts of another, which the
+            # old message did.
+            return None, None
+        return user.scope_state_id, _state_name(db, user.scope_state_id)
+
+    if user.role != ROLE_MINISTRY:
+        # Any other role is refused by the grain check on the role alone.
+        return None, None
+
+    candidates = _district_states(db, district)
+    if state is not None:
+        wanted = _state_ids(db).get(state)
+        match = next(((sid, name) for sid, name in candidates if sid == wanted), None)
+        if match is None:
+            raise HTTPException(
+                status_code=404, detail=f"No cases in district {district!r} in state {state!r}"
+            )
+        return match
+    if not candidates:
+        raise HTTPException(status_code=404, detail=f"No cases in district {district!r}")
+    if len(candidates) > 1:
+        names = ", ".join(name for _, name in candidates)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{district!r} names a district in more than one state ({names}). "
+                f"Add ?state= to say which. Answering without it would sum districts that "
+                f"share a name into one row describing none of them."
+            ),
+        )
+    return candidates[0]
 
 
 def _rows(db: Session, sql: str, **params) -> list[RollupRow]:
@@ -240,6 +340,14 @@ def district_analytics(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     limit: int = Query(default=50, ge=1, le=500, description="cases in the queue"),
+    state: str | None = Query(
+        default=None,
+        description=(
+            "Which state's district of this name. Meaningful for the ministry only: "
+            "every other role is bound to a state and it is read from their own row, "
+            "never from here."
+        ),
+    ),
 ):
     """One district's case queue, plus which agencies the cases sit under.
 
@@ -247,32 +355,51 @@ def district_analytics(
     under" - the same question the F4 corroboration bonus asks per case, asked
     over the district instead of over one work.
 
-    A district name is not unique - `AGRA`, `KAITHAL`, `PILIBHIT` and
-    `SHAHJAHANPUR` each name a district in five different states - so the grain
-    check compares the district's own state against the caller's rather than
-    trusting the name. A State Nodal officer asking for a name their state does
-    not carry is refused, whichever other state does carry it.
+    **A DISTRICT IS A STATE AND A NAME, never a name.** 61 of the 634 district
+    names carrying cases in this corpus belong to more than one state, so every
+    query below takes both terms. Which state is decided in
+    `_resolve_district_state` and comes from the caller's own row for the two
+    roles that are bound to one - the client cannot choose it, and for the
+    Ministry, which is bound to none, an ambiguous name is refused rather than
+    silently answered with one of the candidates.
+
+    The rollups are keyed on `state_id` rather than on the state's name here,
+    for the same reason the predicate on `works` is: two spellings of one state
+    would otherwise be two states.
     """
-    district_state_id, district_state_name = _district_state(db, district)
+    district_state_id, district_state_name = _resolve_district_state(db, user, district, state)
     check_district_grain(user, district, district_state_name, district_state_id)
     _fresh_or_503(db)
     summary_rows = _rows(
         db,
         f"SELECT state, district, agencies, {ROLLUP_COLUMNS} FROM rollup_district "
-        "WHERE district = :district",
+        "WHERE state_id = :state_id AND district = :district",
+        state_id=district_state_id,
         district=district,
     )
     if not summary_rows:
-        raise HTTPException(status_code=404, detail=f"No cases in district {district!r}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No cases in district {district!r} in {district_state_name}",
+        )
     agencies = _rows(
         db,
         f"SELECT state, district, agency, agency_id, {ROLLUP_COLUMNS} FROM rollup_agency "
-        "WHERE district = :district ORDER BY high_cases DESC, cases DESC, agency",
+        "WHERE state_id = :state_id AND district = :district "
+        "ORDER BY high_cases DESC, cases DESC, agency",
+        state_id=district_state_id,
         district=district,
     )
     queue = db.execute(
         list_query(user)
-        .where(Work.district == district, Case.is_synthetic.is_(False))
+        # Both terms here too. `list_query` already carries the role predicate,
+        # so this was safe for the two scoped roles and wrong for the Ministry,
+        # whose queue mixed the cases of every district sharing the name.
+        .where(
+            Work.state_id == district_state_id,
+            Work.district == district,
+            Case.is_synthetic.is_(False),
+        )
         .order_by(Case.score.desc(), Case.raw_score.desc(), Case.coverage_pct.desc(), Case.case_id)
         .limit(limit)
     ).all()

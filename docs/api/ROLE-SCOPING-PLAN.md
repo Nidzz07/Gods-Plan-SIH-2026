@@ -16,7 +16,7 @@ compiles each role's select and reads the `WHERE` clause, because every
 response-body test in that file could in principle be satisfied by fetching
 everything and dropping rows in Python, which is the failure invariant 10 names.
 
-Two things were carried out differently from the plan below, and both are
+Three things were carried out differently from the plan below, and both are
 recorded here rather than left as a diff to notice:
 
 1. **A District Authority is scoped on `state_id AND district`, not on
@@ -29,6 +29,17 @@ recorded here rather than left as a diff to notice:
 2. **`GET /api/audit/chain` is Ministry-only**, which the plan did not mention.
    Every other audit read is scoped by a case; the chain walk is over the whole
    84,629-row trail at once and has no case to be scoped by.
+3. **`GET /api/analytics/district/{district}` resolves the district by state and
+   name together**, which deviation 1 required and the endpoint did not
+   originally do. It looked the name up with `WHERE works.district = :district
+   LIMIT 1` and filtered its rollups on the bare name, so for the 61 district
+   names that belong to more than one state it picked one arbitrarily: a
+   District Authority whose district lost that pick was refused their own queue,
+   and the Ministry was handed the several same-named districts summed into one
+   row. The state now comes from the caller's own scope for the two roles bound
+   to one and from a `?state=` parameter for the Ministry, and every query in
+   the endpoint carries both terms. `tests/test_district_collision.py` audits
+   all 61.
 
 Everything else is as written below. The original wording is kept in the present
 tense because it still describes the code.
@@ -75,7 +86,7 @@ a role may ask for at all.
 | `GET /api/audit/{case_id}` | the case is fetched through `scoped_cases` first; the trail is then read for that case id. For the MP role, `NOTE_ADDED` rows have their `payload.text` removed — an MP sees that a note was added, by which role and when; the text is the administration's working record (DOMAIN-MODEL.md §(k)) | `audit.get_trail()` |
 | `GET /api/analytics/national` | Ministry only. Every other role is redirected to its own grain | `analytics.national()` |
 | `GET /api/analytics/state/{state}` | `state == S` for `state_nodal`; Ministry unrestricted; District and MP roles do not reach this grain | `analytics.state_analytics()` |
-| `GET /api/analytics/district/{district}` | `district == D` for `district_authority`; `district` must lie in `S` for `state_nodal` | `analytics.district_analytics()` |
+| `GET /api/analytics/district/{district}` | `district == D` **and `state_id == S`** for `district_authority`; `district` must lie in `S` for `state_nodal`. The state is read from the caller's own row for both, never from the request; the Ministry, which has no state of its own, passes `?state=` and is refused with the candidates named if it omits one on a district name that several states carry | `analytics.district_analytics()` |
 | `GET /api/analytics/mp/{mp_id}` | `mp_id == M` for the MP role. **Invisible to `district_authority` entirely** — a district officer has no business seeing an MP's aggregate account position, and the one derived value they need, `mp_utilisation_pct`, reaches them through the case trace where it is already scoped to that case's MP | `analytics.mp_analytics()` |
 | `GET /api/rulebook` | readable by all four roles — everyone judged by a rule is entitled to read it, and it names no state, district, agency or member. `PUT`, when it lands, is Ministry-only | `rulebook.get_rulebook()` |
 | `GET /api/ablation/report` | Ministry-only. It is a report about MoSPI's own publishing, not a finding about any state, district or member | `ablation.get_report()` |

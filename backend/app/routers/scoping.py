@@ -141,25 +141,46 @@ def check_district_grain(user: User, district: str, state_of_district: str | Non
                          state_id_of_district: int | None) -> None:
     """May this user read `district`'s queue?
 
-    Ministry: any. State Nodal: districts inside their state - which is why the
-    district's own state is resolved and compared, rather than the name being
-    trusted to be unique. District Authority: their own district, in their own
-    state. Member: not at all; their works reach them through their own list.
+    Ministry: any. State Nodal: districts inside their state. District
+    Authority: their own district, in their own state. Member: not at all;
+    their works reach them through their own list.
+
+    `state_id_of_district` is the state the CALLER's question resolves to, from
+    `analytics._resolve_district_state` - which reads it off the caller's own
+    row for both scoped roles rather than picking one of the states that happen
+    to carry the name. It arrives as None to mean "not within this caller's
+    reach", which is what the two refusals below are for.
     """
     if user.role == ROLE_MINISTRY:
         return
     if user.role == ROLE_STATE_NODAL:
         if state_id_of_district != user.scope_state_id:
+            # The state that DOES carry a district of this name is deliberately
+            # not named. It used to be ("it is in Rajasthan"), which told an
+            # officer of one state about the districts of another for no reason
+            # the officer needed - a small leak, but a leak, and free to close.
             _refuse(
-                f"{district!r} is not a district of your state"
-                + (f" - it is in {state_of_district}." if state_of_district else ".")
+                f"{district!r} is not a district of your state. "
+                "A state nodal officer reads the districts of their own state only."
             )
         return
     if user.role == ROLE_DISTRICT_AUTHORITY:
-        if district != user.scope_district or state_id_of_district != user.scope_state_id:
+        # Two separate refusals, because one message covering both used to be
+        # able to contradict itself. When a district name belonged to several
+        # states, the caller's own district resolved to somebody else's state
+        # and this branch printed "Your scope is 'ALWAR' and it is not 'ALWAR'".
+        # The resolution is fixed upstream; the message is split so that if this
+        # ever fires again it says which of the two things was actually wrong.
+        if district != user.scope_district:
             _refuse(
                 f"Your scope is {user.scope_district!r} and it is not {district!r}. "
                 "A district authority reads their own district only."
+            )
+        if state_id_of_district != user.scope_state_id:
+            _refuse(
+                f"Your scope is {user.scope_district!r} in your own state, and this is a "
+                f"district of that name in another. A district authority reads their own "
+                f"district only."
             )
         return
     _refuse(
