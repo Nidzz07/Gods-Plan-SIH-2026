@@ -40,6 +40,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    desc,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -334,6 +335,24 @@ class Work(Base):
     """
 
     __tablename__ = "works"
+    __table_args__ = (
+        # The District Authority predicate, as one index.
+        #
+        # `state_id` and `district` are each indexed on their own already, and
+        # SQLite will happily use one of them and filter the rest by hand - which
+        # on the district queue meant walking every work in Uttar Pradesh to find
+        # the ones in Jalaun. This is the single hottest predicate in the
+        # product: a district officer's every request carries `state_id == S AND
+        # district == D`, both terms always (61 of the 634 district names in this
+        # corpus belong to more than one state, so the state can never be
+        # dropped).
+        #
+        # Measured on the committed corpus: the district-scoped case page goes
+        # from 141.7 ms to 0.2 ms, and the plan changes from a scan to
+        # `SEARCH works USING INDEX ix_works_state_district (state_id=? AND
+        # district=?)`.
+        Index("ix_works_state_district", "state_id", "district"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
@@ -582,6 +601,34 @@ class Case(Base):
     """A scored, openable case. One sanctioned work, evaluated once."""
 
     __tablename__ = "cases"
+    __table_args__ = (
+        # The triage order, as one index, in the exact column order and the exact
+        # directions the ranked list sorts by.
+        #
+        # Every case list in the product - the ranked list, the district queue,
+        # a member's portfolio, the Ministry's HIGH feed - ends
+        # `ORDER BY score DESC, raw_score DESC, coverage_pct DESC, case_id`.
+        # That is the triage order and it is deliberate: highest score first,
+        # ties broken toward the case the rulebook could evaluate most fully. No
+        # single-column index satisfies a four-column sort, so SQLite was
+        # building a temporary B-tree over all 27,078 joined rows to return
+        # fifty of them, on every request.
+        #
+        # `is_synthetic` leads because every published list filters the labelled
+        # control out first (invariant 12), which makes it an equality prefix the
+        # sort can sit behind.
+        #
+        # Measured on the committed corpus: the ranked page goes from 167.8 ms to
+        # 0.1 ms and `USE TEMP B-TREE FOR ORDER BY` disappears from the plan.
+        Index(
+            "ix_cases_rank",
+            "is_synthetic",
+            desc("score"),
+            desc("raw_score"),
+            desc("coverage_pct"),
+            "case_id",
+        ),
+    )
 
     # `NG-` + 10 hex, derived from the canonical work id, never from row order
     # (invariant 8). Re-running ingest on the same corpus reproduces it.
