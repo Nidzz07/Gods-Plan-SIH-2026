@@ -46,6 +46,44 @@ function traceValue(value) {
   return String(value)
 }
 
+// The evidence a fired `duplicate_work` row owes the officer, drawn inside the
+// row itself.
+//
+// Sunk ground and an indent rather than a card, deliberately: this is part of
+// the row it sits in, not a second object beside it, and giving it its own
+// surface would make it read as a finding of its own. It carries no severity
+// colour for the same reason — the row's left border already said how serious
+// this is.
+//
+// The reading — "a cluster for review, not an accusation" — is the SERVER's
+// sentence, printed as it arrives. It is written next to the model that
+// produced the number, and paraphrasing it here would put two versions of the
+// same warning in front of an officer.
+function Citation({ citation }) {
+  return (
+    <div className="mt-2 rounded border-l-4 border-l-border-strong bg-surface-sunk px-4 py-4">
+      <p className="text-meta-label uppercase not-italic text-ink-secondary">Cited evidence</p>
+      <p className="mt-1 text-table-cell not-italic text-ink">
+        &ldquo;{citation.shared_description}&rdquo;
+      </p>
+      <p className="num mt-1 text-body-secondary not-italic text-ink-secondary">
+        Similarity {citation.similarity} by {citation.method}
+        {citation.cluster_size ? `, in a cluster of ${citation.cluster_size}` : ''}
+        {citation.agency ? `, under ${citation.agency}` : ''}.
+      </p>
+      {citation.matched_work_ids?.length ? (
+        <p className="mt-2 text-body-secondary not-italic text-ink">
+          Open and compare:{' '}
+          <span className="num">{citation.matched_work_ids.join(', ')}</span>
+        </p>
+      ) : null}
+      <p className="mt-2 max-w-3xl text-body-secondary not-italic text-ink-secondary">
+        {citation.reading}
+      </p>
+    </div>
+  )
+}
+
 export default function TraceTable({ hits }) {
   return (
     <section>
@@ -124,6 +162,16 @@ export default function TraceTable({ hits }) {
                   {hit.caveat}
                 </p>
               ) : null}
+
+              {/* THE CITATION IS ON THE ROW, and this is where it belongs.
+                  `duplicate_work` is the one rule fed by a model output, and it
+                  is admissible as a scoring rule ONLY because the row hands
+                  over the records the number came from — the matched works, the
+                  shared text, the method. It sat in a section of its own for
+                  one phase, which put the evidence a screen away from the claim
+                  it supports; the same principle that keeps a caveat on its own
+                  row keeps this here. */}
+              {hit.citation ? <Citation citation={hit.citation} /> : null}
             </li>
           )
         })}

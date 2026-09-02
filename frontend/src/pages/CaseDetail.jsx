@@ -1,5 +1,6 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
 
+import CaseActions from '../components/CaseActions.jsx'
 import { ErrorState } from '../components/EmptyState.jsx'
 import { FundLadder, LifecycleLadder } from '../components/Ladder.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -8,75 +9,53 @@ import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import Tag, { SeverityTag, StatusTag } from '../components/Tag.jsx'
 import TraceTable from '../components/TraceTable.jsx'
+import ZeroPointBadges from '../components/ZeroPointBadges.jsx'
 import { useApi } from '../hooks/useApi.js'
-import { HOP_LABEL, LAG_LABEL, LAG_MEANING, SKIP_REASON, formatRupees } from '../severity.js'
+import {
+  HOP_LABEL,
+  LAG_LABEL,
+  LAG_MEANING,
+  SKIP_REASON,
+  formatRupees,
+} from '../severity.js'
 import { CAPTION, CARD, LABEL } from '../ui.js'
 
 // The case sheet. ONE SCREEN FOR EVERY ROLE.
 //
 // What differs between a Ministry analyst and a District Magistrate opening a
 // case is which cases they can reach, and that is decided in the server's
-// query (invariant 10). It is emphatically NOT decided here: nothing on this
-// page branches on role, because a page that hid a key from one role would be
-// a second place scoping lives, and the second place is always the one that is
-// wrong. A case id outside a caller's scope answers 404 — indistinguishable
-// from an id that was never issued — and this screen renders that refusal.
+// query. It is emphatically NOT decided here: nothing on this page branches on
+// role except which ACTIONS are offered, and that branch reads `can_write` from
+// the server rather than inferring it from the role name. A page that hid a key
+// from one role would be a second place scoping lives, and the second place is
+// always the one that is wrong.
 //
-// PHASE SCOPE. Simply formatted on purpose: the trace, both ladders, the
-// coverage, the badges and the memo, each in a plain section. The polished
-// sheet — the score display, the audit trail, notes, recompute — is Phase 10.
-// What this proves is that the frozen contract renders end to end and that a
-// case reached by clicking a queue row is the same object the contract froze.
-
-// The three zero-point badges, stated as figures with the invariant on the
-// same block. Tiers 3 and 4 confirm or fail to confirm what the rulebook
-// already found; they never move the number, and a screen that showed them
-// without saying so would be the overclaim CLAUDE.md's honesty rules name.
-function Badge({ label, value, children }) {
-  return (
-    <div className={`${CARD} p-4`}>
-      <div className="flex items-baseline justify-between gap-4">
-        <p className={LABEL}>{label}</p>
-        <Tag tone="neutral">0 points</Tag>
-      </div>
-      <p className="num font-display text-section-heading text-ink">{value ?? '—'}</p>
-      {children ? <p className={CAPTION}>{children}</p> : null}
-    </div>
-  )
-}
-
-// A skip reason as a tag label, capitalised WITHOUT being lowercased first.
+// **The layout is an argument, and it goes in this order deliberately.**
 //
-// Tag sentence-cases a string child by lowercasing it whole and raising the
-// first letter, which is right for `HIGH` and `under_review` and wrong for
-// these: "not published by MoSPI" comes back "Not published by mospi", and the
-// department's own name is not a thing to get wrong on a case sheet. The
-// strings in SKIP_REASON are prose written to sit mid-sentence in the trace
-// table, so they are already cased correctly apart from the first letter.
-// Wrapping the text in an element means Tag leaves it alone.
-function ReasonTag({ reason }) {
-  const text = SKIP_REASON[reason] ?? reason
-  return (
-    <Tag tone="neutral">
-      <span>{text.charAt(0).toUpperCase() + text.slice(1)}</span>
-    </Tag>
-  )
-}
+//   the score, and what it is out of
+//   the two ladders            — the readings the rules were evaluated over
+//   the trace                  — every rule, with its evidence ON the row
+//   the corroboration bonus    — the only source of score that is not a rule
+//   the badges                 — set apart, each printing +0
+//   what could not be read     — the coverage, itemised
+//   the memo                   — the whole thing as a paragraph
+//
+// A reader who stops at any point has a true, if shorter, account. The badges
+// come AFTER the trace and the bonus because by then the score has already been
+// fully accounted for, and their zero is a confirmation of an arithmetic the
+// reader has just watched close rather than an assertion made in advance.
 
 export default function CaseDetail() {
   const { caseId } = useParams()
-  const { data, error, loading } = useApi(`/api/cases/${encodeURIComponent(caseId)}`)
-
-  // The one fired rule that is fed by a model output, and the block of
-  // evidence that makes it admissible. See the section below.
-  const cited = data ? data.rule_hits.filter((hit) => hit.citation) : []
+  const { user } = useOutletContext()
+  const { data, error, loading, reload } = useApi(`/api/cases/${encodeURIComponent(caseId)}`)
 
   return (
     <article className="relative isolate flex-1">
       <PageMotif variant="district" />
 
       <PageHeader
-        title={loading || error ? 'Case' : data?.work?.description ?? data?.work?.work_id ?? 'Case'}
+        title={loading || error ? 'Case' : (data?.work?.description ?? data?.work?.work_id ?? 'Case')}
         note="Every rule the rulebook holds, what it read, what it compared that against and what it contributed — plus the two ladders those readings were derived from. The arithmetic is on this page in full, so an officer can re-derive the score on paper and an auditor can re-derive it months later."
       />
 
@@ -88,10 +67,6 @@ export default function CaseDetail() {
           </LoadingRegion>
         ) : null}
 
-        {/* Same component and the same three headlines the landing screens
-            use. A 404 here is the interesting one: it is what a District
-            Authority gets for another district's case id typed into the
-            address bar, and it says both readings without resolving which. */}
         {error ? (
           <ErrorState error={error}>
             <Link to="/" className="underline underline-offset-2">
@@ -109,93 +84,100 @@ export default function CaseDetail() {
                 {data.mp.name}
               </SectionHeading>
 
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <div className={`${CARD} p-4`}>
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {/* The score, given the whole width of a column and the app's
+                    one display size. The raw total sits under it because the
+                    display score is CAPPED at 100 and not renormalised —
+                    dividing the weights would change the arithmetic the officer
+                    is re-deriving on paper. */}
+                <div className={`${CARD} p-6`}>
                   <p className={LABEL}>Score</p>
-                  {/* The one navy number on the screen, and the only element
-                      besides a heading allowed to be navy at all. The raw
-                      total sits beside it because the display score is CAPPED
-                      at 100 and not renormalised — weights are never divided,
-                      because dividing them would change the arithmetic the
-                      officer is re-deriving. */}
                   <p className="num font-display text-score-display text-navy">{data.score}</p>
+                  <p className="num mt-2 text-body-secondary text-ink-secondary">
+                    {data.raw_score} raw of 154 possible · displayed capped at {data.score_cap}
+                  </p>
                   <p className={CAPTION}>
-                    {data.raw_score} raw of 154 possible, displayed capped at {data.score_cap}.
-                    Weights are never rescaled.
+                    The sum of the fired rulebook weights below plus the corroboration bonus, and
+                    nothing else. Weights are never rescaled.
                   </p>
-                </div>
-
-                <div className={`${CARD} p-4`}>
-                  <p className={LABEL}>Severity</p>
-                  <p className="mt-1">
+                  <p className="mt-4 flex flex-wrap items-center gap-2">
                     <SeverityTag severity={data.severity} />
+                    <StatusTag status={data.status} />
+                    {data.work.is_synthetic ? (
+                      <Tag tone="neutral">Synthetic control — excluded from every aggregate</Tag>
+                    ) : null}
                   </p>
-                  <p className={CAPTION}>HIGH ≥ 75 · MEDIUM ≥ 50 · LOW below 50, on the capped score.</p>
+                  <p className={CAPTION}>
+                    HIGH ≥ 75 · MEDIUM ≥ 50 · LOW below 50, on the capped score.
+                  </p>
                 </div>
 
-                <div className={`${CARD} p-4`}>
+                <div className={`${CARD} p-6`}>
                   <p className={LABEL}>Coverage</p>
-                  <p className="num font-display text-section-heading text-ink">
+                  <p className="num font-display text-score-display text-ink">
                     {data.coverage_pct}%
                   </p>
                   <p className={CAPTION}>{data.coverage_basis}</p>
+                  <p className={`${CAPTION} mt-2`}>
+                    A case at this score with full coverage and a case at this score with two
+                    thirds of it are different objects. Skipped weight is never redistributed to
+                    the rules that did run.
+                  </p>
                 </div>
 
-                <div className={`${CARD} p-4`}>
-                  <p className={LABEL}>Status</p>
-                  <p className="mt-1">
-                    <StatusTag status={data.status} />
+                <div className={`${CARD} p-6`}>
+                  <p className={LABEL}>What was found</p>
+                  <p className="mt-1 text-table-cell text-ink">
+                    {data.gap_hop
+                      ? (HOP_LABEL[data.gap_hop] ?? data.gap_hop)
+                      : 'No open fund hop'}
+                  </p>
+                  <p className={CAPTION}>The first open hop walking down the fund ladder.</p>
+                  <p className="mt-4 text-table-cell text-ink">
+                    {data.slowest_lag
+                      ? (LAG_LABEL[data.slowest_lag] ?? data.slowest_lag)
+                      : 'No lag computable'}
                   </p>
                   <p className={CAPTION}>
-                    Opened {String(data.opened_at).slice(0, 10)} · scored under rulebook{' '}
-                    {data.rulebook_version}, as of {data.data_as_of}.
+                    {data.slowest_lag
+                      ? LAG_MEANING[data.slowest_lag]
+                      : 'Neither end of any lag on this work is published.'}
                   </p>
-                  {/* Invariant 12: an injected row is labelled on the same
-                      screen it appears on, never in a footnote. */}
-                  {data.work.is_synthetic ? (
-                    <p className="mt-2">
-                      <Tag tone="neutral">Synthetic control — excluded from every aggregate</Tag>
-                    </p>
-                  ) : null}
+                  <p className="num mt-4 text-meta-label text-ink-muted">
+                    Opened {String(data.opened_at).slice(0, 10)} · rulebook{' '}
+                    {data.rulebook_version} ({data.rulebook_version_sha256.slice(0, 12)}) · as of{' '}
+                    {data.data_as_of}
+                  </p>
                 </div>
               </div>
-
-              {/* The two located findings, in words. A null on either is a
-                  real answer and says so rather than printing nothing. */}
-              <p className={`${CAPTION} mt-4 max-w-3xl`}>
-                Open fund hop:{' '}
-                {data.gap_hop ? HOP_LABEL[data.gap_hop] ?? data.gap_hop : 'none — no hop is open'}.
-                Slowest lifecycle lag:{' '}
-                {data.slowest_lag ? LAG_LABEL[data.slowest_lag] ?? data.slowest_lag : 'none computable'}.
-                {data.slowest_lag ? ` ${LAG_MEANING[data.slowest_lag] ?? ''}` : ''}
-              </p>
             </section>
 
-            <div className="mt-8">
+            <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
               <FundLadder ladder={data.fund_ladder} gapHop={data.gap_hop} />
-            </div>
-
-            <div className="mt-8">
               <LifecycleLadder ladder={data.lifecycle_ladder} slowestLag={data.slowest_lag} />
             </div>
 
-            {/* The orphaned trace table, wired up. It is unchanged: it already
-                prints the operator with the threshold, names each skip reason,
-                and carries a fired row's caveat on the row itself. */}
+            {/* Every rule, with each fired duplicate row's cited evidence drawn
+                INSIDE it rather than in a section of its own. */}
             <div className="mt-8">
               <TraceTable hits={data.rule_hits} />
             </div>
 
             <section className="mt-8">
               <SectionHeading title="Pattern-of-conduct corroboration">
-                The one source of score that is not a rule. Rendered whether or not it applied —
+                The only source of score that is not a rule. Rendered whether or not it applied —
                 an officer has to be able to see the bonus NOT fire, and why.
               </SectionHeading>
 
-              <div className={`${CARD} mt-4 p-4`}>
+              <div
+                className={`mt-4 rounded border-y border-r border-border border-l-4 bg-surface px-4 py-4 shadow-card ${
+                  data.corroboration.applied ? 'border-l-gold' : 'border-l-border-strong'
+                }`}
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-4">
                   <span className="text-table-cell text-ink">
-                    {data.corroboration.agency ?? 'agency not recorded'} · {data.corroboration.window}
+                    {data.corroboration.agency ?? 'agency not recorded'} ·{' '}
+                    {data.corroboration.window}
                   </span>
                   <span className="flex items-center gap-4">
                     <span className="num text-body-secondary text-ink-secondary">
@@ -205,98 +187,41 @@ export default function CaseDetail() {
                     <span className="num text-table-cell text-ink">
                       {data.corroboration.applied ? `+${data.corroboration.contribution}` : '—'}
                     </span>
-                    <Tag tone={data.corroboration.applied ? 'medium' : 'neutral'}>
+                    <span className="text-table-cell text-ink">
                       {data.corroboration.applied ? 'Applied' : 'Not applied'}
-                    </Tag>
+                    </span>
                   </span>
                 </div>
                 <p className={CAPTION}>
                   One bad work is an incident; a pattern under one agency in one financial year is
-                  a posture. The bonus is awarded only on corroborated repetition.
+                  a posture. The bonus is all-or-nothing and is never scaled by the count.
                 </p>
               </div>
             </section>
 
-            {cited.length > 0 ? (
-              <section className="mt-8">
-                <SectionHeading title="Cited evidence">
-                  Explainability by citation, not by trust. The rules below read a number a
-                  similarity model produced, and they are admissible only because the records that
-                  number came from are handed over here for the officer to open and judge.
-                </SectionHeading>
-
-                {cited.map((hit) => (
-                  <div key={hit.rule_id} className={`${CARD} mt-2 p-4`}>
-                    <p className={LABEL}>{hit.rule_id}</p>
-                    <p className="text-table-cell text-ink">
-                      &ldquo;{hit.citation.shared_description}&rdquo;
-                    </p>
-                    <p className={CAPTION}>
-                      Similarity {hit.citation.similarity} by {hit.citation.method}
-                      {hit.citation.cluster_size
-                        ? `, in a cluster of ${hit.citation.cluster_size}`
-                        : ''}
-                      {hit.citation.agency ? `, under ${hit.citation.agency}` : ''}.
-                    </p>
-                    <p className="mt-2 text-body-secondary text-ink">
-                      Matched works: {hit.citation.matched_work_ids.join(', ')}
-                    </p>
-                    {/* The response's own wording, not a paraphrase: a cluster
-                        is a candidate for review, never an accusation, and the
-                        sentence saying so is written next to the model that
-                        produced the number. */}
-                    <p className={CAPTION}>{hit.citation.reading}</p>
-                  </div>
-                ))}
-              </section>
-            ) : null}
-
-            <section className="mt-8">
-              <SectionHeading title="Badges — tiers 3 and 4">
-                Statistical and graph findings, each worth exactly zero points. They confirm, or
-                fail to confirm, what the rulebook already found. They never move the number.
-              </SectionHeading>
-
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <Badge label="Anomaly" value={data.statistical.anomaly_score}>
-                  {data.statistical.z_peer_group
-                    ? `Peer group: ${data.statistical.z_peer_group}.`
-                    : null}{' '}
-                  {data.statistical.confirms === null || data.statistical.confirms === undefined
-                    ? null
-                    : data.statistical.confirms
-                      ? 'Confirms the rulebook finding.'
-                      : 'Does not confirm the rulebook finding.'}
-                </Badge>
-
-                <Badge label="Delay risk" value={data.forecast.delay_risk}>
-                  {data.forecast.horizon_meaning
-                    ? `${data.forecast.horizon_meaning}. Illustrative: trained on a truncated sample, and the horizon is a demonstration rather than a commitment.`
-                    : 'Illustrative, on a truncated sample.'}
-                </Badge>
-
-                <Badge label="Vendor concentration" value={data.concentration.hhi}>
-                  {data.concentration.top_vendor
-                    ? `Largest share: ${data.concentration.top_vendor} at ${data.concentration.top_vendor_share_pct}% of this agency's disbursement.`
-                    : 'No vendor share published for this agency.'}
-                </Badge>
-              </div>
-            </section>
+            <div className="mt-8">
+              <ZeroPointBadges
+                statistical={data.statistical}
+                forecast={data.forecast}
+                concentration={data.concentration}
+              />
+            </div>
 
             {data.unavailable_fields.length > 0 ? (
               <section className="mt-8">
                 <SectionHeading title="What could not be read">
-                  Graceful degradation, itemised. A skipped rule&rsquo;s weight is never
-                  redistributed to the rules that did evaluate, so this list is the difference
-                  between a case scored on full coverage and one scored on {data.coverage_pct}%.
+                  Graceful degradation, itemised. This list is the difference between a case
+                  scored on full coverage and one scored on {data.coverage_pct}%.
                 </SectionHeading>
 
-                <ul className="mt-4 space-y-2">
+                <ul className="mt-4 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {data.unavailable_fields.map((field) => (
                     <li key={field.field} className={`${CARD} p-4`}>
                       <div className="flex flex-wrap items-baseline justify-between gap-4">
-                        <span className="text-table-cell text-ink">{field.field}</span>
-                        <ReasonTag reason={field.reason} />
+                        <span className="num text-table-cell text-ink">{field.field}</span>
+                        <span className="text-body-secondary text-ink-secondary">
+                          {SKIP_REASON[field.reason] ?? field.reason}
+                        </span>
                       </div>
                       {field.detail ? <p className={CAPTION}>{field.detail}</p> : null}
                     </li>
@@ -305,22 +230,36 @@ export default function CaseDetail() {
               </section>
             ) : null}
 
-            <section className="mt-8">
-              <SectionHeading title="Memo">
-                A TEMPLATE, filled from the values above. Not generated language, not an LLM, and
-                nothing on this page is described as either. Template now, model later.
-              </SectionHeading>
+            <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
+              <section>
+                <SectionHeading title="Memo">
+                  A TEMPLATE, filled from the values above. Not generated language, not a model,
+                  and nothing on this page is described as either. Template now, model later.
+                </SectionHeading>
+                <div className={`${CARD} mt-4 p-6`}>
+                  <p className="whitespace-pre-line text-body text-ink">{data.memo}</p>
+                </div>
+              </section>
 
-              <div className={`${CARD} mt-4 max-w-3xl p-6`}>
-                <p className="whitespace-pre-line text-body text-ink">{data.memo}</p>
-              </div>
-            </section>
+              <section>
+                <SectionHeading title="Act on this case">
+                  A note and a recompute, both of which write to the append-only trail. Neither
+                  changes the stored score.
+                </SectionHeading>
+                <div className="mt-4">
+                  <CaseActions
+                    caseId={data.case_id}
+                    canWrite={Boolean(user?.can_write)}
+                    onChanged={reload}
+                  />
+                </div>
+              </section>
+            </div>
 
             <p className={`${CAPTION} mt-8 max-w-3xl`}>
               Sanctioned {formatRupees(data.fund_ladder.rungs[0]?.amount) ?? 'not published'} ·
-              rulebook {data.rulebook_version} ({data.rulebook_version_sha256.slice(0, 12)}) · a
-              recompute re-derives against this stored snapshot, not against the rulebook file as
-              it reads today.
+              scored under rulebook {data.rulebook_version} · a recompute re-derives against that
+              stored snapshot, not against the rulebook file as it reads today.
             </p>
           </>
         ) : null}

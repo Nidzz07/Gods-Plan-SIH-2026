@@ -53,7 +53,14 @@ export default function CaseRows({ cases }) {
             </span>
 
             <span className="shrink-0 text-right">
-              <Tag tone={String(item.severity).toLowerCase()}>{item.severity}</Tag>
+              {/* The severity WORD in plain ink, not a tinted tag.
+                  `severity.js` states the rule this row was breaking: where a
+                  row carries the coloured left-border, its severity text is
+                  plain ink, because a tag beside the border encodes one fact
+                  twice and spends the tag idiom on a row that had already said
+                  it. The word still prints - colour alone is never a label, and
+                  a photocopy of this screen has to survive. */}
+              <span className="block text-body-secondary text-ink">{item.severity}</span>
               <span className="num mt-1 block text-meta-label text-ink-secondary">
                 {formatRupees(item.sanctioned_amt) ?? 'not published'}
               </span>
