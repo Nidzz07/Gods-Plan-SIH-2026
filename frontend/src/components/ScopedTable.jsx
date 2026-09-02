@@ -56,6 +56,17 @@ export default function ScopedTable({
   emptyTitle = 'No rows',
   emptyBody,
   footnote,
+  // Returns a border-colour class for one row, or nothing. This is severity
+  // pattern (1) — the coloured left-border on a full data row — and a table row
+  // is a full data row, so the case queue carries its severity here.
+  //
+  // A row that takes an accent must NOT also carry a severity tag in one of its
+  // cells: that is the same fact encoded twice, and `severity.js` is explicit
+  // that where a row carries the border, its severity text is plain ink. The
+  // accent is not a substitute for the label, though — a queue using this still
+  // prints the severity word in a column, because colour is never the only
+  // signal.
+  rowAccent,
 }) {
   const [sorting, setSorting] = useState(initialSort ?? [])
 
@@ -98,7 +109,15 @@ export default function ScopedTable({
 
               <thead>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="border-b border-border-strong bg-bg">
+                  <tr
+                    key={headerGroup.id}
+                    // The header takes the same 4px transparent edge the rows
+                    // take, so a column heading sits over its own column rather
+                    // than 4px to the left of it.
+                    className={`border-b border-border-strong bg-bg ${
+                      rowAccent ? 'border-l-4 border-l-transparent' : ''
+                    }`}
+                  >
                     {headerGroup.headers.map((header) => {
                       const sortable = header.column.getCanSort()
                       const direction = header.column.getIsSorted()
@@ -157,7 +176,17 @@ export default function ScopedTable({
 
               <tbody>
                 {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-b-0">
+                  <tr
+                    key={row.id}
+                    className={`border-b border-border last:border-b-0 ${
+                      rowAccent
+                        ? // border-l-4 only when an accent is actually returned:
+                          // a 4px transparent edge on an unaccented row would
+                          // shift its first cell out of line with the header.
+                          `border-l-4 ${rowAccent(row.original) ?? 'border-l-transparent'}`
+                        : ''
+                    }`}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className={`${cellClass(cell.column)} px-4 py-4`}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
