@@ -915,3 +915,84 @@ class TokenOut(BaseModel):
     expires_at: datetime
     expires_in_hours: int
     user: MeOut
+
+
+# ---------------------------------------------------------------------------
+# The rulebook edit (F2's write side)
+# ---------------------------------------------------------------------------
+
+
+class RuleEditIn(BaseModel):
+    """One rule's proposed new threshold and/or weight.
+
+    `rule_id` identifies an EXISTING rule. There is deliberately no field for
+    `field`, `operator`, `label` or `severity`: changing what a rule measures is
+    not an edit to the rulebook, it is a change to what the system finds, and it
+    needs a derived field, a threshold calibrated against a measured
+    distribution and its own skip caveats (`app/rulebook_edit.py`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str = Field(min_length=1, max_length=64)
+    # int, float or bool - the three a rulebook threshold may hold. Left
+    # untyped rather than unioned so `eq true` and `lt -15` both round-trip
+    # without pydantic coercing a bool into an int on the way through.
+    threshold: int | float | bool | None = None
+    weight: int | None = Field(default=None, ge=0, le=100)
+
+
+class SeverityBandsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    high: int | None = Field(default=None, ge=1, le=1000)
+    medium: int | None = Field(default=None, ge=1, le=1000)
+
+
+class RulebookEditIn(BaseModel):
+    """POST /api/rulebook - a proposed edit. Ministry only.
+
+    `note` is required and is not decoration: a version row whose reason is
+    blank is a version nobody can audit later, and the whole point of storing
+    snapshots is that somebody months from now can ask why a threshold moved.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    note: str = Field(min_length=3, max_length=2000)
+    rules: list[RuleEditIn] = Field(default_factory=list)
+    severity_bands: SeverityBandsIn | None = None
+    corroboration_weight: int | None = Field(default=None, ge=0, le=100)
+
+
+class RulebookChange(BaseModel):
+    """One scalar that moved, for the response and the audit payload."""
+
+    rule_id: str | None = None
+    key: str
+    # Typed loosely for the same reason RuleEditIn.threshold is.
+    from_value: int | float | bool | None = Field(default=None, alias="from")
+    to_value: int | float | bool | None = Field(default=None, alias="to")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class RulebookEditOut(BaseModel):
+    """What the edit did, said plainly enough that nobody misreads it.
+
+    `cases_rescored` is present and always zero, and it is the most important
+    key in this response. An officer who edits a threshold may reasonably assume
+    the corpus has been re-scored; it has not, and it will not be until somebody
+    runs the build step or recomputes a case one at a time. Saying so as a
+    number the screen can print is what stops the assumption forming.
+    """
+
+    version: str
+    previous_version: str
+    yaml_sha256: str
+    rulebook_version_id: int
+    changes: list[RulebookChange]
+    cases_rescored: int = 0
+    note: str
+    recompute_hint: str
+
