@@ -75,9 +75,8 @@ backend/
       scoping.py       the role predicate — every WHERE clause, in one place
       alerts.py        F8  the routed inbox, acknowledge, escalate
   ingest/              CSV loaders, canonicalisation, ingest_rejects
-  seed.py              INHERITED AND DEAD — the LEAKPROOF PDS seeder. Nothing
-                       imports it. NIGRANI's labelled control is inserted by
-                       ingest/. See the note under Repo map.
+  pytest.ini           the `corpus` marker; also the invariant-4 sweep's
+                       root-level sentinel
   tests/
 frontend/
   src/api.js           single fetch wrapper
@@ -99,13 +98,18 @@ docs/context/          REPO-CONTEXT.md — a dated snapshot of the INHERITED
 ARCHITECTURE.md        the pipeline and the four-tier boundary, as a diagram
 ```
 
-**`backend/seed.py` is inherited dead code and is a known outstanding item.**
-It is the LEAKPROOF synthetic generator — 546 lines building 60 fair-price
-shops — and nothing in NIGRANI imports it. It survives only because
-`tests/test_audit.py` names it in the list of files the invariant-4 sweep must
-reach, so deleting it is a two-file change and a decision rather than a tidy-up.
-The line above describes what it IS; it previously described what a file of that
-name was supposed to be, which was never true of this one.
+**There is no `seed.py`, and there is not meant to be one.** The inherited
+project had one — 546 lines generating 60 fair-price shops under a fixed random
+seed — and it was deleted once it was confirmed that nothing in NIGRANI imported
+or invoked it. NIGRANI seeds no bulk data at all: every row comes from the twelve
+committed exports, and the single labelled synthetic control is inserted by
+`ingest/` where it can carry `is_synthetic` and be excluded from every published
+aggregate (invariant 12). If a file of that name ever reappears, it is either a
+mistake or a decision that needs arguing here first.
+
+`docs/context/REPO-CONTEXT.md` still describes it at length. That file is a dated
+snapshot of the INHERITED repository and is correct about what it documents; it
+is provenance, not a description of this tree.
 
 ## Invariants — numbered, non-negotiable
 Breaking any of these breaks either the pitch or the honesty of the product.

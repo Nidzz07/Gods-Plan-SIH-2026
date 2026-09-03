@@ -8,9 +8,9 @@ no helper capable of either anywhere in `backend/` (CLAUDE.md invariant 4). The
 grep at the bottom of this module enforces that across the WHOLE backend rather
 than across two hand-listed files. The inherited suite listed
 `engine/audit.py` and `routers/audit.py` and nothing else, which meant a
-mutation helper added to `ingest/`, to `seed.py` or to a router nobody thought
-of would have passed. That narrow scope was a documented defect and it is not
-repeated here.
+mutation helper added to `ingest/`, to a build step or to a router nobody
+thought of would have passed. That narrow scope was a documented defect and it
+is not repeated here.
 
 **Hash-chained.** `row_hash` covers the row's own content together with the
 previous row's hash, so a forged row is visible and a removed row breaks every
@@ -583,8 +583,17 @@ def test_the_grep_actually_reaches_the_whole_backend():
 
     The inherited test named `engine/audit.py` and `routers/audit.py` and
     stopped there, so a mutation helper anywhere else would have passed
-    unnoticed. This asserts the walk reaches ingest, seed, the routers, the
-    rulebook YAML and this suite itself before the grep below is trusted.
+    unnoticed. This asserts the walk reaches ingest, the backend root, the
+    routers, the rulebook YAML and this suite itself before the grep below is
+    trusted.
+
+    **`pytest.ini` is the root-level sentinel, and it replaced `seed.py`.** The
+    list needs one entry that is not inside a package, or the walk could stop
+    descending from the root and every assertion here would still hold. That job
+    used to belong to `seed.py` - the inherited LEAKPROOF generator - which was
+    deleted as dead code. `pytest.ini` was already being swept and sits in the
+    same place, so the property is unchanged: what is asserted is that the walk
+    reaches the backend root, not that any particular file lives there.
     """
     scanned = {path.relative_to(BACKEND_DIR).as_posix() for path in backend_sources()}
     for required in (
@@ -595,7 +604,7 @@ def test_the_grep_actually_reaches_the_whole_backend():
         "app/routers/audit.py",
         "app/routers/cases.py",
         "ingest/run.py",
-        "seed.py",
+        "pytest.ini",
         "tests/test_audit.py",
     ):
         assert required in scanned, required
