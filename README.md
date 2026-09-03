@@ -164,6 +164,21 @@ Re-run it if you lose them.
 cd frontend && nvm use && npm install && npm run dev     # :5173
 ```
 
+`frontend/.env.local` (gitignored, so create it once per machine) points the app
+at the loopback address rather than the hostname:
+
+```
+VITE_API_BASE=http://127.0.0.1:8000
+```
+
+It is worth doing. `src/api.js` defaults to `http://localhost:8000` and stays
+that way, because that is the address a reader expects and it works everywhere —
+but on Windows, resolving `localhost` costs about 200 ms per connection (it tries
+the IPv6 address first and falls back), against about 1.6 ms for `127.0.0.1`.
+Measured on the development machine: 0.213 s versus 0.0016 s to connect. A
+dashboard issues several requests, so that is a visible stall on every screen of
+a live demo, bought for nothing.
+
 Sign in with one of the four accounts `seed_users` printed. Every route under
 `/api` requires a bearer token from `POST /api/auth/login`; `/health` does not,
 deliberately, because behind a login an outage and a bad password look the same
