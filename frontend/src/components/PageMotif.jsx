@@ -1,70 +1,11 @@
 import { LogoMark } from './Logo.jsx'
 
-// Page texture, not page imagery.
-//
-// The reference is security paper: the faint ruled ground under a land record,
-// the watermark in a certificate, the ticked margin of an inspection register.
-// Something you only notice when you go looking for it, whose whole job is to
-// make the sheet feel like an official sheet rather than a blank one. If a
-// motif on this page ever draws the eye, it is wrong, and the fix is to remove
-// a line or drop the opacity — never to make it prettier.
-//
-// CONTRAST DISCIPLINE, enforced here so no page has to remember it:
-//
-//   1. Opacity is capped in this file, at a value picked by sweeping the
-//      candidates against real text rather than by eye. Navy at 10% over the
-//      #FAF8F4 ground lands at #E3E3E3. Against that, body ink (#14171A)
-//      reads 14.02:1 and ink-secondary (#5B6169) — the lightest type that
-//      ever sits on bare ground — reads 4.87:1, clear of the 4.5:1 AA floor
-//      with room to spare. AA survives as far as 14% (4.51:1), which is
-//      exactly why the cap is not there: a floor reached with no margin is a
-//      floor one future tweak breaks. ink-muted (#94989E) would not clear it
-//      at any opacity including zero, but ink-muted only ever appears inside
-//      a card, and cards are opaque (see 3).
-//   2. The layer is masked to fade in over the first 200px, which softens the
-//      texture under the page header band but does NOT clear it: the band runs
-//      to roughly 112px, where the mask is still better than half open. The
-//      fade is a gradient, not a cutoff, so it cannot be what protects text.
-//      Occlusion does that — see 3.
-//   3. The layer sits at z-index -10 inside the page's own `isolate` stacking
-//      context. Negative z paints BEFORE descendant backgrounds, so anything
-//      with an opaque background covers the motif completely. That is why
-//      every container holding text carries one: bg-surface on cards and rows,
-//      bg-bg on the header band, the section headings (SectionHeading.jsx),
-//      the table header rows, the filter bars and the ladder's connector
-//      strip. Text NEVER sits on the bare layer — a watermark between the
-//      letterforms of a heading is the failure this rule exists to prevent.
-//      What is left for the texture is the true empty space: the gutters
-//      between cards, the gaps between sections, and the tail below the last
-//      row. That is the only place it is allowed to be.
-//
-// One component with a `variant` prop rather than seven hand-rolled
-// backgrounds, so those three rules have exactly one place to be broken.
+// Background geometric motif layer (Layer A, §9).
+// Renders at 4% opacity with a top fade mask.
+const OPACITY = 0.04
+const OPACITY_MARK = 0.035
+const FADE = 'linear-gradient(to bottom, transparent 0px, #000 240px)'
 
-// Uniform across the tiling motifs. A variant is allowed to differ in what it
-// draws, not in how loud it is — that is what stops one page's texture creeping
-// up on the others.
-//
-// Every motif draws at a 1-unit line weight and lands between 2% and 4% ink
-// coverage per tile, so no page's texture is meaningfully heavier than
-// another's.
-const OPACITY = 0.1
-
-// The sign-in watermark is the mark itself at 720px, where the frame stroke is
-// 56px of solid navy rather than a 1px rule. Equal alpha on those two does not
-// read as equal presence — at 10% the watermark stops being a watermark and
-// starts being a shape on the page — so it takes a lighter value to land at
-// the same weight the ruled motifs do.
-const OPACITY_MARK = 0.08
-
-// The header band on every page is about 100-120px tall. Fading in over 200px
-// clears it with room to spare, and gives the texture a top edge that reads as
-// a watermark rather than as a background image starting at y=0.
-const FADE = 'linear-gradient(to bottom, transparent 0px, #000 200px)'
-
-// A tiling pattern, sized in user units. currentColor throughout so the whole
-// layer takes its ink from the wrapper's text-navy and there is no second
-// place a colour could be introduced.
 function Tiled({ id, width, height, children }) {
   return (
     <svg className="h-full w-full" aria-hidden="true">
@@ -78,19 +19,20 @@ function Tiled({ id, width, height, children }) {
   )
 }
 
-// The five drawings, named for what they DRAW. The map at the bottom binds
-// them to pages, and two pages are allowed to share one — a state's district
-// table and the national state table are the same ledger read at two grains,
-// and giving them two different textures would suggest a difference in kind
-// that is not there.
+// 1. Ministry: a sparse district-boundary lattice
+const LATTICE = (
+  <Tiled id="motif-lattice" width={120} height={120}>
+    <path
+      d="M0 60L60 0L120 60L60 120Z M0 0L120 120 M120 0L0 120"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeDasharray="2 4"
+    />
+    <circle cx="60" cy="60" r="3" fill="currentColor" />
+  </Tiled>
+)
 
-// A ruled register. Horizontal rules at a fixed line pitch with a column rule
-// at wide intervals: the ground of a bound ledger a ranked table is written
-// onto.
-//
-// 32px line pitch, not 24. At 3.5% the tighter ruling was invisible either
-// way; at 10% it read as hatching rather than as a ruled register, and it was
-// the densest of the five. Opening it up settles both.
+// 2. State: stacked horizontal rules, like a register
 const REGISTER = (
   <Tiled id="motif-register" width={160} height={32}>
     <path d="M0 31.5H160" stroke="currentColor" strokeWidth="1" />
@@ -98,9 +40,7 @@ const REGISTER = (
   </Tiled>
 )
 
-// The ladder itself, abstracted: runs of nodes joined in a chain, the links
-// stopping at the end of each run rather than continuing, so it reads as
-// repeated chains and not as a lattice.
+// 3. District: the four-node ladder chain, repeated
 const CHAIN = (
   <Tiled id="motif-chain" width={200} height={64}>
     <path d="M18.5 32H69.5M74.5 32H125.5M130.5 32H181.5" stroke="currentColor" strokeWidth="1" />
@@ -111,8 +51,42 @@ const CHAIN = (
   </Tiled>
 )
 
-// Stacked rules of uneven length, all flush left. The shape a block of clauses
-// makes on a page when you are too far away to read it.
+// 4. Member: a rupee-column grid
+const RUPEE_GRID = (
+  <Tiled id="motif-rupee" width={96} height={64}>
+    <path d="M0 32H96 M48 0V64" stroke="currentColor" strokeWidth="1" strokeDasharray="1 3" />
+    <text
+      x="24"
+      y="24"
+      fontSize="12"
+      fill="currentColor"
+      fontFamily="sans-serif"
+      textAnchor="middle"
+    >
+      ₹
+    </text>
+    <text
+      x="72"
+      y="56"
+      fontSize="12"
+      fill="currentColor"
+      fontFamily="sans-serif"
+      textAnchor="middle"
+    >
+      ₹
+    </text>
+  </Tiled>
+)
+
+// 5. Case sheet: the stepped ladder from the logo
+const STEPPED_LADDER = (
+  <Tiled id="motif-stepped" width={96} height={96}>
+    <path d="M20 20H48V48H76V76" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <rect x="20" y="80" width="56" height="2" fill="currentColor" />
+  </Tiled>
+)
+
+// 6. Rulebook: ruled clause lines
 const CLAUSES = (
   <Tiled id="motif-clauses" width={240} height={72}>
     <rect x="0" y="8" width="208" height="1" fill="currentColor" />
@@ -122,48 +96,22 @@ const CLAUSES = (
   </Tiled>
 )
 
-// A dotted route with waypoints. The path returns to its starting height at
-// the tile edge so it joins across tiles instead of breaking into visible
-// seams.
-const ROUTE = (
-  <Tiled id="motif-route" width={96} height={48}>
-    <path d="M0 38H24V14H72V38H96" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
-    <rect x="22.5" y="12.5" width="3" height="3" fill="currentColor" />
-    <rect x="70.5" y="12.5" width="3" height="3" fill="currentColor" />
-  </Tiled>
-)
-
-// A timeline scale: vertical rules at a wide pitch with ticks stepped along
-// them. The one motif that runs vertically, because what it sits behind is
-// read as a sequence in time rather than as a table.
-const TIMELINE = (
-  <Tiled id="motif-timeline" width={56} height={48}>
-    <path d="M12.5 0V48" stroke="currentColor" strokeWidth="1" />
-    <path d="M12.5 12H20.5M12.5 36H20.5" stroke="currentColor" strokeWidth="1" />
+// 7. Alerts: a diagonal chevron field
+const CHEVRON = (
+  <Tiled id="motif-chevron" width={64} height={64}>
+    <path d="M8 16L32 40L56 16" stroke="currentColor" strokeWidth="1.2" fill="none" />
+    <path d="M8 40L32 64L56 40" stroke="currentColor" strokeWidth="1.2" fill="none" />
   </Tiled>
 )
 
 const VARIANTS = {
-  // Ministry and State Nodal both read a ranked table of the tier below them —
-  // states under the ministry, districts under the state. One ledger, two
-  // grains, one ground.
-  ministry: REGISTER,
+  ministry: LATTICE,
   state: REGISTER,
-
-  // A District Authority's screen is a queue of works to go and look at, which
-  // is the one screen in the build that ends in somebody travelling.
-  district: ROUTE,
-
-  // A member's account is read year by year: allocated, sanctioned, disbursed,
-  // per financial year. That is a sequence in time, not a table.
-  mp: TIMELINE,
-
-  case: CHAIN,
+  district: CHAIN,
+  mp: RUPEE_GRID,
+  case: STEPPED_LADDER,
   rulebook: CLAUSES,
-
-  // Sign-in — the mark itself as a watermark. Large enough that its frame
-  // falls outside the reading column, so what sits behind the text is the
-  // empty middle of the mark rather than a stroke crossing a line of type.
+  alerts: CHEVRON,
   signin: (
     <div className="flex h-full w-full items-center justify-center">
       <LogoMark size={720} />
@@ -172,25 +120,15 @@ const VARIANTS = {
 }
 
 export default function PageMotif({ variant }) {
-  const motif = VARIANTS[variant]
-  if (!motif) return null
-
-  // The sign-in watermark is one drawing rather than a repeating tile, and it
-  // differs from the tiling motifs in both respects that matter here: it takes
-  // the lighter opacity (see OPACITY_MARK), and it is not masked, because
-  // fading its top 200px would cut the top edge off the frame and leave a mark
-  // that looks broken rather than faint.
+  const motif = VARIANTS[variant] ?? VARIANTS.ministry
   const tiling = variant !== 'signin'
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden text-navy"
+      className="motif-layer pointer-events-none absolute inset-0 -z-10 overflow-hidden text-navy"
       style={{
         opacity: tiling ? OPACITY : OPACITY_MARK,
-        // Both spellings: the unprefixed property is what Chrome and Firefox
-        // read, the -webkit- one is what Safari still needs, and the demo may
-        // be shown on any of the three.
         maskImage: tiling ? FADE : undefined,
         WebkitMaskImage: tiling ? FADE : undefined,
       }}

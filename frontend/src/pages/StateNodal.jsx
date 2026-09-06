@@ -1,65 +1,89 @@
-import { useMemo } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
-import RankedBar from '../components/RankedBar.jsx'
-import ScopedTable from '../components/ScopedTable.jsx'
+import PreviewList from '../components/PreviewList.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
-import StatPair from '../components/StatPair.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
-import { SEVERITY_SERIES } from '../chart.js'
+import {
+  AXIS_LINE,
+  AXIS_TICK,
+  GRID,
+  INK,
+  INK_SECONDARY,
+  SEVERITY_SERIES,
+} from '../chart.js'
 import { useApi } from '../hooks/useApi.js'
-import { countNoun, formatCount, formatMoney } from '../severity.js'
-import { CAPTION } from '../ui.js'
+import { useLanguage } from '../i18n/useLanguage.js'
+import { num, formatRupees, formatRulebookVersion } from '../i18n/format.js'
+import { CAPTION, CARD, CELL, CELL_NUM, COLUMN_HEAD, SORT_HEAD } from '../ui.js'
 
-// The State Nodal dashboard — the Ministry's view one level down, over the
-// districts of one state.
-//
-// THE STATE COMES FROM THE SESSION, not from a picker and not from a route
-// parameter. `user.scope.state` is what the server bound to this account and
-// what its predicate uses; asking for any other state's rollup answers 403 from
-// the grain check, whichever spelling is tried.
-//
-// THERE IS NO TREND ON THIS SCREEN, and it is worth being exact about why,
-// because a state overview is where a time series is most expected.
-//
-// A trend needs a time axis and nothing reachable from this role has one. The
-// rollup tables aggregate over the whole corpus with no financial-year
-// dimension; the case list carries no `fy` at all; and every case in the corpus
-// shares one `opened_at`, because they were all opened by a single derivation
-// run. A chart drawn from that would be a line through points that are all the
-// same date — noise given the shape of a finding, which is worse than an
-// absence. The distribution below is what the data genuinely supports: the
-// severity MIX across districts, which answers "is this state's problem
-// concentrated or spread" without pretending to answer "is it getting worse".
-//
-// Adding a per-FY aggregate would be a backend change, and this phase does not
-// touch the backend. It is written down here as the thing that would have to
-// exist first.
-
-// How many districts the distribution chart shows. Uttar Pradesh has 74 and a
-// stacked bar of 74 rows is a wall, not a chart — the tail is districts with one
-// or two LOW cases each, which the table below carries in full. Twelve is about
-// what fits on a projected screen without the category labels colliding.
 const CHART_DISTRICTS = 12
 
+function ChartTooltip({ active, payload, label, valueFormat }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded border border-rule bg-paper p-3 shadow-card text-[14px]">
+      <p className="font-semibold text-navy uppercase text-[12px]">{label}</p>
+      {payload.map((entry) => (
+        <p key={entry.dataKey} className="num text-ink mt-1">
+          {entry.name}: <span className="font-bold">{valueFormat ? valueFormat(entry.value) : entry.value}</span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export default function StateNodal() {
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
   const { user } = useOutletContext()
-  const state = user.scope?.state
+  const { state: routeState } = useParams()
+
+  // Use URL parameter state if provided (for Ministry drilldown), else user's scoped state
+  const targetState = routeState ? decodeURIComponent(routeState) : user.scope?.state
 
   const { data, error, loading } = useApi(
-    state ? `/api/analytics/state/${encodeURIComponent(state)}` : null,
+    targetState ? `/api/analytics/state/${encodeURIComponent(targetState)}` : null,
   )
 
-  // The busiest districts, reversed so the worst sits at the top of the axis —
-  // a Recharts vertical layout draws its first category at the bottom.
-  //
-  // Ranked on HIGH count then on total cases, matching the table's opening
-  // sort, so the chart and the table under it tell the same story in the same
-  // order rather than two orders a reader has to reconcile.
+  // Top 6 districts for PreviewList (§8.2, 38%/62% split in §C4)
+  const previewItems = useMemo(() => {
+    if (!data?.districts) return []
+    return [...data.districts]
+      .sort((a, b) => b.high_cases - a.high_cases || b.cases - a.cases)
+      .slice(0, 6)
+      .map((dst) => ({
+        id: dst.district,
+        label: dst.district,
+        title: `${dst.district} District`,
+        badge: `${num(dst.high_cases, lang)} HIGH`,
+        meta: `${num(dst.cases, lang)} cases · worst score ${num(dst.worst_score, lang) ?? '—'} · ${dst.mean_coverage_pct ?? '—'}% cov`,
+        body: `${num(dst.high_cases, lang)} HIGH, ${num(dst.medium_cases, lang)} MEDIUM, ${num(dst.cases - dst.high_cases - dst.medium_cases, lang)} LOW cases. Sanctioned volume: ${formatRupees(dst.sanctioned_amt, lang) ?? '—'}.`,
+        href: `/district/${encodeURIComponent(targetState)}/${encodeURIComponent(dst.district)}`,
+      }))
+  }, [data, targetState, lang])
+
+  // Distribution chart data: 420px tall stacked bar (§C3)
   const distribution = useMemo(() => {
     if (!data) return []
     return [...data.districts]
@@ -70,170 +94,319 @@ export default function StateNodal() {
 
   const columns = useMemo(
     () => [
-      { accessorKey: 'district', header: 'District', cell: (c) => c.getValue() },
+      {
+        accessorKey: 'district',
+        header: t('common.district', 'District'),
+        cell: (c) => (
+          <Link
+            to={`/district/${encodeURIComponent(targetState)}/${encodeURIComponent(c.getValue())}`}
+            className="font-medium text-navy hover:underline"
+          >
+            {c.getValue()}
+          </Link>
+        ),
+      },
       {
         accessorKey: 'cases',
-        header: 'Cases',
+        header: t('common.cases', 'Cases'),
         meta: { numeric: true },
-        cell: (c) => formatCount(c.getValue()),
+        cell: (c) => num(c.getValue(), lang),
       },
       {
         accessorKey: 'high_cases',
-        header: 'High',
+        header: t('common.highRisk', 'High'),
         meta: { numeric: true },
-        cell: (c) => formatCount(c.getValue()),
+        cell: (c) => (
+          <span className="num font-semibold text-coral">{num(c.getValue(), lang)}</span>
+        ),
       },
       {
         accessorKey: 'medium_cases',
-        header: 'Medium',
+        header: t('common.mediumRisk', 'Medium'),
         meta: { numeric: true },
-        cell: (c) => formatCount(c.getValue()),
+        cell: (c) => num(c.getValue(), lang),
       },
       {
         accessorKey: 'worst_score',
-        header: 'Worst score',
+        header: t('common.worstScore', 'Worst score'),
         meta: { numeric: true },
-        cell: (c) => (c.getValue() === null ? '—' : c.getValue()),
+        cell: (c) => (c.getValue() === null ? '—' : num(c.getValue(), lang)),
       },
       {
         accessorKey: 'mean_coverage_pct',
-        header: 'Mean coverage',
+        header: t('common.meanCoverage', 'Mean coverage'),
         meta: { numeric: true },
         cell: (c) => (c.getValue() === null ? '—' : `${c.getValue()}%`),
       },
       {
         accessorKey: 'corroborated_cases',
-        header: 'Corroborated',
+        header: t('ministry.corroborated', 'Corroborated'),
         meta: { numeric: true },
-        cell: (c) => formatCount(c.getValue()),
+        cell: (c) => num(c.getValue(), lang),
       },
       {
         accessorKey: 'sanctioned_amt',
-        header: 'Sanctioned',
+        header: t('common.sanctioned', 'Sanctioned'),
         meta: { numeric: true },
-        cell: (c) => formatMoney(c.getValue()) ?? '—',
+        cell: (c) => formatRupees(c.getValue(), lang) ?? '—',
       },
     ],
-    [],
+    [targetState, lang, t],
   )
 
+  const [sorting, setSorting] = useState([{ id: 'high_cases', desc: true }])
+  const tableData = useMemo(() => data?.districts ?? [], [data])
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    sortDescFirst: true,
+  })
+
+  const cleanRulebookVersion = formatRulebookVersion(data?.rulebook_version || '1.0.0')
+
   return (
-    <article className="relative isolate flex-1">
+    <article className="relative isolate flex-1 bg-paper w-full">
       <PageMotif variant="state" />
 
-      <PageHeader
-        title={state ? `${state} overview` : 'State overview'}
-        note="Every district in this state that carries at least one case, ranked by HIGH count. A truncated download of the MPLADS portal, not the state's full record."
+      {/* Page Hero */}
+      <PageHero
+        title={targetState ? t('state.title', { state: targetState, defaultValue: `${targetState} overview` }) : t('common.overview', 'State overview')}
+        lede={
+          data
+            ? t('state.lede', {
+                cases: num(data.summary.cases, lang),
+                districts: num(data.districts.length, lang),
+                state: data.state,
+                rulebookVersion: cleanRulebookVersion,
+                meanCoverage: data.summary.mean_coverage_pct,
+                defaultValue: `${num(data.summary.cases, lang)} works across ${num(data.districts.length, lang)} districts in ${data.state}, scored against rulebook ${cleanRulebookVersion}. Mean signal coverage ${data.summary.mean_coverage_pct}%.`,
+              })
+            : 'Every district in this state carrying at least one case, ranked by HIGH case count.'
+        }
+        breadcrumbs={[
+          { label: t('common.home', 'Home'), href: '/' },
+          ...(user?.role === 'ministry'
+            ? [{ label: t('ministry.title', 'National overview'), href: '/ministry' }]
+            : []),
+          { label: targetState ? `${targetState} overview` : 'State' },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {/* An account with the state_nodal role and no state bound to it is a
-            provisioning error, not a data problem, and it has to say so — an
-            empty screen would look identical to a state with no cases. */}
-        {!state ? (
+      {/* Main Container: Full main column width (§C3) */}
+      <div className="w-full px-4 sm:px-6 py-8 space-y-10">
+        {!targetState && (
           <EmptyState title="This account has no state bound to it">
             A State Nodal account is scoped to one state. Re-run{' '}
-            <code>python -m app.seed_users</code> to provision it against a state that has cases.
+            <code>python -m app.seed_users</code> to provision it against a state with cases.
           </EmptyState>
-        ) : null}
+        )}
 
-        {loading ? (
-          <LoadingRegion label={`Loading the rollup for ${state}`}>
+        {loading && (
+          <LoadingRegion label={`Loading state data for ${targetState}…`}>
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={5} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? <ErrorState error={error} /> : null}
+        {error && <ErrorState error={error} />}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title="Case load">
-                {countNoun(data.summary.cases, 'case', 'cases')} across{' '}
-                {countNoun(data.districts.length, 'district', 'districts')}, as of{' '}
-                {data.data_as_of}.
-              </SectionHeading>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Cases" value={formatCount(data.summary.cases)} />
-                <Figure label="High" value={formatCount(data.summary.high_cases)} />
-                <Figure label="Medium" value={formatCount(data.summary.medium_cases)} />
-                <Figure label="Low" value={formatCount(data.summary.low_cases)} />
+            {/* Stat Strip */}
+            <section aria-labelledby="state-stats-heading">
+              <h2 id="state-stats-heading" className="sr-only">
+                State statistics
+              </h2>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Figure label={t('common.totalCases', 'Total cases')} value={num(data.summary.cases, lang)} />
+                <Figure
+                  label={t('common.highRisk', 'HIGH cases')}
+                  value={num(data.summary.high_cases, lang)}
+                  note="Cases requiring urgent inspection"
+                />
+                <Figure
+                  label={t('common.worstScore', 'Worst score')}
+                  value={num(data.summary.worst_score, lang) ?? '—'}
+                  note="Maximum case score in state"
+                />
+                <Figure
+                  label={t('common.sanctioned', 'Sanctioned')}
+                  value={formatRupees(data.summary.sanctioned_amt, lang)}
+                  note="Total sanctioned funds"
+                />
               </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <StatPair
-                    label="Fund flow"
-                    totalLabel="Sanctioned"
-                    totalValue={formatMoney(data.summary.sanctioned_amt)}
-                    totalAmount={data.summary.sanctioned_amt}
-                    partLabel="Behind an open hop"
-                    partValue={formatMoney(data.summary.undisbursed_amt)}
-                    partAmount={data.summary.undisbursed_amt}
-                    caption="Sanctioned minus disbursed, counted only on cases whose first fund hop is open. The remainder is not money confirmed delivered — most of it belongs to works MoSPI's expenditure export never reached."
-                    note={`${formatCount(data.summary.cases_without_expenditure_row)} of ${formatCount(data.summary.cases)} cases in this state have no expenditure row at all.`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <Figure
-                    label="Worst score"
-                    value={data.summary.worst_score}
-                    note="The highest score any single case in this state carries, capped at 100."
-                  />
-                  <Figure
-                    label="Mean coverage"
-                    value={`${data.summary.mean_coverage_pct}%`}
-                    note="Weighted by case count. Skipped rulebook weight is never redistributed."
-                  />
-                </div>
-              </div>
-
-              <p className={`${CAPTION} mt-4 max-w-3xl`}>{data.caption}</p>
             </section>
 
-            <div className="mt-8">
-              <RankedBar
-                title="Severity mix across districts"
-                caption={`${distribution.length === 1 ? `The one district in ${data.state}` : `The ${distribution.length} districts in ${data.state} carrying the most HIGH cases, worst first`}, each bar split by severity band. This says whether the state's problem is concentrated in a few districts or spread across many — it is a distribution, not a trend.`}
-                data={distribution}
-                categoryKey="district"
-                series={SEVERITY_SERIES}
-                valueFormat={(value) => formatCount(value)}
-                axisLabel="cases"
-                emptyTitle="No districts to rank"
-                emptyBody="No district in this state carries a case."
-              />
+            {/* PreviewList of top 6 districts (Expanded to full main-column width per §C4) */}
+            <section className="rounded border border-rule bg-portal-tint/50 p-6 shadow-card w-full">
+              <div className="mb-4">
+                <h2 className="font-display text-section-heading text-navy">
+                  {t('state.districtTriage', 'District triage register')} ({data.state})
+                </h2>
+                <div className="mt-1 h-[3px] w-14 bg-saffron" aria-hidden="true" />
+                <p className="mt-1 text-body-secondary text-ink-secondary">
+                  {t('state.districtTriageSubtitle', 'All districts within the state ranked by anomaly concentration and severity. Hover or focus to inspect details.')}
+                </p>
+              </div>
 
-              {/* The absence is stated on screen rather than left as a gap a
-                  reader fills in with an assumption. Same discipline as a
-                  skipped rule naming its reason: a thing not shown says why. */}
-              <p className={`${CAPTION} max-w-3xl`}>
-                No trend is shown because none is computable from what this role can reach: the
-                rollups carry no financial-year dimension, the case list carries no year, and
-                every case in the corpus shares one opening timestamp from a single derivation
-                run. A line through points that are all the same date would be noise in the shape
-                of a finding.
-                {data.districts.length > CHART_DISTRICTS
-                  ? ` The remaining ${data.districts.length - CHART_DISTRICTS} districts are in the table below.`
-                  : ''}
-              </p>
-            </div>
-
-            <div className="mt-8">
-              <ScopedTable
-                title={`Every district in ${data.state}`}
-                caption={`${data.districts.length === 1 ? 'The one district' : `All ${countNoun(data.districts.length, 'district', 'districts')}`} carrying at least one case. Sortable on any column — click a heading. Corroborated counts the cases where the agency pattern-of-conduct bonus applied.`}
-                columns={columns}
-                data={data.districts}
-                initialSort={[{ id: 'high_cases', desc: true }]}
-                footnote="District names are not unique across India — AGRA, KAITHAL, PILIBHIT and SHAHJAHANPUR each name a district in five different states — so every row here is this state's district of that name and no other. The state travels with the district in the query, not just in the label."
+              <PreviewList
+                items={previewItems}
+                title="District triage queue"
+                caption="Select a district to inspect its working case queue"
               />
-            </div>
+            </section>
+
+            {/* Severity distribution chart enlarged to 420px tall (§C3) */}
+            <section className={`${CARD} p-6 w-full`}>
+              <div className="mb-4">
+                <h3 className="font-display text-section-heading text-navy">
+                  {t('state.highDistricts', 'Severity mix across districts')}
+                </h3>
+                <p className={CAPTION}>
+                  {distribution.length === 1
+                    ? `The one district in ${data.state}`
+                    : `The ${distribution.length} busiest districts in ${data.state}, worst first`}
+                  , each bar split by severity band.
+                </p>
+              </div>
+
+              <div className="h-[420px] w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={distribution}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 40, bottom: 20 }}
+                  >
+                    <CartesianGrid {...GRID} horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tick={AXIS_TICK}
+                      axisLine={AXIS_LINE}
+                      tickLine={false}
+                      tickFormatter={(v) => num(v, lang)}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="district"
+                      width={140}
+                      tick={{ ...AXIS_TICK, fill: INK }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      content={<ChartTooltip valueFormat={(v) => num(v, lang)} />}
+                      cursor={{ fill: '#E8EFF5' }}
+                    />
+                    {SEVERITY_SERIES.map((entry) => (
+                      <Bar
+                        key={entry.key}
+                        dataKey={entry.key}
+                        name={entry.label}
+                        fill={entry.color}
+                        stackId="severity"
+                        isAnimationActive={false}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <ul className="mt-4 flex flex-wrap gap-4 border-t border-rule pt-3">
+                {SEVERITY_SERIES.map((entry) => (
+                  <li key={entry.key} className="flex items-center gap-1.5 text-[13px]">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded"
+                      style={{ backgroundColor: entry.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="uppercase text-ink-secondary">{entry.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* All districts sortable table — spans full main-column width */}
+            <section className="w-full">
+              <div className="mb-4">
+                <h3 className="font-display text-section-heading text-navy">
+                  Every district in {data.state}
+                </h3>
+                <p className={CAPTION}>
+                  All {num(data.districts.length, lang)} districts in the sample. Click any district row to open its working case queue.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded border border-rule bg-paper shadow-card">
+                <table className="w-full border-collapse">
+                  <caption className="sr-only">
+                    All districts in {data.state} sortable by severity
+                  </caption>
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b border-rule bg-paper-sunk">
+                        {headerGroup.headers.map((header) => {
+                          const sortable = header.column.getCanSort()
+                          const direction = header.column.getIsSorted()
+                          return (
+                            <th
+                              key={header.id}
+                              scope="col"
+                              className={`${COLUMN_HEAD} ${
+                                header.column.columnDef.meta?.numeric ? 'text-right' : 'text-left'
+                              } px-4 py-3.5`}
+                            >
+                              {sortable ? (
+                                <button
+                                  type="button"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                  className={`${SORT_HEAD} ${
+                                    direction ? 'text-ink' : 'text-ink-secondary'
+                                  }`}
+                                >
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                                  {direction === 'asc' ? ' ↑' : direction === 'desc' ? ' ↓' : ''}
+                                </button>
+                              ) : (
+                                flexRender(header.column.columnDef.header, header.getContext())
+                              )}
+                            </th>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-rule last:border-b-0 hover:bg-portal-tint/40 transition-colors"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className={`${
+                              cell.column.columnDef.meta?.numeric ? CELL_NUM : CELL
+                            } px-4 py-3.5`}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )
