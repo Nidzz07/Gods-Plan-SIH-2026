@@ -3,40 +3,50 @@
 @tailwind utilities;
 
 @layer base {
-  /* The app's inherited text colour is ink, NOT navy. This one line is the
-     checklist's first rule made structural: anything that forgets to set a
-     colour now falls back to body text instead of to heading colour, so a
-     missed class reads as a small mistake rather than as another navy
-     paragraph flattening the hierarchy. Navy is applied deliberately, per
-     heading, and never inherited. */
-  body {
-    @apply bg-bg font-sans text-ink antialiased;
+  /* Page ground: institutional white over neutral light (§3.1) */
+  html {
+    background-color: theme('colors.paper');
   }
 
-  /* One focus ring, defined once, for every focusable thing in the app —
-     including the native <select> and <textarea>, which cannot be reached by
-     a utility class on a wrapper. :focus-visible rather than :focus so a
-     mouse click does not leave a ring behind, but every keyboard tab does.
+  /* Root text scaling for accessibility switcher */
+  html.text-size-sm {
+    font-size: 90%;
+  }
+  html.text-size-md {
+    font-size: 100%;
+  }
+  html.text-size-lg {
+    font-size: 115%;
+  }
 
-     Navy at 2px with a 2px offset reads clearly on both the bg cream and the
-     white cards, and on the navy sidebar the offset lets the ring sit against
-     the dark ground. No page may override this with focus:outline-none. */
+  /* Indic line-height rules to prevent matra clipping (§A7) */
+  html[lang="hi"], html[lang="mr"], html[lang="gu"] {
+    line-height: 1.65;
+  }
+  html[lang="hi"] .type-hero, html[lang="mr"] .type-hero, html[lang="gu"] .type-hero {
+    line-height: 1.25;   /* the hero at 1.04 clips matras */
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    min-height: 100vh;
+  }
+
+  /* Focus visible ring — 2px solid navy with 2px offset */
   :focus-visible {
     outline: 2px solid theme('colors.navy');
     outline-offset: 2px;
     border-radius: theme('borderRadius.DEFAULT');
   }
 
-  /* The sidebar is navy on navy, so the ring switches to white there. */
-  aside :focus-visible {
+  /* Dark surfaces / sidebar focus ring */
+  aside :focus-visible,
+  .bg-portal :focus-visible,
+  .bg-portal-deep :focus-visible {
     outline-color: theme('colors.white');
   }
 
-  /* Tabular figures everywhere a number is read as data rather than as prose.
-     Scores, variances, rupee amounts, lag days and timestamps all sit in
-     columns that a reader compares vertically; proportional digits make
-     1,99,539 and 1,19,711 different widths and the comparison stops working.
-     Applied globally here so no page has to remember it. */
+  /* Tabular figures everywhere numeric data is read */
   table,
   th,
   td,
@@ -48,5 +58,90 @@
   [data-numeric] {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
+  }
+
+  /* High contrast mode styles */
+  html.high-contrast {
+    filter: contrast(1.2);
+  }
+  html.high-contrast .motif-layer,
+  html.high-contrast .hero-photo-layer {
+    display: none !important;
+  }
+  html.high-contrast body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+  }
+}
+
+/* Fluid landing-page typography scale (§B4) */
+.type-hero      { font-size: clamp(3.0rem, 5.2vw, 5.4rem); line-height: 1.04; }
+.type-hero-sub  { font-size: clamp(1.5rem, 2.4vw, 2.4rem); line-height: 1.25; }
+.type-attrib    { font-size: clamp(1.0rem, 1.2vw, 1.25rem); }
+.type-stat      { font-size: clamp(2.2rem, 3.2vw, 3.4rem); line-height: 1.0; }
+.type-stat-lbl  { font-size: clamp(0.9rem, 1.05vw, 1.1rem); }
+.type-section   { font-size: clamp(1.9rem, 2.6vw, 2.6rem); }
+.type-lede      { font-size: clamp(1.05rem, 1.35vw, 1.35rem); line-height: 1.6; }
+.type-body-lg   { font-size: clamp(1.0rem, 1.15vw, 1.15rem); line-height: 1.6; }
+
+/* Dashboard layout shell & rail (§C1) */
+.app-shell {
+  display: flex;
+  gap: 32px;
+  padding-inline: 28px;          /* the gutter that was missing */
+  max-width: 1920px;
+  margin-inline: auto;
+}
+
+.rail {
+  flex: 0 0 288px;               /* 288px per spec */
+  position: sticky;
+  top: 96px;                     /* utility strip + sticky header */
+  height: calc(100vh - 96px - 24px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px 18px;       /* internal padding */
+  border-right: 1px solid theme('colors.rule');
+  overscroll-behavior: contain;
+}
+
+.rail__head   { flex: 0 0 auto; }            /* "Explore" + filter field */
+.rail__nav    { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+.rail__footer { flex: 0 0 auto; padding-top: 16px; border-top: 1px solid theme('colors.rule'); }
+
+.rail__footer .scope { overflow-wrap: anywhere; }   /* long scope sentences wrap */
+.rail__footer button { width: 100%; }               /* Sign out fills the rail */
+
+.app-main { flex: 1 1 auto; min-width: 0; }         /* min-width:0 lets tables shrink */
+
+/* Hero buttons in india.gov.in style (§B5) */
+.hero-chip-btn {
+  background: #FFFFFF;
+  color: #0B2E4F;
+  border: 1px solid #FFFFFF;
+  border-radius: 4px;
+  padding: 14px 22px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.hero-chip-btn:hover {
+  background: #0B2E4F;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+.hero-chip-btn:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+/* Reduced motion constraint (§10) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,72 +1,59 @@
-import { useMemo } from 'react'
-import { Link, useOutletContext } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
 
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
 import RankedBar from '../components/RankedBar.jsx'
-import ScopedTable from '../components/ScopedTable.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { NAVY } from '../chart.js'
 import { useApi } from '../hooks/useApi.js'
+import { useLanguage } from '../i18n/useLanguage.js'
+import { num, formatRupees, formatRulebookVersion } from '../i18n/format.js'
 import {
   HOP_LABEL,
   LAG_LABEL,
   SEVERITY_BORDER,
-  countNoun,
-  formatCount,
-  formatMoney,
-  formatRupees,
 } from '../severity.js'
-import { CAPTION, CARD, LABEL } from '../ui.js'
+import { CAPTION, CARD, CELL, CELL_NUM, COLUMN_HEAD, SORT_HEAD } from '../ui.js'
 
-// The District Authority dashboard — the case queue, and the one screen in this
-// product an officer actually works from.
-//
-// THE QUEUE IS A TABLE HERE AND A LIST ELSEWHERE, deliberately. The Ministry's
-// feed is eight rows read once, so it stays the list-of-cards pattern. This is a
-// working queue of a hundred rows that an officer re-sorts — by score to triage,
-// by coverage to find the cases the rulebook could barely evaluate, by
-// sanctioned amount to find where the money is — and that is a table. The
-// severity accent, the tabular figures and the right-aligned numerics are the
-// same tokens either way, so the two read as one design.
-//
-// SEVERITY IS THE ROW'S LEFT-BORDER AND THE WORD IN ITS OWN COLUMN, and never a
-// tag on top of that. `severity.js` is explicit: where a row carries the
-// border, its severity text is plain ink, because colouring the word as well
-// encodes one fact twice. The word is still printed — colour alone is not a
-// label, and a photocopy of this screen has to survive.
-//
-// THE DISTRICT COMES FROM THE SESSION. A district name is not unique in this
-// corpus, so the server's predicate is `state_id == S AND district == D`, both
-// terms. Nothing on this page has to know that; it asks about the one district
-// it was bound to.
-
-// A working queue rather than a preview. The endpoint caps at 500; a hundred is
-// what an officer scrolls before they would rather filter, and the caption says
-// what it is a hundred OF.
 const QUEUE_LIMIT = 100
 
 export default function District() {
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
   const { user } = useOutletContext()
-  const district = user.scope?.district
+  const { state: routeState, district: routeDistrict } = useParams()
+  const navigate = useNavigate()
+
+  const targetDistrict = routeDistrict ? decodeURIComponent(routeDistrict) : user.scope?.district
+  const targetState = routeState ? decodeURIComponent(routeState) : user.scope?.state
+
+  const [severityFilter, setSeverityFilter] = useState('ALL')
+  const [textFilter, setTextFilter] = useState('')
+  const [selectedAgency, setSelectedAgency] = useState(null)
 
   const { data, error, loading } = useApi(
-    district
-      ? `/api/analytics/district/${encodeURIComponent(district)}?limit=${QUEUE_LIMIT}`
+    targetDistrict
+      ? `/api/analytics/district/${encodeURIComponent(targetDistrict)}?limit=${QUEUE_LIMIT}`
       : null,
   )
 
-  // Agencies by case load, reversed so the largest sits at the top of the axis.
+  // Agencies by case load, reversed for Recharts vertical layout
   const agencies = useMemo(
     () => (data ? [...data.agencies].sort((a, b) => a.cases - b.cases) : []),
     [data],
   )
 
-  // The concentration finding, such as this district's data supports one: what
-  // share of the district's cases sit under its single largest agency.
   const topAgency = useMemo(() => {
     if (!data || data.agencies.length === 0) return null
     const ranked = [...data.agencies].sort((a, b) => b.cases - a.cases)
@@ -78,217 +65,372 @@ export default function District() {
     }
   }, [data])
 
+  // Client-side filter over cases by severity, agency, and text
+  const filteredCases = useMemo(() => {
+    if (!data?.cases) return []
+    return data.cases.filter((item) => {
+      if (severityFilter !== 'ALL' && item.severity !== severityFilter) return false
+      if (selectedAgency && item.agency !== selectedAgency) return false
+      if (textFilter.trim()) {
+        const term = textFilter.toLowerCase()
+        const matchId = item.work_id?.toLowerCase().includes(term)
+        const matchCase = item.case_id?.toLowerCase().includes(term)
+        const matchDesc = item.description?.toLowerCase().includes(term)
+        const matchMp = item.mp_name?.toLowerCase().includes(term)
+        if (!matchId && !matchCase && !matchDesc && !matchMp) return false
+      }
+      return true
+    })
+  }, [data?.cases, severityFilter, selectedAgency, textFilter])
+
   const columns = useMemo(
     () => [
       {
         accessorKey: 'description',
-        header: 'Work',
+        header: t('common.works', 'Work & Identification'),
         enableSorting: false,
         cell: (cell) => {
           const row = cell.row.original
           return (
-            <>
-              {/* The whole row is not the link, because a table row that is a
-                  link cannot hold a sortable column header's focus order
-                  sensibly. The work description is, and it is the thing an
-                  officer is reading anyway. */}
+            <div className="py-1 min-w-0">
               <Link
                 to={`/cases/${row.case_id}`}
-                className="block max-w-md truncate text-table-cell text-ink underline-offset-2 hover:underline"
+                title={row.description ?? row.work_id}
+                className="block truncate text-[16px] font-medium text-navy hover:underline"
               >
                 {row.description ?? row.work_id}
               </Link>
-              <span className="block max-w-md truncate text-meta-label text-ink-muted">
-                {row.work_id} · {row.gap_hop ? HOP_LABEL[row.gap_hop] : 'no open fund hop'} ·{' '}
-                {row.slowest_lag ? LAG_LABEL[row.slowest_lag] : 'no lag computable'}
-              </span>
-            </>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">
+                <span className="font-mono text-ink-muted">{row.work_id}</span>
+                <span>·</span>
+                <span>{row.gap_hop ? (HOP_LABEL[row.gap_hop] ?? row.gap_hop) : 'no open hop'}</span>
+                <span>·</span>
+                <span>{row.slowest_lag ? (LAG_LABEL[row.slowest_lag] ?? row.slowest_lag) : 'no lag'}</span>
+              </div>
+            </div>
           )
         },
       },
       {
         accessorKey: 'mp_name',
-        header: 'Recommended by',
-        cell: (c) => <span className="block max-w-[160px] truncate">{c.getValue()}</span>,
+        header: t('district.recommendedBy', 'Recommended by'),
+        cell: (c) => (
+          <span className="block w-40 truncate text-[15px] text-ink-secondary" title={c.getValue() || ''}>
+            {c.getValue() || '—'}
+          </span>
+        ),
       },
       {
         accessorKey: 'score',
-        header: 'Score',
+        header: t('common.score', 'Score'),
         meta: { numeric: true },
-        cell: (c) => c.getValue(),
+        cell: (c) => (
+          <span className="num text-[17px] font-bold text-navy">{num(c.getValue(), lang)}</span>
+        ),
       },
       {
         accessorKey: 'coverage_pct',
-        header: 'Coverage',
+        header: t('common.coverage', 'Coverage'),
         meta: { numeric: true },
-        // Printed on every row beside the score and never without it. A case at
-        // 50 with full coverage and a case at 50 with two thirds of it are
-        // different objects, and a queue showing the score alone is the easiest
-        // place in the product to lose that (invariant 2).
         cell: (c) => `${c.getValue()}%`,
       },
       {
         accessorKey: 'severity',
-        header: 'Severity',
-        // Plain ink, not a tag: the row's left-border already carries this
-        // colour, and a tinted tag beside it would be the same fact twice.
-        cell: (c) => c.getValue(),
+        header: t('common.severity', 'Severity'),
+        cell: (c) => {
+          const val = c.getValue()
+          const colorClass =
+            val === 'HIGH' ? 'text-coral font-bold' : val === 'MEDIUM' ? 'text-gold font-medium' : 'text-green font-medium'
+          const label = val === 'HIGH' ? t('common.high', 'HIGH') : val === 'MEDIUM' ? t('common.medium', 'MEDIUM') : t('common.low', 'LOW')
+          return <span className={`text-[14px] uppercase ${colorClass}`}>{label}</span>
+        },
       },
       {
         accessorKey: 'sanctioned_amt',
-        header: 'Sanctioned',
+        header: t('common.sanctioned', 'Sanctioned'),
         meta: { numeric: true },
-        cell: (c) => formatRupees(c.getValue()) ?? 'not published',
+        cell: (c) => (
+          <span className="whitespace-nowrap text-[15px]">
+            {formatRupees(c.getValue(), lang) ?? t('common.notPublished', 'not published')}
+          </span>
+        ),
       },
     ],
-    [],
+    [lang, t],
   )
 
+  const [sorting, setSorting] = useState([{ id: 'score', desc: true }])
+
+  const table = useReactTable({
+    data: filteredCases,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    sortDescFirst: true,
+  })
+
+  const cleanRulebookVersion = formatRulebookVersion(data?.rulebook_version || '1.0.0')
+
   return (
-    <article className="relative isolate flex-1">
+    <article className="relative isolate flex-1 bg-paper w-full">
       <PageMotif variant="district" />
 
-      <PageHeader
-        title={district ? `${district} case queue` : 'Case queue'}
-        note="Ranked highest score first — that ordering IS the triage order. Re-sort on any column; the rows are the ones the server already decided this account may see, and sorting never widens that."
+      {/* Page Hero with proper pluralisation fix (§1 Defect 2) */}
+      <PageHero
+        title={targetDistrict ? `${targetDistrict} case queue` : t('district.defaultTitle', 'District queue')}
+        lede={
+          data
+            ? t('district.lede', {
+                caseCount: num(data.summary.cases, lang),
+                highCount: num(data.summary.high_cases, lang),
+                agencyCount: t('district.agencyCount', { count: data.agencies.length }),
+                state: data.state,
+                rulebookVersion: cleanRulebookVersion,
+                meanCoverage: data.summary.mean_coverage_pct,
+                defaultValue: `${num(data.summary.cases, lang)} cases (${num(data.summary.high_cases, lang)} HIGH) under ${t('district.agencyCount', { count: data.agencies.length })} in ${data.state}, scored against rulebook ${cleanRulebookVersion}. Mean signal coverage ${data.summary.mean_coverage_pct}%.`,
+              })
+            : 'Ranked highest score first — this queue is the primary working screen for district inspection.'
+        }
+        breadcrumbs={[
+          { label: t('common.home', 'Home'), href: '/' },
+          ...(user?.role === 'ministry'
+            ? [{ label: t('ministry.title', 'National overview'), href: '/ministry' }]
+            : []),
+          ...(targetState
+            ? [{ label: `${targetState} overview`, href: `/state/${encodeURIComponent(targetState)}` }]
+            : []),
+          { label: targetDistrict ? `${targetDistrict} queue` : 'District queue' },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {!district ? (
-          <EmptyState title="This account has no district bound to it">
-            A District Authority account is scoped to one district within one state. Re-run{' '}
-            <code>python -m app.seed_users</code> to provision it against a district that has
-            cases.
+      {/* Main Container: Full main column width (§C3) */}
+      <div className="w-full px-4 sm:px-6 py-8 space-y-10">
+        {!targetDistrict && (
+          <EmptyState title={t('district.noDistrictBound', 'This account has no district bound to it')}>
+            A District Authority account is scoped to one district. Re-run{' '}
+            <code>python -m app.seed_users</code> to provision it against a district with cases.
           </EmptyState>
-        ) : null}
+        )}
 
-        {loading ? (
-          <LoadingRegion label={`Loading the queue for ${district}`}>
+        {loading && (
+          <LoadingRegion label={`Loading queue for ${targetDistrict}…`}>
             <SkeletonPanel lines={3} />
             <SkeletonRows rows={6} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? <ErrorState error={error} /> : null}
+        {error && <ErrorState error={error} />}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title="This district">
-                {countNoun(data.summary.cases, 'case', 'cases')} under{' '}
-                {countNoun(data.agencies.length, 'implementing agency', 'implementing agencies')}{' '}
-                in {data.state}, as of {data.data_as_of}.
-              </SectionHeading>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Cases" value={formatCount(data.summary.cases)} />
-                <Figure label="High" value={formatCount(data.summary.high_cases)} />
-                <Figure label="Worst score" value={data.summary.worst_score} />
+            {/* Stat summary */}
+            <section aria-labelledby="district-stats-heading">
+              <h2 id="district-stats-heading" className="sr-only">
+                District metrics
+              </h2>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Figure label={t('common.cases', 'District cases')} value={num(data.summary.cases, lang)} />
                 <Figure
-                  label="Mean coverage"
-                  value={`${data.summary.mean_coverage_pct}%`}
-                  note="Skipped rulebook weight is never redistributed."
+                  label={t('common.highRisk', 'HIGH cases')}
+                  value={num(data.summary.high_cases, lang)}
+                  note="Triage inspection candidates"
+                />
+                <Figure
+                  label={t('common.worstScore', 'Worst score')}
+                  value={num(data.summary.worst_score, lang)}
+                  note="Maximum case score in district"
+                />
+                <Figure
+                  label={t('common.sanctioned', 'Sanctioned volume')}
+                  value={formatRupees(data.summary.sanctioned_amt, lang)}
+                  note="Total sanctioned funds"
                 />
               </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Sanctioned" value={formatMoney(data.summary.sanctioned_amt)} />
-                <Figure
-                  label="Behind an open hop"
-                  value={formatMoney(data.summary.undisbursed_amt)}
-                  note="Sanctioned minus disbursed, and only on cases whose first fund hop is open."
-                />
-                <Figure
-                  label="No expenditure row"
-                  value={formatCount(data.summary.cases_without_expenditure_row)}
-                  note="Works the truncated expenditure export never reached. A reporting gap, not a finding."
-                />
-                <Figure
-                  label="Corroborated"
-                  value={formatCount(data.summary.corroborated_cases)}
-                  note="Cases where the agency pattern-of-conduct bonus applied."
-                />
-              </div>
-
-              <p className={`${CAPTION} mt-4 max-w-3xl`}>{data.caption}</p>
             </section>
 
-            <section className="mt-8">
-              <SectionHeading title="Agency concentration">
-                Which implementing agencies this district&rsquo;s cases sit under. This is the
-                question the pattern-of-conduct bonus asks per case, asked over the district
-                instead of over one work.
-              </SectionHeading>
+            {/* Layout: Rebalanced 34% Agency Concentration / 66% Working Queue (§C3) */}
+            <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
+              {/* Left: Agency Concentration Panel (34% width, 360px tall chart, §C3) */}
+              <section className="w-full lg:w-[34%] shrink-0 rounded border border-rule bg-paper p-6 shadow-card">
+                <h3 className="font-display text-section-heading text-navy">
+                  {t('district.agencyConcentration', 'Agency concentration')}
+                </h3>
+                <p className={CAPTION}>
+                  {t('district.agencyCount', { count: data.agencies.length })} in this district. Click
+                  an agency to filter the queue.
+                </p>
 
-              {topAgency ? (
-                <div className={`${CARD} mt-4 p-4`}>
-                  <p className={LABEL}>Largest implementing agency</p>
-                  <p className="text-table-cell text-ink">{topAgency.row.agency ?? 'not recorded'}</p>
-                  <p className="num mt-1 text-body-secondary text-ink-secondary">
-                    {formatCount(topAgency.row.cases)} of {formatCount(data.summary.cases)} cases
-                    {topAgency.sharePct === null
-                      ? ''
-                      : ` — ${topAgency.sharePct.toFixed(1)}% of the district`}
-                    , {formatCount(topAgency.row.high_cases)} of them HIGH.
-                  </p>
-                  <p className={CAPTION}>
-                    {topAgency.count === 1
-                      ? 'Every case in this district sits under one agency, so there is no concentration to compare against. That is a fact about how the district implements, not a finding about the agency — and it means the pattern-of-conduct bonus, which looks for repetition under one agency, has nothing here to distinguish.'
-                      : `Concentration across ${formatCount(topAgency.count)} agencies. A large share is not by itself a finding: a district may genuinely run most of its works through one office.`}
-                  </p>
-                  {/* Said rather than left to be assumed, because the case sheet
-                      DOES show a vendor concentration number and a reader moving
-                      between the two screens would otherwise expect it here. */}
-                  <p className={CAPTION}>
-                    Vendor-level concentration — the Herfindahl index over an agency&rsquo;s
-                    vendor shares — is computed per case and shown on the case sheet. It is not
-                    aggregated to the district by any endpoint this screen can read, and nothing
-                    is recomputed in the browser to fill the gap.
-                  </p>
+                {topAgency && (
+                  <div className="mt-4 rounded bg-portal-tint p-3 text-[14px] text-ink">
+                    <p className="font-semibold text-portal">Primary agency: {topAgency.row.agency}</p>
+                    <p className="mt-0.5 text-ink-secondary">
+                      {num(topAgency.row.cases, lang)} of {num(data.summary.cases, lang)} cases
+                      {topAgency.sharePct !== null ? ` (${topAgency.sharePct.toFixed(1)}% share)` : ''}
+                    </p>
+                  </div>
+                )}
+
+                {/* Enlarged 360px tall chart (§C3) */}
+                <div className="mt-4 h-[360px] w-full">
+                  <RankedBar
+                    title=""
+                    caption=""
+                    data={agencies}
+                    categoryKey="agency"
+                    series={[{ key: 'cases', label: 'Cases', color: NAVY }]}
+                    valueFormat={(value) => num(value, lang)}
+                    axisLabel="cases"
+                    categoryWidth={140}
+                    onBarClick={(entry) =>
+                      setSelectedAgency((curr) => (curr === entry.agency ? null : entry.agency))
+                    }
+                  />
                 </div>
-              ) : null}
 
-              <div className="mt-4">
-                <RankedBar
-                  title="Cases by implementing agency"
-                  caption={
-                    data.agencies.length === 1
-                      ? `The one agency implementing every case in ${data.district}.`
-                      : `All ${formatCount(data.agencies.length)} agencies implementing cases in ${data.district}, largest first.`
-                  }
-                  data={agencies}
-                  categoryKey="agency"
-                  series={[{ key: 'cases', label: 'Cases', color: NAVY }]}
-                  valueFormat={(value) => formatCount(value)}
-                  axisLabel="cases"
-                  categoryWidth={240}
-                  emptyTitle="No agency recorded"
-                  emptyBody="No case in this district carries an implementing agency the portal published."
-                />
-              </div>
-            </section>
+                {selectedAgency && (
+                  <div className="mt-3 flex items-center justify-between text-[13px] bg-paper-sunk p-2.5 rounded border border-rule">
+                    <span>
+                      Filtered to: <strong>{selectedAgency}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAgency(null)}
+                      className="text-portal font-semibold hover:underline"
+                    >
+                      Clear agency filter
+                    </button>
+                  </div>
+                )}
+              </section>
 
-            <div className="mt-8">
-              <ScopedTable
-                title="Queue"
-                caption={`${
-                  data.summary.cases === 1
-                    ? `This district's only case`
-                    : data.cases.length === data.summary.cases
-                      ? `All ${countNoun(data.summary.cases, 'case', 'cases')} in this district`
-                      : `The ${formatCount(data.cases.length)} highest-scoring of this district's ${formatCount(data.summary.cases)} cases`
-                }. Severity is the coloured edge on each row and the word in its own column. Every row opens the same case sheet every other role opens.`}
-                columns={columns}
-                data={data.cases}
-                initialSort={[{ id: 'score', desc: true }]}
-                rowAccent={(row) => SEVERITY_BORDER[row.severity]}
-                emptyTitle="No cases in this district"
-                emptyBody={`The rollup counts ${formatCount(data.summary.cases)} cases here, so an empty queue means the case query and the rollup disagree — that is worth reporting rather than reloading.`}
-                footnote="Sorting reorders the rows the server already scoped to this account. It never reaches a case outside the district: a case id from anywhere else answers 404, indistinguishable from one that was never issued."
-              />
+              {/* Right: The Working Queue (66% width, §C3) */}
+              <section className="w-full lg:w-[66%] flex-1 space-y-4 min-w-0">
+                <div className="rounded border border-rule bg-paper p-6 shadow-card">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-rule pb-4">
+                    <div>
+                      <h3 className="font-display text-section-heading text-navy">
+                        {t('district.workingQueue', 'Working queue')}
+                      </h3>
+                      <p className={CAPTION}>
+                        {num(filteredCases.length, lang)} cases displayed (minimum 64px row
+                        height, 90ms hover). Click any row to open the full case sheet.
+                      </p>
+                    </div>
+
+                    {/* Severity filter chips: 16px font, 10px×16px padding, 8px gap (§C4) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {[
+                        { key: 'ALL', label: t('district.filterAll', 'ALL') },
+                        { key: 'HIGH', label: t('district.filterHigh', 'HIGH') },
+                        { key: 'MEDIUM', label: t('district.filterMedium', 'MEDIUM') },
+                        { key: 'LOW', label: t('district.filterLow', 'LOW') },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setSeverityFilter(item.key)}
+                          className={`rounded px-4 py-2.5 text-[16px] font-semibold transition-colors ${
+                            severityFilter === item.key
+                              ? 'bg-portal text-white shadow-xs'
+                              : 'bg-paper-sunk text-ink-secondary hover:bg-portal-tint hover:text-navy border border-rule'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Text search filter input */}
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      value={textFilter}
+                      onChange={(e) => setTextFilter(e.target.value)}
+                      placeholder="Filter queue by work ID, description, MP…"
+                      aria-label="Filter queue cases"
+                      className="w-full rounded border border-rule bg-paper py-2.5 px-3.5 text-[15px] text-ink placeholder-ink-muted focus:border-portal focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Queue Table with full width description column and 64px min-h rows (§C3) */}
+                <div className="overflow-x-auto rounded border border-rule bg-paper shadow-card">
+                  <table className="w-full border-collapse">
+                    <caption className="sr-only">
+                      District case queue sorted by risk score
+                    </caption>
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b border-rule bg-paper-sunk">
+                          {headerGroup.headers.map((header) => {
+                            const sortable = header.column.getCanSort()
+                            const direction = header.column.getIsSorted()
+                            return (
+                              <th
+                                key={header.id}
+                                scope="col"
+                                className={`${COLUMN_HEAD} ${
+                                  header.column.columnDef.meta?.numeric
+                                    ? 'text-right'
+                                    : 'text-left'
+                                } px-4 py-3.5`}
+                              >
+                                {sortable ? (
+                                  <button
+                                    type="button"
+                                    onClick={header.column.getToggleSortingHandler()}
+                                    className={`${SORT_HEAD} ${
+                                      direction ? 'text-ink' : 'text-ink-secondary'
+                                    }`}
+                                  >
+                                    {flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
+                                    {direction === 'asc' ? ' ↑' : direction === 'desc' ? ' ↓' : ''}
+                                  </button>
+                                ) : (
+                                  flexRender(header.column.columnDef.header, header.getContext())
+                                )}
+                              </th>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => {
+                        const original = row.original
+                        const borderClass = SEVERITY_BORDER[original.severity] ?? 'border-l-border-strong'
+                        return (
+                          <tr
+                            key={row.id}
+                            onClick={() => navigate(`/cases/${original.case_id}`)}
+                            className={`min-h-[64px] cursor-pointer border-b border-rule last:border-b-0 border-l-[3px] ${borderClass} hover:bg-portal-tint/70 transition-colors duration-[90ms]`}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <td
+                                key={cell.id}
+                                className={`${
+                                  cell.column.columnDef.meta?.numeric ? CELL_NUM : CELL
+                                } px-4 py-4`}
+                              >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </div>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )

@@ -1,94 +1,66 @@
 import { useMemo } from 'react'
-import { Link, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
 import ScopedTable from '../components/ScopedTable.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import { GREEN, GOLD, NAVY } from '../chart.js'
 import { useApi } from '../hooks/useApi.js'
+import { useLanguage } from '../i18n/useLanguage.js'
+import { num, formatRupees, formatRulebookVersion } from '../i18n/format.js'
 import {
   HOP_LABEL,
   LAG_LABEL,
   SEVERITY_BORDER,
   SKIP_REASON,
-  countNoun,
-  formatCount,
-  formatMoney,
-  formatRupees,
 } from '../severity.js'
-import { CAPTION, CARD, LABEL } from '../ui.js'
-
-// The Member of Parliament dashboard — the account ladder and the portfolio.
-//
-// WHY THIS ROLE EXISTS AT ALL, since it is the one persona that is read-only:
-// MPLADS criticism routinely lands on the member for a delay that occurred
-// entirely inside the district administration. The account ladder shows where
-// their allocation stands; the lifecycle ladder on each case shows where the
-// time went. Giving the scheme's subject a view and withholding the ability to
-// adjudicate their own findings is the whole design of the role.
+import { CAPTION } from '../ui.js'
 
 const TERM = 'term_to_date'
 
-// Each rung's colour, held next to the ladder rather than in the shared chart
-// module because these three are a sequence and not a category set: money
-// steps down from allocated to sanctioned to disbursed, and the colours read
-// as that descent.
 const RUNG_COLOR = {
   allocated_amt: NAVY,
   sanctioned_amt: GOLD,
   disbursed_amt: GREEN,
 }
 
-// One rung of the ladder, as a bar.
-//
-// THE WHOLE POINT OF THIS COMPONENT IS THE UNPUBLISHED CASE. A rung MoSPI never
-// published must not render as a zero-width bar: a zero-width bar is visually
-// identical to an amount of nothing, and "the portal published no allocation
-// for this year" and "this member was allocated nothing this year" are
-// different claims — the first is a reporting gap and the second would be a
-// finding about a person. So an unavailable rung draws a DASHED EMPTY TRACK
-// with the reason written in it, which is a shape a filled bar can never be
-// mistaken for, and its amount column says the reason rather than a number.
-//
-// Every per-FY allocation row in this corpus takes that path: the portal
-// publishes one cumulative allocation per member and no per-year breakdown.
-function Rung({ rung, scale }) {
+function Rung({ rung, scale, lang, t }) {
   const published = rung.availability === 'published' || rung.availability === 'published_zero'
   const width = published && scale > 0 ? Math.max((rung.amount ?? 0) / scale, 0) * 100 : 0
 
   return (
-    <div className="grid grid-cols-[120px_1fr_160px] items-center gap-4">
-      <span className="text-meta-label uppercase text-ink-secondary">{rung.label}</span>
+    <div className="grid grid-cols-[150px_1fr_180px] items-center gap-4 py-1.5">
+      <span className="text-[13px] font-semibold uppercase tracking-wider text-ink-secondary whitespace-nowrap">
+        {rung.label}
+      </span>
 
       {published ? (
-        <span className="block h-4 w-full rounded bg-surface-sunk">
+        <span className="block h-[22px] w-full rounded bg-paper-sunk overflow-hidden border border-rule/40">
           <span
-            className="block h-4 rounded"
+            className="block h-[22px] rounded"
             style={{ width: `${width}%`, backgroundColor: RUNG_COLOR[rung.key] }}
-            // The bar is decoration over a number that is already printed
-            // beside it, so it is hidden from assistive technology rather than
-            // announced twice.
             aria-hidden="true"
           />
         </span>
       ) : (
-        <span className="flex h-4 w-full items-center rounded border border-dashed border-border-strong px-2">
-          <span className="text-meta-label text-ink-muted">
-            {SKIP_REASON[rung.availability] ?? rung.availability}
+        <span className="flex h-[22px] w-full items-center rounded border border-dashed border-rule-strong bg-paper-sunk/50 px-2.5">
+          <span className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">
+            {SKIP_REASON[rung.availability] ?? t('common.notPublishedByMospi', 'not published by MoSPI')}
           </span>
         </span>
       )}
 
-      <span className="num text-right text-table-cell text-ink">
+      <span className="num text-right text-[15px] text-ink font-medium">
         {published ? (
-          formatRupees(rung.amount ?? 0)
+          formatRupees(rung.amount ?? 0, lang)
         ) : (
-          <span className="italic text-ink-muted">
-            {SKIP_REASON[rung.availability] ?? rung.availability}
+          <span className="italic text-ink-muted text-[13px]">
+            {SKIP_REASON[rung.availability] ?? t('common.notPublishedByMospi', 'not published by MoSPI')}
           </span>
         )}
       </span>
@@ -96,32 +68,35 @@ function Rung({ rung, scale }) {
   )
 }
 
-function Ladder({ ladder, scale, title, caption }) {
+function AccountLadderCard({ ladder, scale, title, caption, lang, t }) {
   return (
-    <div className={`${CARD} p-4`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <p className={LABEL}>{title}</p>
-        <p className="num text-body-secondary text-ink-secondary">
+    <div className="rounded border border-rule bg-paper p-5 shadow-card w-full">
+      <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-rule pb-2.5">
+        <p className="font-display font-semibold text-navy text-[17px]">{title}</p>
+        <p className="num text-[14px] font-medium text-ink-secondary">
           {ladder.mp_utilisation_pct === null || ladder.mp_utilisation_pct === undefined
-            ? 'utilisation not computable'
+            ? t('common.notPublished', 'utilisation not published')
             : `${ladder.mp_utilisation_pct.toFixed(2)}% utilised`}
         </p>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 space-y-2">
         {ladder.rungs.map((rung) => (
-          <Rung key={rung.key} rung={rung} scale={scale} />
+          <Rung key={rung.key} rung={rung} scale={scale} lang={lang} t={t} />
         ))}
       </div>
 
-      {caption ? <p className={CAPTION}>{caption}</p> : null}
+      {caption && <p className="mt-3 text-[13px] text-ink-secondary">{caption}</p>}
     </div>
   )
 }
 
 export default function Member() {
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
   const { user } = useOutletContext()
   const mpId = user.scope?.mp_id
+  const navigate = useNavigate()
 
   const { data, error, loading } = useApi(mpId ? `/api/analytics/mp/${mpId}` : null)
 
@@ -134,10 +109,6 @@ export default function Member() {
     [data],
   )
 
-  // Every bar on the screen is scaled against ONE maximum, so a year's
-  // sanctioned bar can be compared against another year's by eye. Scaling each
-  // row to its own maximum would make every year look equally full, which is
-  // the opposite of what the picture is for.
   const scale = useMemo(() => {
     if (!data) return 0
     const amounts = data.account.flatMap((row) =>
@@ -152,157 +123,201 @@ export default function Member() {
     () => [
       {
         accessorKey: 'description',
-        header: 'Work',
+        header: t('common.works', 'Work & Details'),
         enableSorting: false,
         cell: (cell) => {
           const row = cell.row.original
           return (
-            <>
+            <div className="py-1 min-w-0">
               <Link
                 to={`/cases/${row.case_id}`}
-                className="block max-w-md truncate text-table-cell text-ink underline-offset-2 hover:underline"
+                className="block truncate text-[16px] font-medium text-navy hover:underline"
+                title={row.description ?? row.work_id}
               >
                 {row.description ?? row.work_id}
               </Link>
-              <span className="block max-w-md truncate text-meta-label text-ink-muted">
-                {row.work_id} · {row.gap_hop ? HOP_LABEL[row.gap_hop] : 'no open fund hop'} ·{' '}
+              <span className="block text-[13px] text-ink-muted mt-0.5">
+                {row.work_id} · {row.gap_hop ? HOP_LABEL[row.gap_hop] : 'no open hop'} ·{' '}
                 {row.slowest_lag ? LAG_LABEL[row.slowest_lag] : 'no lag computable'}
               </span>
-            </>
+            </div>
           )
         },
       },
       {
         accessorKey: 'district',
-        header: 'District',
+        header: t('common.district', 'District'),
         cell: (c) => c.getValue() ?? '—',
       },
       {
         accessorKey: 'score',
-        header: 'Score',
+        header: t('common.score', 'Score'),
         meta: { numeric: true },
-        cell: (c) => c.getValue(),
+        cell: (c) => (
+          <span className="num font-bold text-navy text-[17px]">{num(c.getValue(), lang)}</span>
+        ),
       },
       {
         accessorKey: 'coverage_pct',
-        header: 'Coverage',
+        header: t('common.coverage', 'Coverage'),
         meta: { numeric: true },
         cell: (c) => `${c.getValue()}%`,
       },
-      { accessorKey: 'severity', header: 'Severity', cell: (c) => c.getValue() },
+      {
+        accessorKey: 'severity',
+        header: t('common.severity', 'Severity'),
+        cell: (c) => {
+          const val = c.getValue()
+          const colorClass =
+            val === 'HIGH' ? 'text-coral font-bold' : val === 'MEDIUM' ? 'text-gold font-medium' : 'text-green font-medium'
+          const label = val === 'HIGH' ? t('common.high', 'HIGH') : val === 'MEDIUM' ? t('common.medium', 'MEDIUM') : t('common.low', 'LOW')
+          return <span className={`text-[14px] uppercase ${colorClass}`}>{label}</span>
+        },
+      },
       {
         accessorKey: 'sanctioned_amt',
-        header: 'Sanctioned',
+        header: t('common.sanctioned', 'Sanctioned'),
         meta: { numeric: true },
-        cell: (c) => formatRupees(c.getValue()) ?? 'not published',
+        cell: (c) => formatRupees(c.getValue(), lang) ?? t('common.notPublished', 'not published'),
       },
     ],
-    [],
+    [lang, t],
   )
 
+  const cleanRulebookVersion = formatRulebookVersion(data?.rulebook_version || '1.0.0')
+
   return (
-    <article className="relative isolate flex-1">
+    <article className="relative isolate flex-1 bg-paper w-full">
       <PageMotif variant="mp" />
 
-      <PageHeader
-        title="My account"
-        note="Where this allocation stands, financial year by financial year, and which of these recommendations stalled. This view is read-only: the scheme's subject does not adjudicate the scheme's findings."
+      {/* Page Hero */}
+      <PageHero
+        title={data ? `${data.mp.name} account` : t('member.defaultTitle', 'Constituency overview')}
+        lede={
+          data
+            ? `${data.mp.house === 'rajya_sabha' ? 'Rajya Sabha' : 'Lok Sabha'} · ${data.mp.constituency ?? data.mp.state} · term ${data.mp.term ?? 'current'}. Read-only audit view: scheme subjects do not adjudicate scheme findings.`
+            : 'Member of Parliament account overview and recommended works portfolio.'
+        }
+        breadcrumbs={[
+          { label: t('common.home', 'Home'), href: '/' },
+          { label: t('roles.member', 'Member account') },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {!mpId ? (
-          <EmptyState title="This account is not bound to a member">
+      {/* Main Container: Full main column width (§C3) */}
+      <div className="w-full px-4 sm:px-6 py-8 space-y-10">
+        {!mpId && (
+          <EmptyState title={t('member.noMemberBound', 'This account is not bound to a member')}>
             A Member of Parliament account is scoped to one member id. Re-run{' '}
             <code>python -m app.seed_users</code> to provision it.
           </EmptyState>
-        ) : null}
+        )}
 
-        {loading ? (
-          <LoadingRegion label="Loading the account ladder">
+        {loading && (
+          <LoadingRegion label="Loading account ladder…">
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={4} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? <ErrorState error={error} /> : null}
+        {error && <ErrorState error={error} />}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title={data.mp.name}>
-                {data.mp.house === 'rajya_sabha' ? 'Rajya Sabha' : 'Lok Sabha'} ·{' '}
-                {data.mp.constituency ?? data.mp.state} · term {data.mp.term ?? 'not published'}
-              </SectionHeading>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="Cases" value={formatCount(data.portfolio?.cases)} />
-                <Figure label="High" value={formatCount(data.portfolio?.high_cases)} />
-                <Figure label="Sanctioned" value={formatMoney(data.portfolio?.sanctioned_amt)} />
+            {/* Stat Strip */}
+            <section aria-labelledby="member-stats-heading">
+              <h2 id="member-stats-heading" className="sr-only">
+                Member account metrics
+              </h2>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Figure label={t('common.works', 'Recommended works')} value={num(data.portfolio?.cases, lang)} />
+                <Figure
+                  label={t('common.highRisk', 'HIGH cases')}
+                  value={num(data.portfolio?.high_cases, lang)}
+                  note="Cases with severe delay or gap"
+                />
+                <Figure
+                  label={t('common.sanctioned', 'Total Sanctioned')}
+                  value={formatRupees(data.portfolio?.sanctioned_amt, lang)}
+                />
                 <Figure
                   label="Utilisation percentile"
                   value={
                     data.utilisation_percentile === null
-                      ? null
-                      : `${data.utilisation_percentile}`
+                      ? '—'
+                      : `${num(data.utilisation_percentile, lang)}th`
                   }
-                  note={`Against ${formatCount(data.utilisation_peers)} ${data.utilisation_peer_group}. A percentile, not a rank: it says what share of that peer group has utilised no more than this account has.`}
+                  note={`Against ${num(data.utilisation_peers, lang)} peer members`}
                 />
               </div>
-
-              <p className={`${CAPTION} mt-4 max-w-3xl`}>{data.caption}</p>
             </section>
 
-            <section className="mt-8">
-              <SectionHeading title="Account ladder">
-                Allocated, sanctioned and disbursed. Every bar on this screen is drawn to one
-                scale, so a year can be compared against another by eye. A rung the portal never
-                published is a dashed empty track and never a bar of zero length — &ldquo;no
-                allocation was published for this year&rdquo; and &ldquo;this member was allocated
-                nothing&rdquo; are different claims, and only the first is true here.
-              </SectionHeading>
+            {/* Account Ladder Section with 22px bar height (§C4) */}
+            <section className="w-full">
+              <div className="mb-4">
+                <h3 className="font-display text-section-heading text-navy">
+                  {t('member.accountLadder', 'Account allocation ladder')}
+                </h3>
+                <p className={CAPTION}>
+                  Allocated, sanctioned and disbursed funds. Unpublished years render as a dashed
+                  outline carrying &ldquo;not published by MoSPI&rdquo; — never as a zero bar.
+                </p>
+              </div>
 
-              {term ? (
-                <div className="mt-4">
-                  <Ladder
+              {term && (
+                <div className="mb-6 w-full">
+                  <AccountLadderCard
                     ladder={term}
                     scale={scale}
-                    title="Term to date"
-                    caption="The only row carrying a published allocation, and therefore the only one with a utilisation ratio. MoSPI publishes one cumulative allocation per member and no per-year breakdown."
+                    lang={lang}
+                    t={t}
+                    title="Term to date cumulative allocation"
+                    caption="Cumulative allocation published on the portal. MoSPI publishes one cumulative figure per member and no per-financial-year breakdown."
                   />
                 </div>
-              ) : null}
+              )}
 
-              {years.length > 0 ? (
-                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {years.length > 0 && (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 w-full">
                   {years.map((ladder) => (
-                    <Ladder key={ladder.fy} ladder={ladder} scale={scale} title={ladder.fy} />
+                    <AccountLadderCard
+                      key={ladder.fy}
+                      ladder={ladder}
+                      scale={scale}
+                      lang={lang}
+                      t={t}
+                      title={ladder.fy}
+                    />
                   ))}
                 </div>
-              ) : null}
-
-              <p className={`${CAPTION} max-w-3xl`}>
-                The per-year allocation rows read &ldquo;not published&rdquo; because the portal
-                publishes no per-year allocation, which is a reporting gap rather than a zero. It
-                is why a per-year utilisation ratio cannot be computed for any member, and it is
-                a finding in the data-gap report addressed back to MoSPI.
-              </p>
+              )}
             </section>
 
-            <div className="mt-8">
+            {/* Portfolio Table */}
+            <section className="w-full">
+              <div className="mb-4">
+                <h3 className="font-display text-section-heading text-navy">
+                  {t('member.recommendedWorks', 'Recommended works portfolio')}
+                </h3>
+                <p className={CAPTION}>
+                  All {num(data.worst_cases.length, lang)} works recommended across districts. Read-only view.
+                </p>
+              </div>
+
               <ScopedTable
-                title="Recommendations that scored worst"
-                caption={`The ${countNoun(data.worst_cases.length, 'highest-scoring case', 'highest-scoring cases')} this member recommended, across every district and every year. Opening one shows the lifecycle ladder, which is where a delay is attributed to the stage it actually occurred in.`}
+                title=""
+                caption=""
                 columns={columns}
                 data={data.worst_cases}
                 initialSort={[{ id: 'score', desc: true }]}
                 rowAccent={(row) => SEVERITY_BORDER[row.severity]}
                 emptyTitle="No cases for this member"
                 emptyBody="No sanctioned work recommended by this member produced a case in the committed sample."
-                footnote="This table is read-only, as every screen this role reaches is. A case can be opened and cannot be annotated, escalated, resolved or recomputed from here — and the server refuses those writes regardless of what this screen offers."
+                footnote="This table is read-only. An MP can inspect any case sheet to review the lifecycle ladder and attribution of administrative delays."
               />
-            </div>
+            </section>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )

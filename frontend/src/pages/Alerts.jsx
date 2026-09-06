@@ -4,7 +4,7 @@ import { Link, useOutletContext } from 'react-router-dom'
 import { ApiError, apiPost } from '../api.js'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonRows } from '../components/Skeleton.jsx'
@@ -12,22 +12,7 @@ import Tag from '../components/Tag.jsx'
 import { useApi } from '../hooks/useApi.js'
 import { ROLE_LABEL } from '../roles.js'
 import { SEVERITY_BORDER, formatCount } from '../severity.js'
-import { BUTTON, BUTTON_PRIMARY, CAPTION, CARD, LABEL, ROW } from '../ui.js'
-
-// The alert inbox, scoped like everything else.
-//
-// **The escalation notice is the part of this screen that must not drift.** An
-// escalation moves the alert to another desk's queue and writes a row to the
-// append-only trail. In the shipped configuration it sends no email, and the
-// response says so — `delivered: false`, transport `dry-run`, and the message
-// that would have gone out returned verbatim. This page prints that answer as
-// it arrives instead of rewording it, and shows the composed message, because
-// "escalated" in most software means somebody was emailed and here it does not.
-//
-// PROJECT-BRIEF.md's declared limitation 8 is the rule: the word is "queued",
-// never "notified". If a deployment ever configures a mail host the response
-// comes back `delivered: true` and this screen will say so on its own — it
-// reads the answer rather than assuming one.
+import { BUTTON, BUTTON_PRIMARY, CAPTION, CARD } from '../ui.js'
 
 const STATUS_TONE = {
   open: 'open',
@@ -43,28 +28,28 @@ const FILTERS = [
   { key: 'escalated', label: 'Escalated' },
 ]
 
-function Escalation({ result }) {
+function EscalationPanel({ result }) {
   return (
-    <div className="mt-2 rounded border-l-4 border-l-gold bg-surface-sunk p-4" role="status">
-      <p className="text-table-cell text-ink">
-        {result.delivered ? 'Escalated and emailed.' : 'Escalated. No email was sent.'}
+    <div className="mt-3 rounded border-l-4 border-l-gold bg-portal-tint/50 p-4" role="status">
+      <p className="font-semibold text-navy text-[14px]">
+        {result.delivered ? 'Escalated and emailed.' : 'Escalated. Dry-run transport (no email sent).'}
       </p>
-      <p className={CAPTION}>{result.detail}</p>
+      <p className="mt-1 text-[13px] text-ink-secondary">{result.detail}</p>
 
-      {/* The message it would have sent, shown rather than summarised. An
-          officer can see exactly what a configured deployment would put in
-          somebody's inbox, which is the only way "dry run" means anything. */}
-      <details className="mt-4">
-        <summary className="cursor-pointer text-body-secondary text-ink-secondary underline-offset-2 hover:underline">
-          {result.dry_run ? 'The message that would have been sent' : 'The message that was sent'}
+      <details className="mt-3 text-[13px]">
+        <summary className="cursor-pointer font-medium text-portal hover:underline">
+          {result.dry_run
+            ? 'View verbatim dry-run message'
+            : 'View delivered notification message'}
         </summary>
-        <p className="num mt-2 text-meta-label uppercase text-ink-muted">
-          to {result.recipient} · transport {result.transport}
-        </p>
-        <p className="mt-2 text-body-secondary text-ink">{result.subject}</p>
-        <pre className="mt-2 max-w-3xl overflow-x-auto whitespace-pre-wrap rounded bg-surface p-4 text-body-secondary text-ink-secondary">
-          {result.body}
-        </pre>
+        <div className="mt-2 rounded border border-rule bg-paper p-3 font-mono text-[12px] text-ink-secondary space-y-1">
+          <p>Recipient: {result.recipient}</p>
+          <p>Transport: {result.transport}</p>
+          <p>Subject: {result.subject}</p>
+          <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-ink">
+            {result.body}
+          </pre>
+        </div>
       </details>
     </div>
   )
@@ -101,134 +86,116 @@ export default function Alerts() {
     : {}
 
   return (
-    <article className="relative isolate flex-1">
+    <article className="relative isolate flex-1 bg-paper">
       <PageMotif variant="district" />
 
-      <PageHeader
-        title="Alerts"
-        note="One alert per HIGH case within this account's scope, worked down by status and then by score. Escalation moves an alert to the next desk and writes an audit event; it sends no email unless a mail server is configured, and none is."
+      {/* §7.2 Page Hero */}
+      <PageHero
+        title="Alert inbox"
+        lede={`One alert per HIGH-risk work within this account's scope. Escalations record an audit log and queue the item for the next administrative level.`}
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Alerts' },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {loading ? (
-          <LoadingRegion label="Loading the alert queue">
+      <div className="w-full px-4 sm:px-6 py-8 space-y-8">
+        {loading && (
+          <LoadingRegion label="Loading alert queue…">
             <SkeletonRows rows={5} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? <ErrorState error={error} /> : null}
+        {error && <ErrorState error={error} />}
 
-        {failure ? (
-          <div className={`${CARD} mb-4 p-4`} role="alert">
-            <p className="text-body-secondary font-medium text-coral">That did not go through</p>
-            <p className="mt-1 text-body-secondary text-ink-secondary">{failure}</p>
+        {failure && (
+          <div className="rounded border border-coral/40 bg-coral/10 p-4 text-coral text-[14px]">
+            {failure}
           </div>
-        ) : null}
+        )}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title="This queue">
-                {formatCount(data.total)} alert{data.total === 1 ? '' : 's'} reaching the{' '}
-                {ROLE_LABEL[user.role] ?? user.role}
-                {user.scope?.describes ? `, over ${user.scope.describes}` : ''}.
-              </SectionHeading>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Figure label="In this view" value={formatCount(data.items.length)} />
+            {/* Counts & Filters */}
+            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Figure label="Total alerts" value={formatCount(data.total)} />
                 <Figure label="Open" value={formatCount(counts.open ?? 0)} />
                 <Figure label="Acknowledged" value={formatCount(counts.acknowledged ?? 0)} />
                 <Figure label="Escalated" value={formatCount(counts.escalated ?? 0)} />
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {FILTERS.map((filter) => (
+              <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
+                <span className="text-[13px] font-medium text-ink-secondary mr-2">Filter status:</span>
+                {FILTERS.map((f) => (
                   <button
-                    key={filter.key || 'all'}
+                    key={f.key || 'all'}
                     type="button"
-                    onClick={() => setStatus(filter.key)}
-                    className={`${BUTTON} ${
-                      status === filter.key ? 'border-ink-secondary bg-surface-sunk' : ''
+                    onClick={() => setStatus(f.key)}
+                    className={`rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
+                      status === f.key
+                        ? 'bg-portal text-white'
+                        : 'bg-paper-sunk text-ink-secondary border border-rule hover:bg-portal-tint hover:text-navy'
                     }`}
-                    aria-pressed={status === filter.key}
                   >
-                    {filter.label}
+                    {f.label}
                   </button>
                 ))}
               </div>
             </section>
 
-            <section className="mt-8">
-              <SectionHeading title="Queue">
-                Severity is the coloured edge on each row. Every row opens the same case sheet
-                every other role opens — what a role changes is which alerts it can reach.
-              </SectionHeading>
-
+            {/* Alert Items List */}
+            <section className="space-y-4">
               {data.items.length === 0 ? (
-                <div className="mt-4">
-                  <EmptyState title="Nothing in this queue">
-                    {status
-                      ? `No alert in this account's scope is ${status}.`
-                      : "No HIGH case falls within this account's scope, so nothing has been routed here."}
-                  </EmptyState>
-                </div>
+                <EmptyState title="No alerts in queue">
+                  {status
+                    ? `No alert is currently in '${status}' status.`
+                    : 'No high-severity alerts have been routed to this scope.'}
+                </EmptyState>
               ) : (
-                <ul>
+                <ul className="space-y-3">
                   {data.items.map((item) => (
                     <li
                       key={item.id}
-                      className={`${CARD} ${ROW} mt-2 border-l-4 ${
+                      className={`rounded border border-rule border-l-4 ${
                         SEVERITY_BORDER[item.severity] ?? 'border-l-border-strong'
-                      }`}
+                      } bg-paper p-5 shadow-card`}
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="space-y-1">
                           <Link
                             to={`/cases/${item.case_id}`}
-                            className="block truncate text-body text-ink underline-offset-2 hover:underline"
+                            className="font-medium text-navy text-[16px] hover:underline"
                           >
-                            {item.description ?? item.work_id ?? item.case_id}
+                            {item.description || item.work_id || item.case_id}
                           </Link>
-                          <p className="num mt-1 truncate text-meta-label text-ink-muted">
-                            {item.case_id} · {item.district ?? item.state} ·{' '}
-                            {item.rule_id ?? 'no single rule'}
+                          <p className="num text-[12px] text-ink-muted">
+                            Case {item.case_id} · {item.district || item.state} · Rule:{' '}
+                            <span className="font-mono">{item.rule_id || 'Composite HIGH'}</span>
                           </p>
-                          <p className="mt-2 max-w-3xl text-body-secondary text-ink-secondary">
+                          <p className="mt-2 text-[14px] text-ink-secondary leading-relaxed max-w-3xl">
                             {item.message}
                           </p>
                         </div>
 
-                        <div className="shrink-0 text-right">
-                          {/* Severity is the row's edge; the word prints in
-                              plain ink beside the score. The STATUS is a tag,
-                              which is a different fact and the one that
-                              changes as the queue is worked. */}
-                          <span className="num block text-body font-medium text-ink">
-                            {item.score}
-                          </span>
-                          <span className="block text-meta-label text-ink-secondary">
+                        <div className="text-right shrink-0">
+                          <span className="num font-bold text-navy text-[18px]">{item.score}</span>
+                          <span className="block text-[11px] uppercase font-semibold text-coral">
                             {item.severity}
                           </span>
-                          <span className="mt-2 block">
+                          <div className="mt-1">
                             <Tag tone={STATUS_TONE[item.status] ?? 'neutral'}>{item.status}</Tag>
-                          </span>
+                          </div>
                         </div>
                       </div>
 
-                      {item.escalated_to ? (
-                        <p className={CAPTION}>
-                          Queued for the {ROLE_LABEL[item.escalated_to] ?? item.escalated_to} on{' '}
-                          {String(item.escalated_at).slice(0, 10)}.
-                        </p>
-                      ) : null}
-
                       {user.can_write ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-rule/60 pt-3">
                           <button
                             type="button"
                             onClick={() => act(item.id, 'acknowledge')}
                             disabled={busy === item.id || item.status !== 'open'}
-                            className={BUTTON}
+                            className={`${BUTTON} text-[13px] py-1.5`}
                           >
                             {item.status === 'open' ? 'Acknowledge' : 'Acknowledged'}
                           </button>
@@ -236,33 +203,26 @@ export default function Alerts() {
                             type="button"
                             onClick={() => act(item.id, 'escalate')}
                             disabled={busy === item.id || item.status === 'closed'}
-                            className={BUTTON_PRIMARY}
+                            className={`${BUTTON_PRIMARY} text-[13px] py-1.5`}
                           >
                             {busy === item.id ? 'Working…' : 'Escalate'}
                           </button>
                         </div>
                       ) : (
-                        <p className={CAPTION}>
-                          This account is read-only: a member of parliament sees the alerts raised
-                          on their own works and does not act on them.
+                        <p className="mt-3 text-[12px] italic text-ink-muted border-t border-rule/40 pt-2">
+                          Read-only account. Alert status modifications are restricted to
+                          administrative authorities.
                         </p>
                       )}
 
-                      {escalations[item.id] ? (
-                        <Escalation result={escalations[item.id]} />
-                      ) : null}
+                      {escalations[item.id] && <EscalationPanel result={escalations[item.id]} />}
                     </li>
                   ))}
                 </ul>
               )}
-
-              <p className={`${CAPTION} mt-4 max-w-3xl`}>
-                Alerts are raised by a build step over stored cases, not computed per request, so
-                an acknowledgement survives a refresh and a re-run of the step never resets one.
-              </p>
             </section>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )

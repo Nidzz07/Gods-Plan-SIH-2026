@@ -3,46 +3,40 @@ import { useOutletContext } from 'react-router-dom'
 
 import { ApiError, apiPost } from '../api.js'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
+import PreviewList from '../components/PreviewList.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel } from '../components/Skeleton.jsx'
 import Tag from '../components/Tag.jsx'
 import { useApi } from '../hooks/useApi.js'
 import { MINISTRY } from '../roles.js'
 import { OPERATOR_SYMBOL, formatCount } from '../severity.js'
+import { formatRulebookVersion } from '../i18n/format.js'
 import { BUTTON, BUTTON_PRIMARY, CAPTION, CARD, CELL_NUM, COLUMN_HEAD, FIELD, LABEL } from '../ui.js'
 
-// The rulebook, readable by everyone and editable by the ministry.
-//
-// **The read half is not gated and that is deliberate.** Everyone judged by a
-// rule is entitled to read the rule and check the arithmetic; a rulebook only
-// its author may read is not an explainable system, it is an assertion. So this
-// page renders for all four roles and only the WRITE controls are withheld.
-//
-// **The gate here is wayfinding, not security.** `user.role` decides whether
-// the inputs are drawn. It decides nothing else: the endpoint is behind
-// `require_role(ministry)` and answers 403 to anyone else whatever this page
-// does, and a person who edits their role in the devtools gets a form whose
-// submissions are refused. Client-side gating exists so that a state officer is
-// not shown a control that would fail; it is not what stops them.
-//
-// **The notice above the submit button is the most important copy on the page.**
-// An officer who changes a threshold will reasonably assume the corpus was
-// rescored. It was not, it will not be, and the number of cases affected by an
-// edit is zero until somebody recomputes them one at a time or rebuilds the
-// corpus. Saying that once, plainly, before the button - and then again in the
-// result - is what stops the assumption forming.
-
-// Only these two move. `field` and `operator` are shown because an officer
-// cannot judge a threshold without knowing what it is compared against, and
-// they are NOT editable because changing what a rule measures is a modelling
-// change with a data-profile pass attached, not a form submission.
-const READ_ONLY_NOTE =
-  'Field, operator, label and severity are shown because a threshold cannot be judged without ' +
-  'them, and are not editable here. Changing what a rule measures needs a derived field, a ' +
-  'threshold calibrated against a measured distribution and its own skip caveats — a modelling ' +
-  'pass, not an edit.'
+const RULE_RATIONALE = {
+  R01_SANCTION_DELAY:
+    'Measures lag between MP recommendation date and district administrative sanction. Delays indicate administrative bottlenecks.',
+  R02_FIRST_PAYMENT_DELAY:
+    'Time elapsed from sanction to initial disbursement. Indicates tender or agency mobilisation stalls.',
+  R03_COMPLETION_DELAY:
+    'Time from first payment to asset completion. Captures physical execution issues in the field.',
+  R04_UTILISATION_SHORTFALL:
+    'Difference between sanctioned amount and actual certified expenditure. Identifies stalled balances.',
+  R05_UNUTILIZED_SURRENDER:
+    'Unspent funds left standing across financial years without formal revalidation.',
+  R06_DUPLICATE_WORK:
+    'Syntactic overlap in work descriptions within same district/agency. Indicates candidate works for review.',
+  R07_COMMISSION_GAP:
+    'Works marked completed without recording formal inspection / handover certificates.',
+  R08_BENEFICIARY_DATA_GAP:
+    'Works omitting community or ward beneficiary identifiers in the public portal.',
+  R09_PHYSICAL_PROGRESS_STALL:
+    'Works reporting zero incremental progress over consecutive reporting quarters.',
+  R10_EXPENDITURE_MISMATCH:
+    'Discrepancies between bank transaction logs and portal-declared disbursements.',
+}
 
 function asNumber(value) {
   if (value === '' || value === null || value === undefined) return null
@@ -56,9 +50,6 @@ export default function Rulebook() {
 
   const { data, error, loading, reload } = useApi('/api/rulebook')
 
-  // Only what the officer actually typed. An untouched row contributes nothing
-  // to the request, so a submit cannot silently re-assert nine values it was
-  // never asked about.
   const [draft, setDraft] = useState({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -69,6 +60,24 @@ export default function Rulebook() {
     () => new Set(data?.rules_edited_since_scoring ?? []),
     [data],
   )
+
+  // PreviewList items for 10 rules (§8.6)
+  const previewItems = useMemo(() => {
+    if (!data?.rules) return []
+    return data.rules.map((rule) => {
+      const op = OPERATOR_SYMBOL[rule.operator] ?? rule.operator
+      const rationale = RULE_RATIONALE[rule.id] ?? 'Evaluates domain indicators against measured thresholds.'
+      return {
+        id: rule.id,
+        label: rule.label,
+        title: `${rule.label} (${rule.id})`,
+        badge: `${rule.weight} pts · ${rule.severity}`,
+        meta: `Reads: ${rule.field} ${op} ${rule.threshold} · Firing weight: +${rule.weight}`,
+        body: `${rationale} Severity band: ${rule.severity}. Contributes +${rule.weight} points to composite score when condition evaluates true.`,
+        href: '#rules-table',
+      }
+    })
+  }, [data])
 
   const changes = useMemo(() => {
     if (!data) return []
@@ -120,271 +129,261 @@ export default function Rulebook() {
   const GRID = 'grid grid-cols-[1fr_150px_110px_110px_90px] items-start gap-4'
 
   return (
-    <article className="relative isolate flex-1">
-      <PageMotif variant="ministry" />
+    <article className="relative isolate flex-1 bg-paper">
+      <PageMotif variant="rulebook" />
 
-      <PageHeader
-        title="Rulebook"
-        note="Ten rules and one corroboration bonus, 154 points in total. This document is the only source of score in the product: every point on every case comes from a row below, and nothing else contributes one."
+      {/* §7.2 Page Hero */}
+      <PageHero
+        title="Rulebook specification"
+        lede={
+          data
+            ? `Ten rules and one pattern bonus (${formatRulebookVersion(data.version)}), 154 total points. Every point on every case originates here — zero points come from black-box models.`
+            : 'Ten rules and one corroboration bonus, 154 points in total.'
+        }
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Rulebook' },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {loading ? (
-          <LoadingRegion label="Loading the rulebook">
+      <div className="w-full px-4 sm:px-6 py-8 space-y-10">
+        {loading && (
+          <LoadingRegion label="Loading the rulebook…">
             <SkeletonPanel lines={5} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? <ErrorState error={error} /> : null}
+        {error && <ErrorState error={error} />}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title={`Version ${data.version}`}>
-                {data.updated_by} · {formatCount(data.rule_weight_total)} points across{' '}
-                {data.rules.length} rules, plus a {data.corroboration.weight}-point corroboration
-                bonus. HIGH ≥ {data.severity_bands_resolved.high} · MEDIUM ≥{' '}
-                {data.severity_bands_resolved.medium}.
-              </SectionHeading>
-
-              {/* The state of the world, before anything is edited. */}
-              <div className={`${CARD} mt-4 p-4`}>
-                <div className="flex flex-wrap items-baseline justify-between gap-4">
-                  <span className="text-table-cell text-ink">
-                    Cases on screen were scored under{' '}
-                    {data.cases_scored_under?.version ?? 'no stored version'}
-                  </span>
-                  <Tag tone={data.file_matches_stored_version ? 'low' : 'medium'}>
-                    {data.file_matches_stored_version
-                      ? 'File and cases agree'
-                      : 'File edited since scoring'}
-                  </Tag>
-                </div>
-                <p className={CAPTION}>
+            {/* Version & Sync Status Box */}
+            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-rule pb-3">
+                <span className="font-display text-[18px] font-semibold text-navy">
+                  Version {data.version} · Updated by {data.updated_by}
+                </span>
+                <Tag tone={data.file_matches_stored_version ? 'low' : 'medium'}>
                   {data.file_matches_stored_version
-                    ? 'The rulebook on disk hashes to the snapshot the current cases were scored under, so what you read here is what produced the scores you see.'
-                    : `The rulebook on disk no longer matches the snapshot the current cases were scored under. Those cases still carry the scores the older rulebook gave them, and will until each is recomputed or the corpus is rebuilt. Rules affected: ${data.rules_edited_since_scoring.join(', ')}.`}
-                </p>
+                    ? 'Active snapshot matches cases'
+                    : 'File edited since scoring'}
+                </Tag>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className={LABEL}>Total rule weight</p>
+                  <p className="num text-[18px] font-bold text-navy">
+                    {data.rule_weight_total} points
+                  </p>
+                </div>
+                <div>
+                  <p className={LABEL}>Pattern bonus</p>
+                  <p className="num text-[18px] font-bold text-gold">
+                    +{data.corroboration.weight} points
+                  </p>
+                </div>
+                <div>
+                  <p className={LABEL}>HIGH Severity cut-off</p>
+                  <p className="num text-[18px] font-bold text-coral">
+                    ≥ {data.severity_bands_resolved.high}
+                  </p>
+                </div>
+                <div>
+                  <p className={LABEL}>MEDIUM Severity cut-off</p>
+                  <p className="num text-[18px] font-bold text-gold">
+                    ≥ {data.severity_bands_resolved.medium}
+                  </p>
+                </div>
               </div>
             </section>
 
-            <form onSubmit={submit} className="mt-8">
-              <SectionHeading title="Rules">
-                {isMinistry
-                  ? `Threshold and weight are editable; everything else is read-only. ${READ_ONLY_NOTE}`
-                  : `The ten rules in force, with the value and weight each carries. ${READ_ONLY_NOTE}`}
-              </SectionHeading>
-
-              <div className={`${GRID} mt-4 border-b border-border-strong bg-bg px-4 pb-2`}>
-                <span className={COLUMN_HEAD}>Rule</span>
-                <span className={COLUMN_HEAD}>Reads</span>
-                <span className={`${COLUMN_HEAD} text-right`}>Threshold</span>
-                <span className={`${COLUMN_HEAD} text-right`}>Weight</span>
-                <span className={COLUMN_HEAD}>Severity</span>
+            {/* PreviewList of the ten rules (§8.6) */}
+            <section className="rounded border border-rule bg-portal-tint/50 p-6 shadow-card">
+              <div className="mb-4">
+                <h2 className="font-display text-[22px] font-semibold text-navy">
+                  The ten scoring rules
+                </h2>
+                <div className="mt-1 h-[3px] w-14 bg-saffron" aria-hidden="true" />
+                <p className="mt-1 text-[14px] text-ink-secondary">
+                  Hover or focus on any rule to inspect its operational field, comparison threshold,
+                  and rationale.
+                </p>
               </div>
 
-              <ul>
-                {data.rules.map((rule) => (
-                  <li
-                    key={rule.id}
-                    className={`${GRID} ${CARD} mt-2 px-4 py-4 ${
-                      drifted.has(rule.id) ? 'border-l-4 border-l-gold' : ''
-                    }`}
-                  >
-                    <span>
-                      <span className="block text-table-cell text-ink">{rule.label}</span>
-                      <span className="num block text-meta-label text-ink-muted">{rule.id}</span>
-                      {drifted.has(rule.id) ? (
-                        <span className="mt-1 block text-meta-label text-ink-secondary">
-                          Edited since the cases on screen were scored.
-                        </span>
-                      ) : null}
-                    </span>
+              <PreviewList
+                items={previewItems}
+                title="Rule directory & rationale"
+                caption="Select a rule to view operator logic and weights"
+              />
+            </section>
 
-                    <span>
-                      <span className="num block text-body-secondary text-ink-secondary">
-                        {rule.field}
-                      </span>
-                      <span className="num block text-meta-label text-ink-muted">
-                        {OPERATOR_SYMBOL[rule.operator] ?? rule.operator} threshold
-                      </span>
-                    </span>
+            {/* Rule Table & Ministry Proposal Form */}
+            <form id="rules-table" onSubmit={submit} className="space-y-6">
+              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+                <SectionHeading title="Rule threshold & weight matrix">
+                  {isMinistry
+                    ? 'Threshold and weight are live-editable for Ministry analysts. Other columns are governed by data-profile calibrations.'
+                    : 'The ten rules in force. All parameters are verified against measured distributions.'}
+                </SectionHeading>
 
-                    {isMinistry ? (
-                      <input
-                        type="number"
-                        step="any"
-                        aria-label={`${rule.label} threshold`}
-                        defaultValue={rule.threshold}
-                        onChange={(event) => set(rule.id, 'threshold', event.target.value)}
-                        className={`${FIELD} num w-full text-right`}
-                      />
-                    ) : (
-                      <span className={CELL_NUM}>{String(rule.threshold)}</span>
-                    )}
-
-                    {isMinistry ? (
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        aria-label={`${rule.label} weight`}
-                        defaultValue={rule.weight}
-                        onChange={(event) => set(rule.id, 'weight', event.target.value)}
-                        className={`${FIELD} num w-full text-right`}
-                      />
-                    ) : (
-                      <span className={CELL_NUM}>{rule.weight}</span>
-                    )}
-
-                    <span className="text-body-secondary text-ink">{rule.severity}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {!isMinistry ? (
-                <div className="mt-4">
-                  <EmptyState title="This account can read the rulebook and cannot change it">
-                    Editing the rulebook is the ministry&rsquo;s. Everyone judged by a rule may
-                    read it — that is why this page is not withheld from you — and the server
-                    refuses an edit from any other role whatever this screen shows.
-                  </EmptyState>
+                <div className={`${GRID} mt-6 border-b border-rule bg-paper-sunk px-4 py-3 text-[12px] font-semibold text-ink-secondary uppercase`}>
+                  <span>Rule</span>
+                  <span>Field read</span>
+                  <span className="text-right">Threshold</span>
+                  <span className="text-right">Weight</span>
+                  <span>Severity</span>
                 </div>
-              ) : (
-                <div className={`${CARD} mt-8 p-6`}>
-                  <p className={LABEL}>Propose this edit</p>
 
-                  {/* THE NOTICE. Before the button, not after it. */}
-                  <div className="mt-2 rounded border-l-4 border-l-gold bg-surface-sunk p-4">
-                    <p className="text-table-cell text-ink">
-                      This creates a NEW rulebook version. It rescores nothing.
-                    </p>
-                    <p className={CAPTION}>
-                      Every case already in the database keeps the score it was given and goes on
-                      pointing at the rulebook snapshot it was scored under. An edit changes what
-                      the NEXT evaluation will use — it does not reach backwards and restate what
-                      a case was found to say last month. Cases move only when each is recomputed
-                      from its own case sheet, or when the corpus is rebuilt.
-                    </p>
-                  </div>
-
-                  <div className="mt-4">
-                    <label htmlFor="note" className={LABEL}>
-                      Why (recorded on the version, and required)
-                    </label>
-                    <input
-                      id="note"
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      maxLength={2000}
-                      className={`${FIELD} w-full`}
-                      placeholder="e.g. raise the execution-delay threshold after the September re-measurement"
-                    />
-                    <p className={CAPTION}>
-                      A version whose reason is blank is a version nobody can audit later. The
-                      whole point of storing snapshots is that somebody months from now can ask
-                      why a threshold moved.
-                    </p>
-                  </div>
-
-                  {changes.length ? (
-                    <ul className="mt-4">
-                      {changes.map((change) => (
-                        <li
-                          key={`${change.rule_id}-${change.key}`}
-                          className="num mt-1 text-body-secondary text-ink"
-                        >
-                          {change.rule_id} · {change.key}: {String(change.from)} →{' '}
-                          {String(change.to)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={`${CAPTION} mt-4`}>
-                      Nothing has been changed yet. Edit a threshold or a weight above.
-                    </p>
-                  )}
-
-                  {failure ? (
-                    <div
-                      className="mt-4 rounded border border-border bg-surface-sunk p-4"
-                      role="alert"
+                <ul className="divide-y divide-rule text-[14px]">
+                  {data.rules.map((rule) => (
+                    <li
+                      key={rule.id}
+                      className={`${GRID} p-4 items-center ${
+                        drifted.has(rule.id) ? 'bg-gold/10' : 'hover:bg-paper-sunk/50'
+                      }`}
                     >
-                      <p className="text-body-secondary font-medium text-coral">
-                        The edit was refused
-                      </p>
-                      <p className="mt-1 text-body-secondary text-ink-secondary">{failure}</p>
-                    </div>
-                  ) : null}
+                      <div>
+                        <span className="font-medium text-navy block">{rule.label}</span>
+                        <span className="font-mono text-[12px] text-ink-muted">{rule.id}</span>
+                      </div>
 
-                  <button
-                    type="submit"
-                    disabled={busy || !changes.length || !note.trim()}
-                    className={`${BUTTON_PRIMARY} mt-4`}
-                  >
-                    {busy ? 'Creating version…' : `Create a new version (${changes.length})`}
-                  </button>
-                </div>
-              )}
+                      <div>
+                        <span className="font-mono text-[13px] text-ink">{rule.field}</span>
+                        <span className="block text-[11px] text-ink-secondary">
+                          {OPERATOR_SYMBOL[rule.operator] ?? rule.operator} threshold
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        {isMinistry ? (
+                          <input
+                            type="number"
+                            step="any"
+                            aria-label={`${rule.label} threshold`}
+                            defaultValue={rule.threshold}
+                            onChange={(e) => set(rule.id, 'threshold', e.target.value)}
+                            className="num w-24 rounded border border-rule bg-paper py-1 px-2 text-right text-[14px] text-ink focus:border-portal focus:outline-none"
+                          />
+                        ) : (
+                          <span className="num font-semibold text-ink">{rule.threshold}</span>
+                        )}
+                      </div>
+
+                      <div className="text-right">
+                        {isMinistry ? (
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            aria-label={`${rule.label} weight`}
+                            defaultValue={rule.weight}
+                            onChange={(e) => set(rule.id, 'weight', e.target.value)}
+                            className="num w-20 rounded border border-rule bg-paper py-1 px-2 text-right text-[14px] text-ink focus:border-portal focus:outline-none"
+                          />
+                        ) : (
+                          <span className="num font-bold text-navy">{rule.weight}</span>
+                        )}
+                      </div>
+
+                      <div>
+                        <span
+                          className={`text-[12px] font-semibold uppercase ${
+                            rule.severity === 'HIGH'
+                              ? 'text-coral'
+                              : rule.severity === 'MEDIUM'
+                                ? 'text-gold'
+                                : 'text-green'
+                          }`}
+                        >
+                          {rule.severity}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Ministry Proposal Box with required plain-language disclaimer */}
+                {isMinistry ? (
+                  <div className="mt-8 rounded border border-rule bg-portal-tint/60 p-6">
+                    <h3 className="font-display text-[18px] font-semibold text-navy">
+                      Propose rulebook modification
+                    </h3>
+
+                    {/* Disclaimer panel (§8.6) */}
+                    <div className="mt-3 rounded border-l-4 border-l-gold bg-paper p-4 text-[13px] text-ink">
+                      <p className="font-semibold text-navy">
+                        This creates a new rulebook version. Existing cases keep the score they were
+                        given and are not re-scored until each is recomputed individually.
+                      </p>
+                      <p className="mt-1 text-ink-secondary">
+                        Snapshots ensure that historical scores remain reproducible and verifiable
+                        under audit.
+                      </p>
+                    </div>
+
+                    <div className="mt-4">
+                      <label htmlFor="version-note" className={LABEL}>
+                        Reason for modification (required for audit trail)
+                      </label>
+                      <input
+                        id="version-note"
+                        type="text"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="e.g. Adjusting delay tolerance after national distribution review"
+                        className="w-full rounded border border-rule bg-paper py-2 px-3 text-[14px] text-ink focus:border-portal focus:outline-none"
+                      />
+                    </div>
+
+                    {failure && (
+                      <div className="mt-3 rounded bg-coral/10 p-3 text-[13px] text-coral font-medium">
+                        {failure}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={busy || !changes.length || !note.trim()}
+                      className={`${BUTTON_PRIMARY} mt-4`}
+                    >
+                      {busy ? 'Creating version…' : `Create version (${changes.length} changes)`}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-6 rounded bg-paper-sunk p-4 text-[13px] text-ink-secondary">
+                    Editing rulebook parameters is restricted to Ministry analysts. Other roles have
+                    read-only access to verify scoring criteria.
+                  </div>
+                )}
+              </div>
             </form>
 
-            {result ? (
-              <section className="mt-8" role="status">
-                <SectionHeading title={`Version ${result.version} created`}>
-                  From {result.previous_version}. {result.changes.length} value
-                  {result.changes.length === 1 ? '' : 's'} moved.
-                </SectionHeading>
-                <div className={`${CARD} mt-4 p-6`}>
-                  <p className="num text-table-cell text-ink">
-                    {result.cases_rescored} cases rescored
-                  </p>
-                  <p className={CAPTION}>{result.recompute_hint}</p>
-                  <ul className="mt-4">
-                    {result.changes.map((change) => (
-                      <li
-                        key={`${change.rule_id}-${change.key}`}
-                        className="num text-body-secondary text-ink"
-                      >
-                        {change.rule_id ?? 'rulebook'} · {change.key}: {String(change.from)} →{' '}
-                        {String(change.to)}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="num mt-4 text-meta-label text-ink-muted">
-                    snapshot {result.yaml_sha256.slice(0, 16)}
-                  </p>
-                  <p className={CAPTION}>
-                    To see what this would do to a case, open one and use Recompute on its sheet:
-                    it re-derives against that case&rsquo;s own snapshot and reports what moved,
-                    without changing the stored score.
-                  </p>
-                </div>
-              </section>
-            ) : null}
-
-            <section className="mt-8">
-              <SectionHeading title="Version history">
-                Every stored snapshot, newest first. A version is created and never mutated, which
-                is what makes a score from months ago reproducible.
+            {/* Version History List */}
+            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+              <SectionHeading title="Immutable version log">
+                Historical snapshots stored with cryptographic digests.
               </SectionHeading>
-              <ul className="mt-4">
-                {data.versions.map((version) => (
-                  <li key={version.id} className={`${CARD} mt-2 p-4`}>
-                    <div className="flex flex-wrap items-baseline justify-between gap-4">
-                      <span className="num text-table-cell text-ink">{version.version}</span>
-                      <span className="num text-meta-label text-ink-muted">
-                        {version.yaml_sha256.slice(0, 16)} ·{' '}
-                        {String(version.created_at).slice(0, 10)} · by the{' '}
-                        {String(version.created_by_role).replace('_', ' ')}
-                      </span>
+
+              <ul className="mt-4 space-y-2 text-[13px]">
+                {data.versions.map((ver) => (
+                  <li
+                    key={ver.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded border border-rule bg-paper-sunk/60 p-3"
+                  >
+                    <div>
+                      <span className="font-bold text-navy">v{ver.version}</span> ·{' '}
+                      <span className="text-ink-secondary">{ver.note || 'Initial calibration'}</span>
                     </div>
-                    {version.note ? <p className={CAPTION}>{version.note}</p> : null}
+                    <div className="font-mono text-[12px] text-ink-muted">
+                      {ver.yaml_sha256?.slice(0, 16)} · {String(ver.created_at).slice(0, 10)}
+                    </div>
                   </li>
                 ))}
               </ul>
             </section>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )

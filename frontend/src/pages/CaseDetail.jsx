@@ -3,7 +3,7 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import CaseActions from '../components/CaseActions.jsx'
 import { ErrorState } from '../components/EmptyState.jsx'
 import { FundLadder, LifecycleLadder } from '../components/Ladder.jsx'
-import PageHeader from '../components/PageHeader.jsx'
+import PageHero from '../components/PageHero.jsx'
 import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
@@ -20,231 +20,200 @@ import {
 } from '../severity.js'
 import { CAPTION, CARD, LABEL } from '../ui.js'
 
-// The case sheet. ONE SCREEN FOR EVERY ROLE.
-//
-// What differs between a Ministry analyst and a District Magistrate opening a
-// case is which cases they can reach, and that is decided in the server's
-// query. It is emphatically NOT decided here: nothing on this page branches on
-// role except which ACTIONS are offered, and that branch reads `can_write` from
-// the server rather than inferring it from the role name. A page that hid a key
-// from one role would be a second place scoping lives, and the second place is
-// always the one that is wrong.
-//
-// **The layout is an argument, and it goes in this order deliberately.**
-//
-//   the score, and what it is out of
-//   the two ladders            — the readings the rules were evaluated over
-//   the trace                  — every rule, with its evidence ON the row
-//   the corroboration bonus    — the only source of score that is not a rule
-//   the badges                 — set apart, each printing +0
-//   what could not be read     — the coverage, itemised
-//   the memo                   — the whole thing as a paragraph
-//
-// A reader who stops at any point has a true, if shorter, account. The badges
-// come AFTER the trace and the bonus because by then the score has already been
-// fully accounted for, and their zero is a confirmation of an arithmetic the
-// reader has just watched close rather than an assertion made in advance.
-
 export default function CaseDetail() {
   const { caseId } = useParams()
   const { user } = useOutletContext()
   const { data, error, loading, reload } = useApi(`/api/cases/${encodeURIComponent(caseId)}`)
 
   return (
-    <article className="relative isolate flex-1">
+    <article className="relative isolate flex-1 bg-paper">
       <PageMotif variant="district" />
 
-      <PageHeader
-        title={loading || error ? 'Case' : (data?.work?.description ?? data?.work?.work_id ?? 'Case')}
-        note="Every rule the rulebook holds, what it read, what it compared that against and what it contributed — plus the two ladders those readings were derived from. The arithmetic is on this page in full, so an officer can re-derive the score on paper and an auditor can re-derive it months later."
+      {/* §7.2 Page Hero */}
+      <PageHero
+        title={
+          loading || error
+            ? 'Case sheet'
+            : (data?.work?.description ?? data?.work?.work_id ?? 'Case sheet')
+        }
+        lede="Every rule evaluated against this work, with its readings, tolerances, contributions and corroboration bonus. Reconstructible on paper and auditable months later."
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          {
+            label: user?.role === 'ministry' ? 'Ministry' : user?.role === 'state_nodal' ? 'State' : 'Queue',
+            href: user?.role === 'ministry' ? '/ministry' : user?.role === 'state_nodal' ? '/state' : '/district',
+          },
+          { label: caseId },
+        ]}
       />
 
-      <div className="px-8 py-8">
-        {loading ? (
-          <LoadingRegion label={`Loading case ${caseId}`}>
+      <div className="w-full px-4 sm:px-6 py-8 space-y-10">
+        {loading && (
+          <LoadingRegion label={`Loading case sheet for ${caseId}…`}>
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={6} />
           </LoadingRegion>
-        ) : null}
+        )}
 
-        {error ? (
+        {error && (
           <ErrorState error={error}>
-            <Link to="/" className="underline underline-offset-2">
-              Back to your own screen
+            <p className="mt-2 text-ink-secondary">
+              {error.status === 404
+                ? 'No case with that identifier exists in your scope.'
+                : 'This case is outside your permitted scope.'}
+            </p>
+            <Link to="/" className="mt-3 inline-block font-semibold text-portal hover:underline">
+              Return to your home screen
             </Link>
           </ErrorState>
-        ) : null}
+        )}
 
-        {data ? (
+        {data && (
           <>
-            <section>
-              <SectionHeading title={data.case_id}>
-                {data.work.work_id} · {data.work.agency ?? 'agency not recorded'} ·{' '}
-                {data.work.district ?? data.work.state} · {data.work.fy} · recommended by{' '}
-                {data.mp.name}
-              </SectionHeading>
+            {/* Header info bar */}
+            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                <div className="space-y-1 max-w-2xl">
+                  <span className="font-mono text-[14px] font-bold text-portal">
+                    Case {data.case_id}
+                  </span>
+                  <h2 className="font-display text-[22px] font-semibold text-navy">
+                    {data.work?.description || data.work?.work_id}
+                  </h2>
+                  <p className="text-[14px] text-ink-secondary">
+                    Work ID: <span className="font-mono text-ink">{data.work?.work_id}</span> ·
+                    Agency:{' '}
+                    <span className="font-medium text-ink">
+                      {data.work?.agency || 'Not recorded'}
+                    </span>{' '}
+                    · District:{' '}
+                    <span className="font-medium text-ink">
+                      {data.work?.district || data.work?.state}
+                    </span>{' '}
+                    · FY: <span className="font-mono text-ink">{data.work?.fy}</span> · Recommended
+                    by <span className="font-medium text-ink">{data.mp?.name}</span>
+                  </p>
+                </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {/* The score, given the whole width of a column and the app's
-                    one display size. The raw total sits under it because the
-                    display score is CAPPED at 100 and not renormalised —
-                    dividing the weights would change the arithmetic the officer
-                    is re-deriving on paper. */}
-                <div className={`${CARD} p-6`}>
-                  <p className={LABEL}>Score</p>
-                  <p className="num font-display text-score-display text-navy">{data.score}</p>
-                  <p className="num mt-2 text-body-secondary text-ink-secondary">
-                    {data.raw_score} raw of 154 possible · displayed capped at {data.score_cap}
+                {/* Prominent Score Box (§8.5: 64px Source Serif, severity tag, coverage %) */}
+                <div className="flex flex-col items-center justify-center rounded border border-rule-strong bg-portal-tint/70 px-8 py-5 text-center min-w-[200px] shadow-card">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-portal">
+                    Composite score
+                  </span>
+                  <p className="num font-display text-[64px] font-semibold text-navy leading-none my-1">
+                    {data.score}
                   </p>
-                  <p className={CAPTION}>
-                    The sum of the fired rulebook weights below plus the corroboration bonus, and
-                    nothing else. Weights are never rescaled.
-                  </p>
-                  <p className="mt-4 flex flex-wrap items-center gap-2">
+                  <div className="mt-1 flex items-center gap-2">
                     <SeverityTag severity={data.severity} />
                     <StatusTag status={data.status} />
-                    {data.work.is_synthetic ? (
-                      <Tag tone="neutral">Synthetic control — excluded from every aggregate</Tag>
-                    ) : null}
-                  </p>
-                  <p className={CAPTION}>
-                    HIGH ≥ 75 · MEDIUM ≥ 50 · LOW below 50, on the capped score.
-                  </p>
-                </div>
-
-                <div className={`${CARD} p-6`}>
-                  <p className={LABEL}>Coverage</p>
-                  <p className="num font-display text-score-display text-ink">
-                    {data.coverage_pct}%
-                  </p>
-                  <p className={CAPTION}>{data.coverage_basis}</p>
-                  <p className={`${CAPTION} mt-2`}>
-                    A case at this score with full coverage and a case at this score with two
-                    thirds of it are different objects. Skipped weight is never redistributed to
-                    the rules that did run.
-                  </p>
-                </div>
-
-                <div className={`${CARD} p-6`}>
-                  <p className={LABEL}>What was found</p>
-                  <p className="mt-1 text-table-cell text-ink">
-                    {data.gap_hop
-                      ? (HOP_LABEL[data.gap_hop] ?? data.gap_hop)
-                      : 'No open fund hop'}
-                  </p>
-                  <p className={CAPTION}>The first open hop walking down the fund ladder.</p>
-                  <p className="mt-4 text-table-cell text-ink">
-                    {data.slowest_lag
-                      ? (LAG_LABEL[data.slowest_lag] ?? data.slowest_lag)
-                      : 'No lag computable'}
-                  </p>
-                  <p className={CAPTION}>
-                    {data.slowest_lag
-                      ? LAG_MEANING[data.slowest_lag]
-                      : 'Neither end of any lag on this work is published.'}
-                  </p>
-                  <p className="num mt-4 text-meta-label text-ink-muted">
-                    Opened {String(data.opened_at).slice(0, 10)} · rulebook{' '}
-                    {data.rulebook_version} ({data.rulebook_version_sha256.slice(0, 12)}) · as of{' '}
-                    {data.data_as_of}
-                  </p>
+                  </div>
+                  <span className="num mt-2 text-[13px] font-medium text-ink-secondary">
+                    {data.coverage_pct}% coverage
+                  </span>
+                  {data.work?.is_synthetic && (
+                    <span className="mt-1 text-[11px] font-bold text-coral">Synthetic Control</span>
+                  )}
                 </div>
               </div>
             </section>
 
-            <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
+            {/* Fund & Lifecycle Ladders (≥120px tall) */}
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
               <FundLadder ladder={data.fund_ladder} gapHop={data.gap_hop} />
               <LifecycleLadder ladder={data.lifecycle_ladder} slowestLag={data.slowest_lag} />
             </div>
 
-            {/* Every rule, with each fired duplicate row's cited evidence drawn
-                INSIDE it rather than in a section of its own. */}
-            <div className="mt-8">
-              <TraceTable hits={data.rule_hits} />
-            </div>
+            {/* Reasoning Trace Table with inline duplicate compare */}
+            <TraceTable hits={data.rule_hits} primaryWork={data.work} />
 
-            <section className="mt-8">
+            {/* Pattern of conduct corroboration */}
+            <section className="rounded border border-rule bg-paper p-6 shadow-card">
               <SectionHeading title="Pattern-of-conduct corroboration">
-                The only source of score that is not a rule. Rendered whether or not it applied —
-                an officer has to be able to see the bonus NOT fire, and why.
+                The only score source that is not a rule. Agency-level repetition within the same
+                financial year.
               </SectionHeading>
 
               <div
-                className={`mt-4 rounded border-y border-r border-border border-l-4 bg-surface px-4 py-4 shadow-card ${
-                  data.corroboration.applied ? 'border-l-gold' : 'border-l-border-strong'
+                className={`mt-4 rounded border-y border-r border-rule border-l-4 p-4 ${
+                  data.corroboration.applied
+                    ? 'border-l-gold bg-portal-tint/40'
+                    : 'border-l-border-strong bg-paper-sunk/50'
                 }`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-4">
-                  <span className="text-table-cell text-ink">
-                    {data.corroboration.agency ?? 'agency not recorded'} ·{' '}
+                  <span className="text-[15px] font-medium text-navy">
+                    Agency: {data.corroboration.agency || 'Not recorded'} · Window:{' '}
                     {data.corroboration.window}
                   </span>
-                  <span className="flex items-center gap-4">
-                    <span className="num text-body-secondary text-ink-secondary">
-                      {data.corroboration.high_case_count} other HIGH cases, minimum{' '}
-                      {data.corroboration.min_high_cases}
+                  <div className="flex items-center gap-4 text-[14px]">
+                    <span className="num text-ink-secondary">
+                      {data.corroboration.high_case_count} other HIGH cases (threshold ≥{' '}
+                      {data.corroboration.min_high_cases})
                     </span>
-                    <span className="num text-table-cell text-ink">
-                      {data.corroboration.applied ? `+${data.corroboration.contribution}` : '—'}
+                    <span className="num font-bold text-navy">
+                      {data.corroboration.applied ? `+${data.corroboration.contribution}` : '0'}
                     </span>
-                    <span className="text-table-cell text-ink">
+                    <span
+                      className={`font-semibold ${
+                        data.corroboration.applied ? 'text-gold' : 'text-ink-muted'
+                      }`}
+                    >
                       {data.corroboration.applied ? 'Applied' : 'Not applied'}
                     </span>
-                  </span>
+                  </div>
                 </div>
-                <p className={CAPTION}>
-                  One bad work is an incident; a pattern under one agency in one financial year is
-                  a posture. The bonus is all-or-nothing and is never scaled by the count.
-                </p>
               </div>
             </section>
 
-            <div className="mt-8">
-              <ZeroPointBadges
-                statistical={data.statistical}
-                forecast={data.forecast}
-                concentration={data.concentration}
-              />
-            </div>
+            {/* Zero Point Badges section (§8.5) */}
+            <ZeroPointBadges
+              statistical={data.statistical}
+              forecast={data.forecast}
+              concentration={data.concentration}
+            />
 
-            {data.unavailable_fields.length > 0 ? (
-              <section className="mt-8">
+            {/* What could not be read */}
+            {data.unavailable_fields?.length > 0 && (
+              <section className="rounded border border-rule bg-paper p-6 shadow-card">
                 <SectionHeading title="What could not be read">
-                  Graceful degradation, itemised. This list is the difference between a case
-                  scored on full coverage and one scored on {data.coverage_pct}%.
+                  Reporting gaps from published exports. Skipped weight is never redistributed.
                 </SectionHeading>
 
-                <ul className="mt-4 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                <ul className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   {data.unavailable_fields.map((field) => (
-                    <li key={field.field} className={`${CARD} p-4`}>
-                      <div className="flex flex-wrap items-baseline justify-between gap-4">
-                        <span className="num text-table-cell text-ink">{field.field}</span>
-                        <span className="text-body-secondary text-ink-secondary">
+                    <li
+                      key={field.field}
+                      className="rounded border border-rule bg-paper-sunk p-3 text-[13px]"
+                    >
+                      <div className="flex justify-between items-baseline">
+                        <span className="font-mono font-semibold text-navy">{field.field}</span>
+                        <span className="text-ink-muted italic">
                           {SKIP_REASON[field.reason] ?? field.reason}
                         </span>
                       </div>
-                      {field.detail ? <p className={CAPTION}>{field.detail}</p> : null}
+                      {field.detail && (
+                        <p className="mt-1 text-ink-secondary text-[12px]">{field.detail}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
               </section>
-            ) : null}
+            )}
 
-            <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
-              <section>
-                <SectionHeading title="Memo">
-                  A TEMPLATE, filled from the values above. Not generated language, not a model,
-                  and nothing on this page is described as either. Template now, model later.
+            {/* Plain Memo & Actions */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <section className="rounded border border-rule bg-paper p-6 shadow-card">
+                <SectionHeading title="Case Memo">
+                  Template-derived plain-language summary (not generated by a language model).
                 </SectionHeading>
-                <div className={`${CARD} mt-4 p-6`}>
-                  <p className="whitespace-pre-line text-body text-ink">{data.memo}</p>
+                <div className="mt-4 rounded bg-paper-sunk p-4 text-[15px] leading-relaxed text-ink whitespace-pre-line">
+                  {data.memo}
                 </div>
               </section>
 
-              <section>
-                <SectionHeading title="Act on this case">
-                  A note and a recompute, both of which write to the append-only trail. Neither
-                  changes the stored score.
+              <section className="rounded border border-rule bg-paper p-6 shadow-card">
+                <SectionHeading title="Officer Actions">
+                  Record note or trigger deterministic recompute against stored snapshot.
                 </SectionHeading>
                 <div className="mt-4">
                   <CaseActions
@@ -255,14 +224,8 @@ export default function CaseDetail() {
                 </div>
               </section>
             </div>
-
-            <p className={`${CAPTION} mt-8 max-w-3xl`}>
-              Sanctioned {formatRupees(data.fund_ladder.rungs[0]?.amount) ?? 'not published'} ·
-              scored under rulebook {data.rulebook_version} · a recompute re-derives against that
-              stored snapshot, not against the rulebook file as it reads today.
-            </p>
           </>
-        ) : null}
+        )}
       </div>
     </article>
   )

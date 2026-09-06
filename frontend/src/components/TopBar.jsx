@@ -1,26 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-
 import { useAuth } from '../auth.jsx'
 import { ROLE_LABEL } from '../roles.js'
-import { BUTTON } from '../ui.js'
+import { LogoMark } from './Logo.jsx'
 
-// THE ROLE SWITCHER IS GONE, and its absence is the point of this file.
-//
-// What stood here was a <select> labelled "Viewing as", holding three roles,
-// changeable by anyone looking at it. It was honest about itself — the comment
-// said "this is a dropdown, not authentication" — and it was the right control
-// for a build where the API answered the same rows whichever value it held.
-//
-// It would be a lie now. The role in this bar came back from the server for a
-// token this browser holds, and it cannot be changed from here because
-// changing it would mean nothing: every predicate that decides which rows
-// exist is a WHERE clause the server applies before the response is built. A
-// dropdown that appeared to switch role would be a control that either does
-// nothing or, worse, looks like it did something.
-//
-// So the bar states rather than offers: who is signed in, what their role is,
-// what that role reaches, and the one action that does change the session.
-export default function TopBar({ user }) {
+export default function TopBar({ user, onOpenMobileNav }) {
   const navigate = useNavigate()
   const { signOut } = useAuth()
 
@@ -30,32 +13,53 @@ export default function TopBar({ user }) {
   }
 
   return (
-    <header className="flex h-topbar shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-8">
-      {/* The scope sentence is the SERVER's, from /api/auth/me. It is not
-          assembled here from a state name and a district: `scope.describes` is
-          written next to the predicate that enforces it, so the line on screen
-          and the WHERE clause in the query cannot drift into describing two
-          different things. */}
-      <nav aria-label="Scope" className="min-w-0 truncate text-meta-label uppercase text-ink-secondary">
-        Reaching {user.scope?.describes ?? 'an unknown scope'}
-      </nav>
+    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between gap-4 bg-portal px-6 text-white shadow-card">
+      <div className="flex items-center gap-4 min-w-0">
+        {/* Mobile menu toggle */}
+        <button
+          type="button"
+          onClick={onOpenMobileNav}
+          className="lg:hidden rounded border border-white/20 p-1.5 text-white hover:bg-white/10 focus:outline-none"
+          aria-label="Open navigation menu"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Brand mark in portal header */}
+        <div className="flex items-center gap-2">
+          <LogoMark size={24} className="text-white" />
+          <span className="font-display font-semibold tracking-wide text-white text-lg hidden sm:inline">
+            NIGRANI
+          </span>
+          <span className="font-devanagari font-semibold text-saffron text-sm hidden sm:inline">
+            निगरानी
+          </span>
+        </div>
+
+        {/* Server scope sentence */}
+        <div className="hidden md:block truncate border-l border-white/20 pl-4 text-[13px] text-[#C9D8E4]">
+          {user.scope?.describes ? `Scope: ${user.scope.describes}` : 'Authenticated session'}
+        </div>
+      </div>
 
       <div className="flex shrink-0 items-center gap-4">
-        <span className="text-right">
-          <span className="block text-body-secondary font-medium text-ink">
+        <div className="text-right hidden sm:block">
+          <span className="block text-[14px] font-medium text-white truncate max-w-[180px]">
             {user.display_name}
           </span>
-          <span className="block text-meta-label uppercase text-ink-secondary">
+          <span className="block text-[11px] uppercase tracking-wider text-[#C9D8E4]">
             {ROLE_LABEL[user.role] ?? user.role}
-            {/* The member of parliament is read-only everywhere — they can see
-                a case and cannot annotate, escalate, resolve or recompute one.
-                Saying so in the bar means the person knows before they click,
-                rather than after a 403. */}
-            {user.can_write ? null : ' · read-only'}
+            {!user.can_write && ' · read-only'}
           </span>
-        </span>
+        </div>
 
-        <button type="button" onClick={logout} className={BUTTON}>
+        <button
+          type="button"
+          onClick={logout}
+          className="rounded border border-white/30 bg-transparent px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:border-white hover:bg-white/10"
+        >
           Sign out
         </button>
       </div>
