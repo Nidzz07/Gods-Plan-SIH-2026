@@ -12,6 +12,24 @@ and Innovation Division (DIID), by team **ExploreeTinkerBell**.
 
 ---
 
+## Deployed service
+
+- **Frontend (Vercel)**: `https://<vercel-deployment-url>.vercel.app` *(placeholder — configured after Vercel deploy)*
+- **API (Render)**: `https://<render-service-url>.onrender.com` *(placeholder — configured after Render deploy)*
+
+## Demo credentials
+
+Four role accounts are provisioned for evaluation. Passwords are set via environment variables during deployment and published here deliberately so evaluators can inspect each persona directly without setup — this is intentional and not a leak.
+
+| Persona | Email | Password | Scope |
+| --- | --- | --- | --- |
+| **Ministry** | `ministry@demo.nigrani.local` | `<NIGRANI_MINISTRY_PASSWORD>` | National view (all states and districts) |
+| **State Nodal Authority** | `nodal.uttarpradesh@demo.nigrani.local` | `<NIGRANI_STATE_PASSWORD>` | Uttar Pradesh (all districts in state) |
+| **District Authority** | `dm.agra@demo.nigrani.local` | `<NIGRANI_DISTRICT_PASSWORD>` | Agra District, Uttar Pradesh |
+| **Member of Parliament** | `office.mp847@demo.nigrani.local` | `<NIGRANI_MP_PASSWORD>` | MP portfolio (read-only) |
+
+---
+
 ## The problem
 
 MPLADS gives every Member of Parliament an annual allocation — currently ₹5
@@ -216,6 +234,8 @@ Stated proactively, not discovered as gaps. The full list is in
 4. **The delay forecast horizon is illustrative**, trained on a truncated sample.
 5. **Login is a demo.** Server-side scoping is real; accounts are seeded, and
    there is no registration, password reset, refresh flow or revocation list.
+   On deployment, fixed demo accounts use passwords configured via environment
+   variables and published above for evaluator access.
 6. **Escalation queues in-app** and writes an audit event. An SMTP path exists
    and is off unless a mail host is configured; with none configured it composes
    the message, returns it unsent and reports `delivered: false`. The word is
@@ -225,6 +245,39 @@ Stated proactively, not discovered as gaps. The full list is in
    block — are routinely legitimate.
 8. **No geospatial precision.** MPLADS publishes no coordinates; maps would join
    at state and district level only and never imply a point-located asset.
+9. **Runtime writes do not survive a spin-down.** Render's free tier provides an
+   ephemeral filesystem. Notes, escalations, alert acknowledgements, and audit
+   events written during an active session are lost when the free instance sleeps
+   (15 minutes idle) and restores to its shipped container state. The database
+   resets to the shipped `nigrani.db.gz` artifact on every cold start. Local runs
+   persist normally.
+
+## Deployment
+
+NIGRANI is architected as two independent cloud services:
+- **Frontend**: Single-Page React app hosted on Vercel with routing rewrites configured in `frontend/vercel.json`.
+- **Backend**: FastAPI web service hosted on Render Free tier running in a lightweight Python 3.11 container.
+
+### Shipped database artifact (`backend/nigrani.db.gz`)
+
+Render Free provides 512 MB RAM and 0.1 CPU, with an ephemeral filesystem. Rebuilding the database during container boot (`ingest.run` → `ml.run` → `ablation.run` → `derive_all`) processes 118,704 rows with pandas and fits an IsolationForest, which risks out-of-memory errors inside 512 MB.
+
+Instead, the prebuilt database is vacuumed and compressed to ~29 MB, committed directly as `backend/nigrani.db.gz`. The Render build command installs dependencies, decompresses `nigrani.db.gz` via `python -m scripts.restore_db`, and seeds the four accounts via `python -m app.seed_users`. The build **does not** run the 5-step pipeline.
+
+### Regenerating `nigrani.db.gz`
+
+Whenever rules in `rules.yaml`, data ingestion logic, or derivation formulas change, the database must be re-derived locally and the compressed artifact regenerated and committed:
+
+```powershell
+cd backend
+python -m ingest.run
+python -m app.ml.run
+python -m app.ablation.run
+python -m app.derive_all
+python -m app.alerts_run
+python -c "import sqlite3; c=sqlite3.connect('nigrani.db'); c.execute('VACUUM'); c.close()"
+python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.open('nigrani.db.gz','wb',compresslevel=9))"
+```
 
 ## Documentation
 

@@ -75,7 +75,7 @@ ACCOUNT_GONE = "The account this token was issued for no longer exists or is ina
 
 def secret_key() -> str:
     """The signing secret, read per call so a test can set the variable."""
-    return os.environ.get(JWT_SECRET_ENV) or DEV_SECRET
+    return os.environ.get("NIGRANI_SECRET_KEY") or os.environ.get(JWT_SECRET_ENV) or DEV_SECRET
 
 
 # ---------------------------------------------------------------------------

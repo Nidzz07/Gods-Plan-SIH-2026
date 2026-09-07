@@ -75,10 +75,15 @@ backend/
       scoping.py       the role predicate — every WHERE clause, in one place
       alerts.py        F8  the routed inbox, acknowledge, escalate
   ingest/              CSV loaders, canonicalisation, ingest_rejects
+  scripts/
+    restore_db.py      decompresses nigrani.db.gz on Render build
+  nigrani.db.gz        shipped compressed database artifact (~29 MB)
+  .python-version      pinned Python runtime for Render (3.11)
   pytest.ini           the `corpus` marker; also the invariant-4 sweep's
                        root-level sentinel
   tests/
 frontend/
+  vercel.json          SPA routing rewrites for Vercel
   src/api.js           single fetch wrapper
   src/pages/           per-persona screens (see PROJECT-BRIEF.md)
   src/components/
@@ -96,6 +101,7 @@ docs/context/          REPO-CONTEXT.md — a dated snapshot of the INHERITED
                        was inherited, not what NIGRANI is; its PDS vocabulary
                        is correct for what it documents.
 ARCHITECTURE.md        the pipeline and the four-tier boundary, as a diagram
+render.yaml            Render web service definition blueprint
 ```
 
 **There is no `seed.py`, and there is not meant to be one.** The inherited
@@ -176,6 +182,11 @@ Breaking any of these breaks either the pitch or the honesty of the product.
   does. A threshold comment names its firing count.
 - Never edit anything in `data/raw/`. Defects are handled in ingest, not by
   correcting the source.
+- Re-derive and re-commit `backend/nigrani.db.gz` whenever `rules.yaml`, ingest,
+  or derivation logic changes. The Render deployment serves this prebuilt
+  artifact rather than running the 5-step build; without regenerating it, the
+  live site silently serves scores derived under an older rulebook, violating
+  the project's reproducibility guarantee.
 
 ## Git conventions
 - Never add a "Co-authored-by" or "Co-Authored-By" trailer of any kind to a

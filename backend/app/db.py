@@ -13,6 +13,7 @@ driver, a host or a file path.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -20,7 +21,8 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from .constants import BACKEND_DIR
 
 # backend/app/db.py -> backend/nigrani.db
-DB_PATH = BACKEND_DIR / "nigrani.db"
+_CUSTOM_DB_PATH = os.environ.get("NIGRANI_DB_PATH")
+DB_PATH = Path(_CUSTOM_DB_PATH) if _CUSTOM_DB_PATH else BACKEND_DIR / "nigrani.db"
 DEFAULT_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 DATABASE_URL = os.environ.get("NIGRANI_DATABASE_URL", DEFAULT_DATABASE_URL)

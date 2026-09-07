@@ -34,12 +34,12 @@ a screen show "0 cases" as though it were a finding. `/health` reports the row
 counts instead, so a service that is up over an unbuilt database says so.
 """
 
-from fastapi import FastAPI
+import os
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, inspect, select
 from sqlalchemy.orm import Session
-
-from fastapi import Depends
 
 from .constants import DATA_AS_OF
 from .db import get_db
@@ -58,10 +58,17 @@ app = FastAPI(
     version="0.6.0",
 )
 
-# Vite dev server only. No wildcard: the demo runs on one known origin.
+# Vite dev server default origins; deployment adds Vercel origin via NIGRANI_CORS_ORIGINS.
+_DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+_ENV_CORS = os.environ.get("NIGRANI_CORS_ORIGINS")
+if _ENV_CORS:
+    cors_origins = [origin.strip() for origin in _ENV_CORS.split(",") if origin.strip()]
+else:
+    cors_origins = _DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 
+import ServerWakeBanner from './components/ServerWakeBanner.jsx'
 import Layout from './components/Layout.jsx'
 import Landing from './pages/Landing.jsx'
 import Alerts from './pages/Alerts.jsx'
@@ -17,7 +18,9 @@ import StaticDocPage from './pages/StaticDocPage.jsx'
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ServerWakeBanner />
+      <Routes>
       {/* Public Unauthenticated Landing Page (§6) */}
       <Route path="/" element={<Landing />} />
 
@@ -59,5 +62,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </>
   )
 }

@@ -37,6 +37,7 @@ because an officer's district is granted to them rather than chosen by them.
 
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import datetime
 
@@ -53,6 +54,14 @@ from .constants import (
 from .auth import hash_password
 from .db import SessionLocal, engine
 from .models import MP, Case, State, User, Work
+
+# Environment variables supplying fixed demo passwords for deployment.
+ROLE_PASSWORD_ENV: dict[str, str] = {
+    ROLE_MINISTRY: "NIGRANI_MINISTRY_PASSWORD",
+    ROLE_STATE_NODAL: "NIGRANI_STATE_PASSWORD",
+    ROLE_DISTRICT_AUTHORITY: "NIGRANI_DISTRICT_PASSWORD",
+    ROLE_MEMBER_OF_PARLIAMENT: "NIGRANI_MP_PASSWORD",
+}
 
 # The demo domain. Not a real one, and it is not meant to look like one: these
 # addresses are logins for a prototype, and an address at a live government
@@ -181,13 +190,20 @@ def member_totals(db: Session, mp_id: int):
 def upsert(db: Session, email: str, password: str, **fields) -> User:
     """Create the account, or replace the password and scope of an existing one.
 
-    Idempotent by address. Re-running this script does not accumulate accounts,
-    and it does not leave an old password working either.
+    Idempotent by role and address. Re-running this script does not accumulate
+    accounts, and it does not leave an old password working either.
     """
-    user = db.scalar(select(User).where(User.email == email))
+    role = fields.get("role")
+    user = None
+    if role:
+        user = db.scalar(select(User).where(User.role == role))
+    if user is None:
+        user = db.scalar(select(User).where(User.email == email))
     if user is None:
         user = User(email=email, created_at=datetime.combine(DATA_AS_OF, datetime.min.time()))
         db.add(user)
+    else:
+        user.email = email
     user.password_hash = hash_password(password)
     user.is_active = True
     for name, value in fields.items():
@@ -277,7 +293,16 @@ def seed(db: Session) -> list[dict]:
 
     written = []
     for entry in plan(db):
-        password = _password()
+        role = entry["role"]
+        env_var = ROLE_PASSWORD_ENV.get(role)
+        env_val = os.environ.get(env_var) if env_var else None
+        if env_val:
+            password = env_val
+            source_env = env_var
+        else:
+            password = _password()
+            source_env = None
+
         fields = {
             key: value
             for key, value in entry.items()
@@ -289,7 +314,7 @@ def seed(db: Session) -> list[dict]:
         for column in ("scope_state_id", "scope_district", "scope_mp_id"):
             fields.setdefault(column, None)
         user = upsert(db, entry["email"], password, **fields)
-        written.append({**entry, "password": password, "user": user})
+        written.append({**entry, "password": password, "source_env": source_env, "user": user})
 
     db.commit()
     for entry in written:
@@ -316,10 +341,11 @@ def report(written: list[dict]) -> str:
         counted = f"{entry['cases']:,} cases"
         if entry.get("high") is not None:
             counted += f", {entry['high']:,} HIGH"
+        pw_display = f"[from {entry['source_env']}]" if entry.get("source_env") else entry["password"]
         lines += [
             f"  {entry['role']}",
             f"    email    {entry['email']}",
-            f"    password {entry['password']}",
+            f"    password {pw_display}",
             f"    sees     {entry['covers']}  ({counted})",
         ]
         if entry.get("note"):

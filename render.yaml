@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: nigrani-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && python -m scripts.restore_db && python -m app.seed_users"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: NIGRANI_SECRET_KEY
+        generateValue: true
+      - key: NIGRANI_CORS_ORIGINS
+        sync: false
+      - key: NIGRANI_MINISTRY_PASSWORD
+        sync: false
+      - key: NIGRANI_STATE_PASSWORD
+        sync: false
+      - key: NIGRANI_DISTRICT_PASSWORD
+        sync: false
+      - key: NIGRANI_MP_PASSWORD
+        sync: false
