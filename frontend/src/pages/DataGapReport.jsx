@@ -107,7 +107,7 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
           <h2 id="ablation-metrics-heading" className="sr-only">
             Ablation Metrics
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-grid-gap">
             <Figure
               label="Current mean coverage"
               value={`${CORPUS.meanCoverage}%`}
@@ -132,7 +132,7 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
         </section>
 
         {/* Coverage comparison chart */}
-        <section className="rounded border border-rule bg-paper p-6 shadow-card">
+        <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
           <SectionHeading title="Signal coverage impact projection">
             Comparing current evaluated rule weight against potential coverage when missing relational
             keys are linked in MoSPI portal exports.
@@ -176,7 +176,7 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
         </section>
 
         {/* Ranked field table */}
-        <section className="rounded border border-rule bg-paper p-6 shadow-card">
+        <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
           <SectionHeading title="Ranked data gap findings">
             Specific reporting deficiencies identified in public MPLADS datasets, ordered by coverage
             loss magnitude.
@@ -209,7 +209,7 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
         </section>
 
         {/* Formal memo narrative */}
-        <section className="rounded border border-rule bg-paper p-6 shadow-card">
+        <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
           <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
             Formal recommendation statement to MoSPI
           </h3>

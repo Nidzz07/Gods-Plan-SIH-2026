@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ROLE_LABEL, ROLE_NAV_CONFIG } from '../roles.js'
 import { useAuth } from '../auth.jsx'
 import { useApi } from '../hooks/useApi.js'
+import uiFilterIcon from '../assets/icons/ui-filter.png'
 
 export default function Sidebar({ user, isOpen, onClose }) {
   const { t } = useTranslation()
@@ -67,8 +68,8 @@ export default function Sidebar({ user, isOpen, onClose }) {
       {/* Client-side filter */}
       <div className="mb-4">
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-secondary text-xs">
-            🔍
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center" style={{ paddingLeft: '12px' }}>
+            <img src={uiFilterIcon} alt="" aria-hidden="true" style={{ width: '16px', height: '16px' }} />
           </span>
           <input
             type="text"
@@ -76,7 +77,8 @@ export default function Sidebar({ user, isOpen, onClose }) {
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder={t('common.filterMenu', 'Filter menu…')}
             aria-label="Filter navigation items"
-            className="w-full rounded border border-rule bg-paper py-2 pl-8 pr-3 text-[14px] text-ink placeholder-ink-muted focus:border-portal focus:outline-none"
+            className="w-full rounded border border-rule bg-paper py-2 pr-3 text-[14px] text-ink placeholder-ink-muted focus:border-portal focus:outline-none"
+            style={{ paddingLeft: '38px' }}
           />
         </div>
       </div>
@@ -138,11 +140,6 @@ export default function Sidebar({ user, isOpen, onClose }) {
       <p className="text-[13px] text-ink-secondary truncate">
         {ROLE_LABEL[user?.role] ?? user?.role}
       </p>
-      {user?.scope?.describes && (
-        <p className="scope mt-1 text-[12px] text-ink-muted leading-tight">
-          {user.scope.describes}
-        </p>
-      )}
       <button
         type="button"
         onClick={handleSignOut}

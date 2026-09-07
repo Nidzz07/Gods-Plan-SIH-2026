@@ -31,7 +31,7 @@ export default function DuplicateCompareModal({
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-4xl rounded border border-rule bg-paper p-6 shadow-card transition-all transform duration-180 animate-fadeIn">
+      <div className="relative w-full max-w-4xl rounded border border-rule bg-paper py-card-y px-card-x shadow-card transition-all transform duration-180 animate-fadeIn">
         <div className="flex items-start justify-between border-b border-rule pb-4">
           <div>
             <span className="text-[12px] font-bold uppercase tracking-wider text-portal">
@@ -45,7 +45,7 @@ export default function DuplicateCompareModal({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded p-1 text-ink-secondary hover:bg-portal-tint"
+            className="rounded min-w-[44px] min-h-[44px] flex items-center justify-center text-ink-secondary hover:bg-portal-tint"
           >
             ✕
           </button>
@@ -63,7 +63,7 @@ export default function DuplicateCompareModal({
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Primary current work */}
-          <div className="rounded border border-rule bg-paper p-4 shadow-card">
+          <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
             <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
               Current work ID
             </span>
@@ -84,7 +84,7 @@ export default function DuplicateCompareModal({
           </div>
 
           {/* Matched cited work */}
-          <div className="rounded border border-rule-strong bg-portal-tint/40 p-4 shadow-card">
+          <div className="rounded border border-rule-strong bg-portal-tint/40 py-card-y px-card-x shadow-card">
             <span className="text-[11px] font-bold uppercase tracking-wider text-portal">
               Cited candidate work ID
             </span>

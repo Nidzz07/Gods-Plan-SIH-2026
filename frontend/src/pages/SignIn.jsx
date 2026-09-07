@@ -1,40 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { LogoMark } from '../components/Logo.jsx'
-import PageMotif from '../components/PageMotif.jsx'
+import UtilityStrip from '../components/UtilityStrip.jsx'
+import Footer from '../components/Footer.jsx'
 import { AUTH_LOADING, AUTH_SIGNED_IN, useAuth } from '../auth.jsx'
 import { ROLE_HOME } from '../roles.js'
-import { BUTTON_PRIMARY, CARD, FIELD, LABEL } from '../ui.js'
+import { useLanguage } from '../i18n/useLanguage.js'
 
-// The front door, and it is now a door.
-//
-// The inherited screen offered three cards — Officer, Inspector, Auditor —
-// with a line under them reading "No password required — this demo uses role
-// selection, not authentication." That sentence was true then and would be a
-// lie now, so it is gone rather than reworded. Phase 6 closed it: passwords
-// are bcrypt digests, the session is a signed token, and the rows a token
-// reaches are decided by a WHERE clause in the server's query.
-//
-// WHAT IS STILL DECLARED, in body text on this screen rather than in a
-// footnote or a slide. The accounts are seeded by `python -m app.seed_users`.
-// There is no registration, no password reset and no recovery, because an
-// officer's district is granted to them rather than chosen by them. That is
-// the honest description of a login that stands in for an identity provider,
-// and it belongs where the login is.
-//
-// Register, deliberately: this reads like the landing page of an internal
-// departmental tool — an emblem, the service name, what the corpus covers, and
-// one form. No welcome, no reassurance, no floating card on an empty ground.
+import signinLoop from '../assets/video/signin-loop.mp4'
+import signinPoster from '../assets/video/signin-poster.jpg'
 
 export default function SignIn() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
   const { status, user, signIn, endedReason } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Reduced motion: show poster instead of autoplay
+  const [reducedMotion, setReducedMotion] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      setReducedMotion(mq.matches)
+      const handler = (e) => setReducedMotion(e.matches)
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
+    }
+  }, [])
 
   // Somebody already signed in who navigates back to the door goes to their
   // own landing screen instead of being asked to sign in twice.
@@ -48,114 +50,302 @@ export default function SignIn() {
     setSubmitting(true)
     try {
       const identity = await signIn(email.trim(), password)
-      // The landing route comes from the role the SERVER returned, never from
-      // anything typed into this form. This is the one line where the whole
-      // four-persona routing turns, and it turns on the response.
       navigate(ROLE_HOME[identity.role] ?? '/', { replace: true })
     } catch (failure) {
-      // The server answers one 401 with one sentence for a wrong password, an
-      // unknown address and a deactivated account alike — three
-      // distinguishable messages would turn this form into a way of asking
-      // which officers hold accounts. That sentence is shown as it arrived; a
-      // friendlier client-side rewrite would be guessing at which of the three
-      // it was, which is the guess the server refused to make.
       setError(failure.message)
     } finally {
       setSubmitting(false)
     }
   }
 
-  return (
-    <main className="relative isolate flex min-h-screen flex-col">
-      <PageMotif variant="signin" />
+  function handlePlayVideo() {
+    if (videoRef.current) {
+      videoRef.current.play()
+      setVideoPlaying(true)
+    }
+  }
 
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-8 py-12">
-        <div className="flex flex-col items-center">
-          <LogoMark size={64} className="text-navy" />
-          <h1 className="mt-4 font-display text-page-title tracking-wide text-navy">NIGRANI</h1>
-          <p className="mt-2 text-center text-meta-label uppercase text-ink-secondary">
-            MPLADS oversight · MoSPI · committed sample to 24 August 2026
-          </p>
+  return (
+    <div className="flex flex-col min-h-screen bg-paper">
+      {/* E5: Utility strip for language switching before login */}
+      <UtilityStrip />
+
+      {/* E1: Split-screen layout */}
+      <div
+        className="flex-1 grid grid-cols-1 lg:grid-cols-[58%_42%]"
+        style={{ minHeight: 'calc(100vh - 36px)' }}
+      >
+        {/* Left: Video panel (240px top band below 1024px, 58% column on desktop) */}
+        <div
+          className="relative overflow-hidden h-[240px] lg:h-auto lg:min-h-[400px]"
+        >
+          {/* E2: Video at full clarity */}
+          {reducedMotion && !videoPlaying ? (
+            <>
+              <img
+                src={signinPoster}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={handlePlayVideo}
+                className="absolute bottom-8 right-8 z-20 rounded bg-white/90 px-4 py-2 text-[14px] font-semibold text-portal shadow-card transition-colors hover:bg-white"
+                aria-label={t('signin.playVideo', 'Play background video')}
+              >
+                ▶ {t('signin.playLabel', 'Play')}
+              </button>
+            </>
+          ) : null}
+
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src={signinLoop}
+            poster={signinPoster}
+            autoPlay={!reducedMotion}
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            tabIndex={-1}
+            style={{
+              opacity: 1,
+              filter: 'none',
+              display: reducedMotion && !videoPlaying ? 'none' : 'block',
+            }}
+          />
+
+          {/* E3: Wordmark block over the video — lower-left with localized scrim */}
+          <div
+            className="absolute z-10 hidden lg:block"
+            style={{
+              left: '48px',
+              bottom: '64px',
+              maxWidth: '560px',
+              padding: '28px 32px',
+              background: 'rgba(7, 31, 54, 0.55)',
+              borderRadius: '4px',
+            }}
+          >
+            {/* NIGRANI + निगरानी */}
+            <div className="flex items-baseline gap-3">
+              <span
+                className="font-display font-semibold text-white"
+                style={{ fontSize: 'clamp(2.4rem, 3.4vw, 3.4rem)' }}
+              >
+                {t('landing.title', 'NIGRANI')}
+              </span>
+              <span
+                className="font-devanagari font-semibold"
+                style={{
+                  fontSize: 'clamp(2.4rem, 3.4vw, 3.4rem)',
+                  color: '#F4B860',
+                }}
+              >
+                {t('common.appHindi', 'निगरानी')}
+              </span>
+            </div>
+
+            {/* Saffron rule */}
+            <div
+              aria-hidden="true"
+              style={{
+                marginTop: '16px',
+                height: '4px',
+                width: '96px',
+                backgroundColor: '#F4B860',
+              }}
+            />
+
+            {/* Subtitle */}
+            <p
+              className="font-display font-semibold text-white"
+              style={{
+                marginTop: '18px',
+                fontSize: 'clamp(1.3rem, 1.9vw, 1.8rem)',
+              }}
+            >
+              {t('landing.slogan', 'National Project Monitoring System')}
+            </p>
+
+            {/* Attribution */}
+            <p
+              className="font-sans"
+              style={{
+                marginTop: '8px',
+                fontSize: '1rem',
+                color: '#D6E2EC',
+                fontWeight: '400',
+              }}
+            >
+              {t('landing.attribution', 'Ministry of Statistics and Programme Implementation · Government of India')}
+            </p>
+          </div>
         </div>
 
-        {/* A hairline, not a card edge: the header block and the form are two
-            parts of one sheet, not two floating panels. */}
-        <form onSubmit={submit} className="mt-8 border-t border-border pt-8">
-          <p className={LABEL}>Sign in</p>
-
-          {/* The session ended by itself rather than by a click — an expired
-              token, or an account deactivated mid-session. Saying which is
-              what makes it read as a system working rather than as a bug. */}
-          {endedReason && !error ? (
-            <div className={`${CARD} mt-2 border-l-4 border-l-gold p-4`}>
-              <p className="text-body-secondary text-ink">{endedReason}</p>
-            </div>
-          ) : null}
-
-          {error ? (
-            // Coral on the heading, not on a left-border: the border accent
-            // encodes a severity value on a data row, and a refused login has
-            // no severity. Same shape as ErrorState so the two do not drift.
-            <div className={`${CARD} mt-2 p-4`} role="alert">
-              <p className="text-body-secondary font-medium text-coral">Could not sign in</p>
-              <p className="mt-1 text-body-secondary text-ink-secondary">{error}</p>
-            </div>
-          ) : null}
-
-          <div className="mt-4">
-            <label htmlFor="email" className={LABEL}>
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className={`${FIELD} w-full`}
-            />
-          </div>
-
-          <div className="mt-4">
-            <label htmlFor="password" className={LABEL}>
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={`${FIELD} w-full`}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting || status === AUTH_LOADING}
-            className={`${BUTTON_PRIMARY} mt-6 w-full`}
+        {/* Right: Form panel */}
+        <div
+          className="flex items-center justify-center bg-paper"
+          style={{ padding: '40px 24px' }}
+        >
+          {/* E4: Form card */}
+          <div
+            className="w-full"
+            style={{
+              maxWidth: '440px',
+              padding: '44px 40px',
+              border: '1px solid #D5DEE6',
+              borderRadius: '4px',
+              backgroundColor: '#FFFFFF',
+            }}
           >
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
+            {/* 1. NIGRANI mark */}
+            <div className="flex justify-center">
+              <LogoMark size={56} className="text-navy" />
+            </div>
 
-          {/* On the screen, at body-secondary size, not in a tooltip and not in
-              the deck only. Same discipline as the memo caption on a case
-              sheet: the limitation is stated where the thing is used. */}
-          <p className="mt-4 text-body-secondary text-ink-secondary">
-            Accounts are provisioned by the operator running{' '}
-            <span className="font-medium text-ink">python -m app.seed_users</span>. There is no
-            registration and no password reset — in a real deployment an officer&rsquo;s district is
-            granted to them, not chosen by them.
-          </p>
-        </form>
+            {/* 2. NIGRANI title */}
+            <h1
+              className="text-center font-display text-navy"
+              style={{ marginTop: '20px', fontSize: '2.1rem', fontWeight: '600' }}
+            >
+              {t('landing.title', 'NIGRANI')}
+            </h1>
 
-        <p className="mt-8 border-t border-border pt-4 text-meta-label text-ink-secondary">
-          A truncated sample of the MPLADS portal, not the national record. Demo build — not a
-          system of record.
-        </p>
+            {/* 3. Subtitle */}
+            <p
+              className="text-center font-sans text-ink-secondary"
+              style={{ marginTop: '8px', fontSize: '1.05rem', fontWeight: '500' }}
+            >
+              {t('landing.slogan', 'National Project Monitoring System')}
+            </p>
+
+            {/* 4. Divider */}
+            <div
+              aria-hidden="true"
+              style={{
+                marginTop: '28px',
+                marginBottom: '28px',
+                height: '1px',
+                backgroundColor: '#D5DEE6',
+              }}
+            />
+
+            {/* Error state */}
+            {endedReason && !error ? (
+              <div
+                className="rounded"
+                style={{
+                  marginBottom: '20px',
+                  padding: '12px 16px',
+                  border: '1px solid #C8952B',
+                  borderLeftWidth: '4px',
+                  backgroundColor: '#FFF9F0',
+                }}
+              >
+                <p className="text-[14px] text-ink">{endedReason}</p>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div
+                className="rounded"
+                role="alert"
+                style={{
+                  marginBottom: '20px',
+                  padding: '12px 16px',
+                  border: '1px solid #D4573D',
+                  backgroundColor: '#FFF5F3',
+                }}
+              >
+                <p className="text-[14px] font-medium text-coral">{t('signin.couldNotSignIn', 'Could not sign in')}</p>
+                <p className="mt-1 text-[14px] text-ink-secondary">{error}</p>
+              </div>
+            ) : null}
+
+            <form onSubmit={submit}>
+              {/* 5. Email field */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block font-sans"
+                  style={{ fontSize: '0.85rem', color: '#94989E', marginBottom: '6px' }}
+                >
+                  {t('signin.emailLabel', 'Email address')}
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded border border-rule bg-white text-ink focus:border-portal focus:outline-none"
+                  style={{ height: '52px', padding: '0 16px', fontSize: '1rem' }}
+                />
+              </div>
+
+              {/* 6. Password field */}
+              <div style={{ marginTop: '20px' }}>
+                <label
+                  htmlFor="password"
+                  className="block font-sans"
+                  style={{ fontSize: '0.85rem', color: '#94989E', marginBottom: '6px' }}
+                >
+                  {t('signin.passwordLabel', 'Password')}
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded border border-rule bg-white text-ink focus:border-portal focus:outline-none"
+                  style={{ height: '52px', padding: '0 16px', fontSize: '1rem' }}
+                />
+              </div>
+
+              {/* 7. Sign in button */}
+              <button
+                type="submit"
+                disabled={submitting || status === AUTH_LOADING}
+                className="w-full rounded text-white font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  marginTop: '28px',
+                  height: '52px',
+                  backgroundColor: '#0B2E4F',
+                  fontSize: '1.05rem',
+                  fontWeight: '600',
+                  transition: 'background-color 120ms ease',
+                }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#134672' }}
+                onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#0B2E4F' }}
+              >
+                {submitting ? t('signin.signingIn', 'Signing in…') : t('common.signIn', 'Sign in')}
+              </button>
+            </form>
+
+            {/* 8. Ministry attribution */}
+            <p
+              className="text-center font-sans text-ink-secondary"
+              style={{
+                marginTop: '24px',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+              }}
+            >
+              {t('landing.attribution', 'Ministry of Statistics and Programme Implementation · Government of India')}
+            </p>
+          </div>
+        </div>
       </div>
-    </main>
+
+      {/* Footer */}
+      <Footer />
+    </div>
   )
 }

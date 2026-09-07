@@ -112,7 +112,7 @@ export const CARD_OPTION =
   'active:translate-y-0 active:bg-navy'
 
 export const FIELD =
-  'rounded border border-border-strong bg-surface px-4 py-2 text-body-secondary text-ink ' +
+  'rounded border border-border-strong bg-surface px-[16px] py-2 text-body-secondary text-ink ' +
   // Filters sit in the secondary tier, but a select that lifted off the page
   // when the cursor crossed it would be motion for its own sake. It gets the
   // border response and nothing else.

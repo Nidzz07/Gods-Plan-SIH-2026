@@ -17,9 +17,9 @@ function Bar({ width = 'w-full', className = '' }) {
 // values on the right.
 export function SkeletonRows({ rows = 5 }) {
   return (
-    <ul className="animate-pulse" aria-hidden="true">
+    <ul className="animate-pulse space-y-card-gap" aria-hidden="true">
       {Array.from({ length: rows }, (_, index) => (
-        <li key={index} className={`${CARD} mt-2 flex items-center gap-4 border-l-4 border-l-border px-4 py-4`}>
+        <li key={index} className={`${CARD} flex items-center gap-4 border-l-4 border-l-border py-card-y px-card-x`}>
           <div className="flex-1 space-y-2">
             <Bar width="w-48" />
             <Bar width="w-32" className="h-2" />
@@ -35,7 +35,7 @@ export function SkeletonRows({ rows = 5 }) {
 // For a page whose content is prose or a panel rather than a list.
 export function SkeletonPanel({ lines = 3 }) {
   return (
-    <div className={`${CARD} animate-pulse space-y-2 p-6`} aria-hidden="true">
+    <div className={`${CARD} animate-pulse space-y-2 py-card-y px-card-x`} aria-hidden="true">
       <Bar width="w-32" className="h-2" />
       {Array.from({ length: lines }, (_, index) => (
         <Bar key={index} width={index === lines - 1 ? 'w-2/3' : 'w-full'} />

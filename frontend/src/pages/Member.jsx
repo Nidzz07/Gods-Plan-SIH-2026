@@ -70,7 +70,7 @@ function Rung({ rung, scale, lang, t }) {
 
 function AccountLadderCard({ ladder, scale, title, caption, lang, t }) {
   return (
-    <div className="rounded border border-rule bg-paper p-5 shadow-card w-full">
+    <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card w-full">
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-rule pb-2.5">
         <p className="font-display font-semibold text-navy text-[17px]">{title}</p>
         <p className="num text-[14px] font-medium text-ink-secondary">
@@ -229,7 +229,7 @@ export default function Member() {
               <h2 id="member-stats-heading" className="sr-only">
                 Member account metrics
               </h2>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-grid-gap lg:grid-cols-4">
                 <Figure label={t('common.works', 'Recommended works')} value={num(data.portfolio?.cases, lang)} />
                 <Figure
                   label={t('common.highRisk', 'HIGH cases')}
@@ -278,7 +278,7 @@ export default function Member() {
               )}
 
               {years.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 w-full">
+                <div className="grid grid-cols-1 gap-grid-gap lg:grid-cols-2 w-full">
                   {years.map((ladder) => (
                     <AccountLadderCard
                       key={ladder.fy}

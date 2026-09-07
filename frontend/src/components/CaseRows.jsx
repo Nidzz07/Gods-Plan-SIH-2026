@@ -18,12 +18,12 @@ import { CARD_INTERACTIVE, CELL_MUTED, ROW } from '../ui.js'
 // The whole row is the link. A case id is reached from a queue, never typed.
 export default function CaseRows({ cases }) {
   return (
-    <ul>
+    <ul className="space-y-card-gap">
       {cases.map((item) => (
         <li key={item.case_id}>
           <Link
             to={`/cases/${item.case_id}`}
-            className={`${CARD_INTERACTIVE} ${ROW} mt-2 flex items-start gap-4 border-l-4 ${
+            className={`${CARD_INTERACTIVE} py-card-y px-card-x flex items-start gap-4 border-l-4 ${
               SEVERITY_BORDER[item.severity] ?? 'border-l-border-strong'
             }`}
           >

@@ -84,7 +84,11 @@
     "card3Title": "3. Verifiable Audit Trail",
     "card3Text": "Generates immutable cryptographic hashes and clear citation memos for every identified anomaly. Officers inspect the raw evidence before taking action.",
     "previewTitle": "Recent High-Risk Cases",
-    "previewSubtitle": "Cases flagged for priority review by District Authorities and State Nodal Officers."
+    "previewSubtitle": "Cases flagged for priority review by District Authorities and State Nodal Officers.",
+    "allRecords": "All records",
+    "districts": "Districts",
+    "agencies": "Agencies",
+    "members": "Members"
   },
   "roles": {
     "ministry": "Ministry",
@@ -186,5 +190,13 @@
     "generic": "An unexpected error occurred while loading data.",
     "notFound": "The requested record was not found.",
     "unauthorized": "You do not have permission to view this resource."
+  },
+  "signin": {
+    "couldNotSignIn": "Could not sign in",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "signingIn": "Signing in…",
+    "playVideo": "Play background video",
+    "playLabel": "Play"
   }
 }

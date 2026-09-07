@@ -158,7 +158,7 @@ export default function Rulebook() {
         {data && (
           <>
             {/* Version & Sync Status Box */}
-            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+            <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
               <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-rule pb-3">
                 <span className="font-display text-[18px] font-semibold text-navy">
                   Version {data.version} · Updated by {data.updated_by}
@@ -170,7 +170,7 @@ export default function Rulebook() {
                 </Tag>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-grid-gap">
                 <div>
                   <p className={LABEL}>Total rule weight</p>
                   <p className="num text-[18px] font-bold text-navy">
@@ -199,7 +199,7 @@ export default function Rulebook() {
             </section>
 
             {/* PreviewList of the ten rules (§8.6) */}
-            <section className="rounded border border-rule bg-portal-tint/50 p-6 shadow-card">
+            <section className="rounded border border-rule bg-portal-tint/50 py-card-y px-card-x shadow-card">
               <div className="mb-4">
                 <h2 className="font-display text-[22px] font-semibold text-navy">
                   The ten scoring rules
@@ -220,7 +220,7 @@ export default function Rulebook() {
 
             {/* Rule Table & Ministry Proposal Form */}
             <form id="rules-table" onSubmit={submit} className="space-y-6">
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <SectionHeading title="Rule threshold & weight matrix">
                   {isMinistry
                     ? 'Threshold and weight are live-editable for Ministry analysts. Other columns are governed by data-profile calibrations.'
@@ -239,7 +239,7 @@ export default function Rulebook() {
                   {data.rules.map((rule) => (
                     <li
                       key={rule.id}
-                      className={`${GRID} p-4 items-center ${
+                      className={`${GRID} py-card-y px-card-x items-center ${
                         drifted.has(rule.id) ? 'bg-gold/10' : 'hover:bg-paper-sunk/50'
                       }`}
                     >
@@ -305,13 +305,13 @@ export default function Rulebook() {
 
                 {/* Ministry Proposal Box with required plain-language disclaimer */}
                 {isMinistry ? (
-                  <div className="mt-8 rounded border border-rule bg-portal-tint/60 p-6">
+                  <div className="mt-8 rounded border border-rule bg-portal-tint/60 py-card-y px-card-x">
                     <h3 className="font-display text-[18px] font-semibold text-navy">
                       Propose rulebook modification
                     </h3>
 
                     {/* Disclaimer panel (§8.6) */}
-                    <div className="mt-3 rounded border-l-4 border-l-gold bg-paper p-4 text-[13px] text-ink">
+                    <div className="mt-3 rounded border-l-4 border-l-gold bg-paper py-card-y px-card-x text-[13px] text-ink">
                       <p className="font-semibold text-navy">
                         This creates a new rulebook version. Existing cases keep the score they were
                         given and are not re-scored until each is recomputed individually.
@@ -351,7 +351,7 @@ export default function Rulebook() {
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-6 rounded bg-paper-sunk p-4 text-[13px] text-ink-secondary">
+                  <div className="mt-6 rounded bg-paper-sunk py-card-y px-card-x text-[13px] text-ink-secondary">
                     Editing rulebook parameters is restricted to Ministry analysts. Other roles have
                     read-only access to verify scoring criteria.
                   </div>
@@ -360,7 +360,7 @@ export default function Rulebook() {
             </form>
 
             {/* Version History List */}
-            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+            <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
               <SectionHeading title="Immutable version log">
                 Historical snapshots stored with cryptographic digests.
               </SectionHeading>

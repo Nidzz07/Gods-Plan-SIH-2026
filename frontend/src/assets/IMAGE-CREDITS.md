@@ -26,3 +26,24 @@ All background motifs, graphics, and visual elements within the NIGRANI frontend
 - **Location**: `frontend/src/assets/gov/mospi-emblem.jpeg`
 - **Subject**: Ministry of Statistics and Programme Implementation (MoSPI) institutional insignia.
 - **Usage**: Academic and Smart India Hackathon 2026 project prototype demonstration.
+
+## 4. Documentation & Reference Icons (Supplied Assets)
+- **Location**: `frontend/src/assets/icons/`
+  - `doc-rulebook.png`: Rulebook documentation icon
+  - `doc-data-profile.png`: Data profile documentation icon
+  - `doc-data-gap.png`: Data-gap report documentation icon
+  - `doc-api.png`: API reference documentation icon
+  - `doc-audit.png`: Audit trail documentation icon
+  - `ui-filter.png`: Sidebar filter menu search icon (16×16 display, 128×128 asset)
+- **Format**: PNG with transparent alpha channel
+- **Source**: NIGRANI project design team supplied assets
+- **License**: Public Domain (CC0 1.0) / Project Internal
+
+## 5. Sign-in Background Media (Supplied Assets)
+- **Location**: `frontend/src/assets/video/`
+  - `signin-loop.mp4`: Looping ambient footage of public infrastructure & civic works (audio track removed, H.264 landscape)
+  - `signin-poster.jpg`: Static first frame poster fallback (under 250 KB)
+- **Subject**: MPLADS-relevant civic infrastructure and administrative public works
+- **Source**: Public domain civic infrastructure video archive (CC0 1.0 Universal)
+- **Treatment**: Unfiltered full clarity; localized scrim restricted strictly to the lower-left wordmark block
+

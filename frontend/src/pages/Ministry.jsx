@@ -203,7 +203,7 @@ export default function Ministry() {
             </section>
 
             {/* Portal Band containing PreviewList (§7 & §8.1) */}
-            <section className="rounded border border-rule bg-portal-tint/50 p-6 shadow-card">
+            <section className="rounded border border-rule bg-portal-tint/50 py-card-y px-card-x shadow-card">
               <div className="mb-4">
                 <h2 className="font-display text-section-heading text-navy">
                   {t('ministry.highestRiskStates', 'Highest-risk state environments')}
@@ -224,7 +224,7 @@ export default function Ministry() {
             {/* Charts section enlarged to 420px tall (§C3) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Chart 1: States by HIGH count (420px tall) */}
-              <section className={`${CARD} p-6`}>
+              <section className={`${CARD} py-card-y px-card-x`}>
                 <div className="mb-4">
                   <h3 className="font-display text-section-heading text-navy">
                     {t('ministry.topStatesByHigh', 'States by HIGH case count')}
@@ -273,7 +273,7 @@ export default function Ministry() {
               </section>
 
               {/* Chart 2: Fund flow proportion (420px tall) */}
-              <section className={`${CARD} p-6 flex flex-col justify-between`}>
+              <section className={`${CARD} py-card-y px-card-x flex flex-col justify-between`}>
                 <div>
                   <h3 className="font-display text-section-heading text-navy">
                     Fund-flow proportion
@@ -297,7 +297,7 @@ export default function Ministry() {
                   />
                 </div>
 
-                <div className="rounded border border-rule bg-paper-sunk p-4 text-[14px] text-ink-secondary">
+                <div className="rounded border border-rule bg-paper-sunk py-card-y px-card-x text-[14px] text-ink-secondary">
                   <p>
                     Mean signal coverage stands at{' '}
                     <span className="font-semibold text-ink">{data.mean_coverage_pct}%</span>.

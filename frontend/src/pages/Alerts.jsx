@@ -117,7 +117,7 @@ export default function Alerts() {
         {data && (
           <>
             {/* Counts & Filters */}
-            <section className="rounded border border-rule bg-paper p-6 shadow-card">
+            <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Figure label="Total alerts" value={formatCount(data.total)} />
                 <Figure label="Open" value={formatCount(counts.open ?? 0)} />
@@ -125,27 +125,34 @@ export default function Alerts() {
                 <Figure label="Escalated" value={formatCount(counts.escalated ?? 0)} />
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
-                <span className="text-[13px] font-medium text-ink-secondary mr-2">Filter status:</span>
-                {FILTERS.map((f) => (
-                  <button
-                    key={f.key || 'all'}
-                    type="button"
-                    onClick={() => setStatus(f.key)}
-                    className={`rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
-                      status === f.key
-                        ? 'bg-portal text-white'
-                        : 'bg-paper-sunk text-ink-secondary border border-rule hover:bg-portal-tint hover:text-navy'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              <div className="border-t border-rule" style={{ marginTop: '24px', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span className="text-[13px] font-medium text-ink-secondary" style={{ marginRight: '8px' }}>Filter status:</span>
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.key || 'all'}
+                      type="button"
+                      onClick={() => setStatus(f.key)}
+                      className="font-semibold transition-colors"
+                      style={{
+                        padding: '10px 20px',
+                        fontSize: '0.95rem',
+                        borderRadius: '4px',
+                        minHeight: '44px',
+                        backgroundColor: status === f.key ? '#0B2E4F' : '#FFFFFF',
+                        color: status === f.key ? '#FFFFFF' : '#14171A',
+                        border: status === f.key ? '1px solid #0B2E4F' : '1px solid #D5DEE6',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 
             {/* Alert Items List */}
-            <section className="space-y-4">
+            <section>
               {data.items.length === 0 ? (
                 <EmptyState title="No alerts in queue">
                   {status
@@ -153,32 +160,38 @@ export default function Alerts() {
                     : 'No high-severity alerts have been routed to this scope.'}
                 </EmptyState>
               ) : (
-                <ul className="space-y-3">
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {data.items.map((item) => (
                     <li
                       key={item.id}
-                      className={`rounded border border-rule border-l-4 ${
+                      className={`rounded border border-rule ${
                         SEVERITY_BORDER[item.severity] ?? 'border-l-border-strong'
-                      } bg-paper p-5 shadow-card`}
+                      } bg-paper shadow-card`}
+                      style={{
+                        borderLeftWidth: '4px',
+                        borderRadius: '4px',
+                        padding: '22px 26px 20px 26px',
+                      }}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                        <div className="space-y-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between" style={{ gap: '20px' }}>
+                        <div>
                           <Link
                             to={`/cases/${item.case_id}`}
-                            className="font-medium text-navy text-[16px] hover:underline"
+                            className="font-medium text-navy hover:underline"
+                            style={{ fontSize: '1.1rem', fontWeight: '600' }}
                           >
                             {item.description || item.work_id || item.case_id}
                           </Link>
-                          <p className="num text-[12px] text-ink-muted">
-                            Case {item.case_id} · {item.district || item.state} · Rule:{' '}
+                          <p className="num text-ink-muted" style={{ fontSize: '0.85rem', marginTop: '6px' }}>
+                            Case <span className="font-mono">{item.case_id}</span> · {item.district || item.state} · Rule:{' '}
                             <span className="font-mono">{item.rule_id || 'Composite HIGH'}</span>
                           </p>
-                          <p className="mt-2 text-[14px] text-ink-secondary leading-relaxed max-w-3xl">
+                          <p className="text-ink leading-relaxed" style={{ fontSize: '1rem', marginTop: '14px', maxWidth: '78ch' }}>
                             {item.message}
                           </p>
                         </div>
 
-                        <div className="text-right shrink-0">
+                        <div className="text-right shrink-0" style={{ paddingRight: '0', minWidth: '80px' }}>
                           <span className="num font-bold text-navy text-[18px]">{item.score}</span>
                           <span className="block text-[11px] uppercase font-semibold text-coral">
                             {item.severity}
@@ -190,12 +203,13 @@ export default function Alerts() {
                       </div>
 
                       {user.can_write ? (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-rule/60 pt-3">
+                        <div className="flex flex-wrap items-center border-t border-rule/60" style={{ marginTop: '18px', paddingTop: '14px', gap: '12px' }}>
                           <button
                             type="button"
                             onClick={() => act(item.id, 'acknowledge')}
                             disabled={busy === item.id || item.status !== 'open'}
-                            className={`${BUTTON} text-[13px] py-1.5`}
+                            className={BUTTON}
+                            style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '4px', minHeight: '44px' }}
                           >
                             {item.status === 'open' ? 'Acknowledge' : 'Acknowledged'}
                           </button>
@@ -203,13 +217,14 @@ export default function Alerts() {
                             type="button"
                             onClick={() => act(item.id, 'escalate')}
                             disabled={busy === item.id || item.status === 'closed'}
-                            className={`${BUTTON_PRIMARY} text-[13px] py-1.5`}
+                            className={BUTTON_PRIMARY}
+                            style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '4px', minHeight: '44px' }}
                           >
                             {busy === item.id ? 'Working…' : 'Escalate'}
                           </button>
                         </div>
                       ) : (
-                        <p className="mt-3 text-[12px] italic text-ink-muted border-t border-rule/40 pt-2">
+                        <p className="text-[12px] italic text-ink-muted border-t border-rule/40" style={{ marginTop: '18px', paddingTop: '12px' }}>
                           Read-only account. Alert status modifications are restricted to
                           administrative authorities.
                         </p>

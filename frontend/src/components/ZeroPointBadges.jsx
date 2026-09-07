@@ -33,7 +33,7 @@ import { CAPTION, CARD, LABEL } from '../ui.js'
 
 function Badge({ label, value, model, children }) {
   return (
-    <div className="rounded border border-border bg-surface-sunk p-4">
+    <div className="rounded border border-border bg-surface-sunk py-card-y px-card-x">
       <div className="flex items-baseline justify-between gap-4">
         <p className={LABEL}>{label}</p>
         {/* The zero, in the column a contribution would occupy on a trace row,
@@ -51,7 +51,7 @@ function Badge({ label, value, model, children }) {
 
 export default function ZeroPointBadges({ statistical, forecast, concentration }) {
   return (
-    <div className={`${CARD} p-6`}>
+    <div className={`${CARD} py-card-y px-card-x`}>
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h3 className="font-display text-section-heading text-navy">Badges — tiers 3 and 4</h3>
         <span className="num text-body-secondary text-ink-secondary">
@@ -65,7 +65,7 @@ export default function ZeroPointBadges({ statistical, forecast, concentration }
         bonus alone. Nothing on this panel is an input to it.
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-grid-gap lg:grid-cols-3">
         <Badge
           label="Anomaly"
           value={statistical.anomaly_score}

@@ -230,7 +230,7 @@ export default function District() {
               <h2 id="district-stats-heading" className="sr-only">
                 District metrics
               </h2>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-grid-gap lg:grid-cols-4">
                 <Figure label={t('common.cases', 'District cases')} value={num(data.summary.cases, lang)} />
                 <Figure
                   label={t('common.highRisk', 'HIGH cases')}
@@ -253,7 +253,7 @@ export default function District() {
             {/* Layout: Rebalanced 34% Agency Concentration / 66% Working Queue (§C3) */}
             <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
               {/* Left: Agency Concentration Panel (34% width, 360px tall chart, §C3) */}
-              <section className="w-full lg:w-[34%] shrink-0 rounded border border-rule bg-paper p-6 shadow-card">
+              <section className="w-full lg:w-[34%] shrink-0 rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <h3 className="font-display text-section-heading text-navy">
                   {t('district.agencyConcentration', 'Agency concentration')}
                 </h3>
@@ -307,7 +307,7 @@ export default function District() {
 
               {/* Right: The Working Queue (66% width, §C3) */}
               <section className="w-full lg:w-[66%] flex-1 space-y-4 min-w-0">
-                <div className="rounded border border-rule bg-paper p-6 shadow-card">
+                <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-rule pb-4">
                     <div>
                       <h3 className="font-display text-section-heading text-navy">
@@ -319,8 +319,8 @@ export default function District() {
                       </p>
                     </div>
 
-                    {/* Severity filter chips: 16px font, 10px×16px padding, 8px gap (§C4) */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Severity filter chips: 16px font, 10px×16px padding, 12px gap, 44px min-height (§C4, F2) */}
+                    <div className="flex items-center gap-btn-gap shrink-0">
                       {[
                         { key: 'ALL', label: t('district.filterAll', 'ALL') },
                         { key: 'HIGH', label: t('district.filterHigh', 'HIGH') },
@@ -331,7 +331,7 @@ export default function District() {
                           key={item.key}
                           type="button"
                           onClick={() => setSeverityFilter(item.key)}
-                          className={`rounded px-4 py-2.5 text-[16px] font-semibold transition-colors ${
+                          className={`rounded px-4 py-2.5 min-h-[44px] text-[16px] font-semibold transition-colors ${
                             severityFilter === item.key
                               ? 'bg-portal text-white shadow-xs'
                               : 'bg-paper-sunk text-ink-secondary hover:bg-portal-tint hover:text-navy border border-rule'

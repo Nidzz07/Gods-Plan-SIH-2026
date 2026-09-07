@@ -38,7 +38,7 @@ export default function StatPair({
       : null
 
   return (
-    <div className={`${CARD} p-6`}>
+    <div className={`${CARD} py-card-y px-card-x`}>
       <p className={LABEL}>{label}</p>
 
       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-4">

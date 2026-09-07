@@ -243,7 +243,7 @@ export default function StateNodal() {
             </section>
 
             {/* PreviewList of top 6 districts (Expanded to full main-column width per §C4) */}
-            <section className="rounded border border-rule bg-portal-tint/50 p-6 shadow-card w-full">
+            <section className="rounded border border-rule bg-portal-tint/50 py-card-y px-card-x shadow-card w-full">
               <div className="mb-4">
                 <h2 className="font-display text-section-heading text-navy">
                   {t('state.districtTriage', 'District triage register')} ({data.state})
@@ -262,7 +262,7 @@ export default function StateNodal() {
             </section>
 
             {/* Severity distribution chart enlarged to 420px tall (§C3) */}
-            <section className={`${CARD} p-6 w-full`}>
+            <section className={`${CARD} py-card-y px-card-x w-full`}>
               <div className="mb-4">
                 <h3 className="font-display text-section-heading text-navy">
                   {t('state.highDistricts', 'Severity mix across districts')}

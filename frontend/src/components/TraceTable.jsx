@@ -15,7 +15,7 @@ function traceValue(value) {
 
 function Citation({ citation, onOpenCompare }) {
   return (
-    <div className="mt-3 rounded border-l-4 border-l-border-strong bg-surface-sunk px-4 py-4">
+    <div className="mt-3 rounded border-l-4 border-l-border-strong bg-surface-sunk py-card-y px-card-x">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-meta-label uppercase not-italic text-ink-secondary">Cited evidence</p>
         <button
@@ -69,7 +69,7 @@ export default function TraceTable({ hits, primaryWork }) {
         <span className={COLUMN_HEAD}>Status</span>
       </div>
 
-      <ul className="space-y-2 mt-2">
+      <ul className="space-y-card-gap mt-4">
         {hits.map((hit) => {
           const state = TRACE_ROW[hit.status] ?? TRACE_ROW.passed
           const reading = traceValue(hit.raw_value)
@@ -78,7 +78,7 @@ export default function TraceTable({ hits, primaryWork }) {
           return (
             <li
               key={hit.rule_id}
-              className={`${state.row} rounded border-y border-r border-border border-l-4 ${state.border} px-4 py-4 shadow-card`}
+              className={`${state.row} rounded border-y border-r border-border border-l-4 ${state.border} py-card-y px-card-x shadow-card`}
             >
               <div className={GRID}>
                 <span>

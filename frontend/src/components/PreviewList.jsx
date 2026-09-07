@@ -36,7 +36,7 @@ export default function PreviewList({ items = [], title, caption, className = ''
   return (
     <div className={`rounded border border-rule bg-paper shadow-card ${className}`}>
       {title && (
-        <div className="border-b border-rule px-6 py-4">
+        <div className="border-b border-rule px-card-x py-card-y">
           <h3 className="font-display text-[20px] font-semibold text-navy">{title}</h3>
           {caption && <p className="mt-1 text-[14px] text-ink-secondary">{caption}</p>}
         </div>
@@ -86,7 +86,7 @@ export default function PreviewList({ items = [], title, caption, className = ''
         </div>
 
         {/* Right column: Swappable Preview panel with 160ms cross-fade (7 cols) */}
-        <div className="md:col-span-7 flex flex-col justify-between p-6 bg-paper-sunk/40">
+        <div className="md:col-span-7 flex flex-col justify-between py-card-y px-card-x bg-paper-sunk/40">
           <div
             key={activeItem.id || activeIndex}
             className="flex flex-col sm:flex-row gap-6 transition-opacity duration-[160ms] ease-out animate-fadeIn"
@@ -101,7 +101,7 @@ export default function PreviewList({ items = [], title, caption, className = ''
                 />
               </div>
             ) : (
-              <div className="w-full sm:w-[42%] shrink-0 h-44 rounded border border-rule bg-portal-tint/70 p-4 flex flex-col justify-between">
+              <div className="w-full sm:w-[42%] shrink-0 h-44 rounded border border-rule bg-portal-tint/70 py-card-y px-card-x flex flex-col justify-between">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-portal">
                     Preview record

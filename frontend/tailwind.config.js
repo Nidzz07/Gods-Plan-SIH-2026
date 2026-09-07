@@ -16,6 +16,15 @@ export default {
       8: '32px',
       12: '48px',
       18: '72px',
+      // Round-3 card and control spacing tokens (F1)
+      'card-x': '26px',
+      'card-y': '22px',
+      'card-gap': '16px',
+      'grid-gap': '20px',
+      'stack-sm': '8px',
+      'stack-md': '14px',
+      'stack-lg': '20px',
+      'btn-gap': '12px',
     },
     // One radius (4px) everywhere.
     borderRadius: {

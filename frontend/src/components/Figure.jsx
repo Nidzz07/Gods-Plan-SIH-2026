@@ -16,7 +16,7 @@ import { CARD, LABEL } from '../ui.js'
 // carry one is a figure that will be quoted without it.
 export default function Figure({ label, value, note }) {
   return (
-    <div className={`${CARD} p-4`}>
+    <div className={`${CARD} py-card-y px-card-x`}>
       <p className={LABEL}>{label}</p>
       {/* An absent figure prints an em dash, never a zero. "Not published" and
           "published as zero" are different findings (invariant 2) and this is

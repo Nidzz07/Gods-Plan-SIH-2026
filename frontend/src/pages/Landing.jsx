@@ -11,6 +11,11 @@ import { useLanguage } from '../i18n/useLanguage.js'
 import { num, formatRupees } from '../i18n/format.js'
 import { CORPUS } from '../data/corpus-facts.js'
 import mospiEmblem from '../assets/gov/mospi-emblem.jpeg'
+import docRulebook from '../assets/icons/doc-rulebook.png'
+import docDataProfile from '../assets/icons/doc-data-profile.png'
+import docDataGap from '../assets/icons/doc-data-gap.png'
+import docApi from '../assets/icons/doc-api.png'
+import docAudit from '../assets/icons/doc-audit.png'
 
 export default function Landing() {
   const { t } = useTranslation()
@@ -165,55 +170,137 @@ export default function Landing() {
                 {t('landing.attribution', 'Ministry of Statistics and Programme Implementation · Government of India')}
               </p>
 
-              {/* Real Lookup Bar (White fill, dark text inside) */}
-              <form onSubmit={handleSearch} className="mt-8">
-                <div className="flex flex-col sm:flex-row shadow-card rounded border border-white/30 bg-paper overflow-hidden">
+              {/* Real Lookup Bar — three separated controls (Part A1) */}
+              <form onSubmit={handleSearch} className="mt-8" style={{ maxWidth: 'min(880px, 100%)' }}>
+                <div className="flex flex-col sm:flex-row" style={{ gap: '12px' }}>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('landing.searchPlaceholder', 'Search a work ID, district, agency or member…')}
+                    placeholder={t('landing.searchPlaceholder', 'Search by Case ID, Work ID, District, or MP…')}
                     aria-label={t('common.search', 'Search')}
-                    className="flex-1 px-4 py-3.5 text-body text-ink placeholder-ink-muted focus:outline-none"
+                    className="flex-1 rounded bg-white text-[#14171A] placeholder-[#6B7280] border border-white/30 focus:outline-none focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                    style={{ height: '56px', padding: '0 20px', fontSize: '1.05rem', minWidth: '280px', borderRadius: '4px' }}
                   />
 
                   <select
                     value={searchCategory}
                     onChange={(e) => setSearchCategory(e.target.value)}
                     aria-label="Search filter category"
-                    className="border-t sm:border-t-0 sm:border-l border-rule bg-paper-sunk px-3 py-3.5 text-[15px] font-medium text-ink focus:outline-none"
+                    className="rounded bg-white text-[#14171A] border border-white/30 font-medium focus:outline-none focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                    style={{ height: '56px', padding: '0 20px', fontSize: '1.05rem', width: '220px', borderRadius: '4px' }}
                   >
-                    <option value="all">All records</option>
-                    <option value="works">Works</option>
-                    <option value="districts">Districts</option>
-                    <option value="agencies">Agencies</option>
-                    <option value="members">Members</option>
+                    <option value="all">{t('landing.allRecords', 'All records')}</option>
+                    <option value="works">{t('common.works', 'Works')}</option>
+                    <option value="districts">{t('landing.districts', 'Districts')}</option>
+                    <option value="agencies">{t('landing.agencies', 'Agencies')}</option>
+                    <option value="members">{t('landing.members', 'Members')}</option>
                   </select>
 
                   <button
                     type="submit"
-                    className="bg-portal px-7 py-3.5 text-[16px] font-semibold text-white transition-colors hover:bg-portal-deep focus:outline-none shrink-0"
+                    className="shrink-0 rounded text-white font-semibold focus:outline-none focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                    style={{
+                      height: '56px',
+                      padding: '0 28px',
+                      fontSize: '1.05rem',
+                      fontWeight: '600',
+                      backgroundColor: '#0B2E4F',
+                      borderRadius: '4px',
+                      width: '160px',
+                      transition: 'background-color 120ms ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#134672')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0B2E4F')}
                   >
                     {t('landing.searchButton', 'Look up')}
                   </button>
                 </div>
               </form>
 
-              {/* Voice Quote */}
-              <p className="mt-5 font-display text-[20px] italic text-[#FFFFFF]">
+              {/* Voice Quote — 20px clear above */}
+              <p className="font-display text-[20px] italic text-white" style={{ marginTop: '20px' }}>
                 &ldquo;{t('landing.evidenceVoice', 'Every flag carries its evidence.')}&rdquo;
               </p>
 
-              {/* Jump to: Chips in india.gov.in style (Solid white, 4px corners, hover invert) */}
-              <div className="mt-8 flex flex-wrap items-center gap-3 type-body-lg text-[#D6E2EC]">
-                <span className="font-semibold text-white mr-1">{t('landing.jumpTo', 'Jump to:')}</span>
-                <Link to="/ministry" className="hero-chip-btn">
+              {/* Jump to: Chips — independent buttons (Part A2) */}
+              <div className="flex flex-wrap items-center" style={{ marginTop: '32px', gap: '16px' }}>
+                <span className="font-semibold text-white text-[1.05rem]" style={{ marginRight: '4px' }}>
+                  {t('landing.jumpTo', 'Jump to:')}
+                </span>
+                <Link
+                  to="/ministry"
+                  className="inline-block rounded text-center font-sans"
+                  style={{
+                    padding: '14px 26px',
+                    fontWeight: '600',
+                    fontSize: '1.05rem',
+                    backgroundColor: '#FFFFFF',
+                    color: '#0B2E4F',
+                    border: '1px solid #FFFFFF',
+                    borderRadius: '4px',
+                    transition: 'background-color 120ms ease, color 120ms ease',
+                    minHeight: '44px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0B2E4F'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF'
+                    e.currentTarget.style.color = '#0B2E4F'
+                  }}
+                >
                   {t('roles.ministry', 'Ministry')} {t('common.overview', 'overview')}
                 </Link>
-                <Link to="/district" className="hero-chip-btn">
+                <Link
+                  to="/district"
+                  className="inline-block rounded text-center font-sans"
+                  style={{
+                    padding: '14px 26px',
+                    fontWeight: '600',
+                    fontSize: '1.05rem',
+                    backgroundColor: '#FFFFFF',
+                    color: '#0B2E4F',
+                    border: '1px solid #FFFFFF',
+                    borderRadius: '4px',
+                    transition: 'background-color 120ms ease, color 120ms ease',
+                    minHeight: '44px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0B2E4F'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF'
+                    e.currentTarget.style.color = '#0B2E4F'
+                  }}
+                >
                   {t('common.district', 'District')} {t('common.queue', 'queue')}
                 </Link>
-                <Link to="/reports/data-gap" className="hero-chip-btn">
+                <Link
+                  to="/reports/data-gap"
+                  className="inline-block rounded text-center font-sans"
+                  style={{
+                    padding: '14px 26px',
+                    fontWeight: '600',
+                    fontSize: '1.05rem',
+                    backgroundColor: '#FFFFFF',
+                    color: '#0B2E4F',
+                    border: '1px solid #FFFFFF',
+                    borderRadius: '4px',
+                    transition: 'background-color 120ms ease, color 120ms ease',
+                    minHeight: '44px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0B2E4F'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF'
+                    e.currentTarget.style.color = '#0B2E4F'
+                  }}
+                >
                   {t('common.dataGapReport', 'Data-gap report')}
                 </Link>
               </div>
@@ -227,24 +314,25 @@ export default function Landing() {
         <section
           ref={statsRef}
           id="corpus-facts"
-          className="bg-portal text-white border-b border-portal-deep py-4"
-          style={{ minHeight: '176px' }}
+          className="bg-portal text-white border-b border-portal-deep"
+          style={{ minHeight: '176px', padding: '46px 0 30px' }}
         >
           <div className="mx-auto max-w-[1920px] px-6 sm:px-10 lg:px-12 flex flex-col justify-center h-full">
             {/* Main Flex Row: Left Emblem + Divider + Full Width Metrics */}
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              {/* Left: Emblem */}
+            <div className="flex flex-col md:flex-row items-center" style={{ gap: '28px' }}>
+              {/* Left: Emblem — 88px per Part B3 */}
               <div className="shrink-0 flex items-center justify-center">
                 <img
                   src={mospiEmblem}
                   alt={t('landing.emblemAlt', 'Government of India / MoSPI Emblem')}
-                  className="h-[96px] w-auto object-contain rounded"
+                  className="w-auto object-contain rounded"
+                  style={{ height: '88px' }}
                 />
               </div>
 
-              {/* Vertical divider */}
+              {/* Vertical divider — 28px gap on each side already handled by parent gap */}
               <div
-                className="hidden md:block h-20 w-px bg-white/22 shrink-0"
+                className="hidden md:block h-20 w-px shrink-0"
                 style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
                 aria-hidden="true"
               />
@@ -252,42 +340,42 @@ export default function Landing() {
               {/* Metrics: flex: 1 with space-between spanning remaining width */}
               <div className="flex-1 w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
                 <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {num(animatedStats.works, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statWorks', 'works scored')}</p>
                 </div>
 
                 <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {num(animatedStats.rows, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statRows', 'rows ingested')}</p>
                 </div>
 
                 <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {num(animatedStats.datasets, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statSets', 'portal sets')}</p>
                 </div>
 
                 <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {num(animatedStats.agencies, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statAgencies', 'agencies')}</p>
                 </div>
 
                 <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {num(animatedStats.states, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statStates', 'states & UTs')}</p>
                 </div>
 
-                <div className="px-2">
-                  <p className="num font-display type-stat font-semibold text-white">
+                <div className="px-2" style={{ flexBasis: '220px' }}>
+                  <p className="num font-display font-semibold text-white" style={{ fontSize: 'clamp(2.0rem, 2.8vw, 3.0rem)', lineHeight: '1.0', whiteSpace: 'nowrap' }}>
                     {formatRupees(CORPUS.sanctionedCrore * 1e7, lang)}
                   </p>
                   <p className="mt-1 type-stat-lbl text-[#C9D8E4]">{t('landing.statSanctioned', 'sanctioned in sample')}</p>
@@ -295,8 +383,8 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Caveat line centered beneath */}
-            <p className="mt-4 text-center text-[13px] text-[#9FB6C8]">
+            {/* Caveat line centered beneath — 20px clear above */}
+            <p className="text-center text-[13px] text-[#9FB6C8]" style={{ marginTop: '20px' }}>
               {t('landing.caveat', 'Measured on twelve published exports from the MPLADS national portal. All figures verified by reproducible SHA-256 audit runs.')}
             </p>
           </div>
@@ -391,9 +479,9 @@ export default function Landing() {
               </p>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style={{ marginTop: '24px', gap: '20px' }}>
               {/* Ministry */}
-              <div className="group rounded border border-rule bg-paper p-6 shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between">
+              <div className="group rounded border border-rule bg-paper shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between" style={{ padding: '22px 26px' }}>
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
@@ -418,7 +506,7 @@ export default function Landing() {
               </div>
 
               {/* State Nodal */}
-              <div className="group rounded border border-rule bg-paper p-6 shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between">
+              <div className="group rounded border border-rule bg-paper shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between" style={{ padding: '22px 26px' }}>
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
@@ -443,7 +531,7 @@ export default function Landing() {
               </div>
 
               {/* District Authority */}
-              <div className="group rounded border border-rule bg-paper p-6 shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between">
+              <div className="group rounded border border-rule bg-paper shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between" style={{ padding: '22px 26px' }}>
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
@@ -468,7 +556,7 @@ export default function Landing() {
               </div>
 
               {/* Member of Parliament */}
-              <div className="group rounded border border-rule bg-paper p-6 shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between">
+              <div className="group rounded border border-rule bg-paper shadow-card transition-colors duration-120 hover:border-rule-strong hover:bg-portal-tint flex flex-col justify-between" style={{ padding: '22px 26px' }}>
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
@@ -505,7 +593,7 @@ export default function Landing() {
             </div>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">01 · Fund ladder</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   Sanctioned → Disbursed → Certified
@@ -516,7 +604,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">02 · Lifecycle</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   Recommended → Sanctioned → Paid → Done
@@ -527,7 +615,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">03 · Rulebook</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   An editable threshold matrix
@@ -538,7 +626,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">04 · Coverage</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   Coverage, stated honestly
@@ -549,7 +637,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">05 · Duplicates</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   Duplicates, cited not accused
@@ -560,7 +648,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="rounded border border-rule bg-paper p-6 shadow-card">
+              <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
                 <span className="text-[13px] font-bold uppercase text-portal">06 · Audit trail</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
                   An append-only trail
@@ -667,7 +755,7 @@ export default function Landing() {
 
             <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left: High risk cases */}
-              <div className="rounded border border-rule bg-paper shadow-card p-6">
+              <div className="rounded border border-rule bg-paper shadow-card py-card-y px-card-x">
                 <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
                   High-risk cases in sample
                 </h3>
@@ -736,7 +824,7 @@ export default function Landing() {
               </div>
 
               {/* Right: Reporting gaps */}
-              <div className="rounded border border-rule bg-paper shadow-card p-6">
+              <div className="rounded border border-rule bg-paper shadow-card py-card-y px-card-x">
                 <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
                   Reporting gaps we found
                 </h3>
@@ -790,68 +878,73 @@ export default function Landing() {
               <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
             </div>
 
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5" style={{ gap: '20px' }}>
               <Link
                 to="/rulebook"
-                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper p-6 text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                style={{ padding: '28px 20px' }}
               >
-                <span className="text-2xl mb-2 group-hover:text-white">📜</span>
-                <span className="font-semibold text-[16px] text-navy group-hover:text-white">
+                <img src={docRulebook} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
+                <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
                   {t('common.rulebook', 'Rulebook')}
                 </span>
-                <span className="mt-1 text-[13px] text-ink-secondary group-hover:text-white/80">
+                <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
                   v1.0.0 thresholds
                 </span>
               </Link>
 
               <Link
                 to="/docs/data-profile"
-                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper p-6 text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                style={{ padding: '28px 20px' }}
               >
-                <span className="text-2xl mb-2 group-hover:text-white">📊</span>
-                <span className="font-semibold text-[16px] text-navy group-hover:text-white">
+                <img src={docDataProfile} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
+                <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
                   Data profile
                 </span>
-                <span className="mt-1 text-[13px] text-ink-secondary group-hover:text-white/80">
+                <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
                   12 dataset schema
                 </span>
               </Link>
 
               <Link
                 to="/reports/data-gap"
-                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper p-6 text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                style={{ padding: '28px 20px' }}
               >
-                <span className="text-2xl mb-2 group-hover:text-white">📋</span>
-                <span className="font-semibold text-[16px] text-navy group-hover:text-white">
+                <img src={docDataGap} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
+                <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
                   {t('common.dataGapReport', 'Data-gap report')}
                 </span>
-                <span className="mt-1 text-[13px] text-ink-secondary group-hover:text-white/80">
+                <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
                   MoSPI ablation findings
                 </span>
               </Link>
 
               <Link
                 to="/docs/api-reference"
-                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper p-6 text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                style={{ padding: '28px 20px' }}
               >
-                <span className="text-2xl mb-2 group-hover:text-white">⚡</span>
-                <span className="font-semibold text-[16px] text-navy group-hover:text-white">
+                <img src={docApi} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
+                <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
                   API reference
                 </span>
-                <span className="mt-1 text-[13px] text-ink-secondary group-hover:text-white/80">
+                <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
                   Role-scoped endpoints
                 </span>
               </Link>
 
               <Link
                 to="/docs/audit-trail"
-                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper p-6 text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                className="group flex flex-col items-center justify-center rounded border border-rule bg-paper text-center shadow-card transition-colors duration-120 hover:border-portal hover:bg-portal hover:text-white"
+                style={{ padding: '28px 20px' }}
               >
-                <span className="text-2xl mb-2 group-hover:text-white">🔒</span>
-                <span className="font-semibold text-[16px] text-navy group-hover:text-white">
+                <img src={docAudit} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
+                <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
                   {t('common.auditTrail', 'Audit trail')}
                 </span>
-                <span className="mt-1 text-[13px] text-ink-secondary group-hover:text-white/80">
+                <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
                   84,666 chained logs
                 </span>
               </Link>
