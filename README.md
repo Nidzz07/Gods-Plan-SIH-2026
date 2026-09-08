@@ -23,10 +23,10 @@ Four role accounts are provisioned for evaluation. Passwords are set via environ
 
 | Persona | Email | Password | Scope |
 | --- | --- | --- | --- |
-| **Ministry** | `ministry@demo.nigrani.local` | `<NIGRANI_MINISTRY_PASSWORD>` | National view (all states and districts) |
-| **State Nodal Authority** | `nodal.uttarpradesh@demo.nigrani.local` | `<NIGRANI_STATE_PASSWORD>` | Uttar Pradesh (all districts in state) |
-| **District Authority** | `dm.agra@demo.nigrani.local` | `<NIGRANI_DISTRICT_PASSWORD>` | Agra District, Uttar Pradesh |
-| **Member of Parliament** | `office.mp847@demo.nigrani.local` | `<NIGRANI_MP_PASSWORD>` | MP portfolio (read-only) |
+| **Ministry** | `ministry@demo.nigrani.local` | `<Ministry@Demo2026>` | National view (all states and districts) |
+| **State Nodal Authority** | `nodal.uttarpradesh@demo.nigrani.local` | `<StateNodal@Demo2026>` | Uttar Pradesh (all districts in state) |
+| **District Authority** | `dm.agra@demo.nigrani.local` | `<District@Demo2026>` | Agra District, Uttar Pradesh |
+| **Member of Parliament** | `office.mp847@demo.nigrani.local` | `<Member@Demo2026>` | MP portfolio (read-only) |
 
 ---
 
