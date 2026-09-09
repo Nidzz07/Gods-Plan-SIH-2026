@@ -1,4 +1,5 @@
 {
+  "_comment": "BOUNDARY RULES: Translate interface chrome (titles, headings, column headers, button labels, placeholders, captions, empty/error states, severity labels, rule labels). NEVER translate data: work descriptions, state/district/constituency names, MP names, agency names, vendor names, work IDs, case IDs, rule IDs, hashes, emails. Keep digits Latin.",
   "common": {
     "appName": "NIGRANI",
     "appHindi": "निगरानी",
