@@ -15,6 +15,12 @@ const UNIT_MAP = {
   gu: { cr: 'કરોડ', lakh: 'લાખ', k: 'હજાર' },
 }
 
+export const USE_NATIVE_DIGITS = false
+
+function getNumberOpts(extra = {}) {
+  return USE_NATIVE_DIGITS ? extra : { numberingSystem: 'latn', ...extra }
+}
+
 export function getLocaleCode(lang = 'en') {
   return LOCALE_MAP[lang] || 'en-IN'
 }
@@ -24,7 +30,7 @@ export function getLocaleCode(lang = 'en') {
  */
 export function num(v, lang = 'en') {
   if (v === null || v === undefined || isNaN(v)) return '—'
-  return new Intl.NumberFormat(getLocaleCode(lang), { numberingSystem: 'latn' }).format(v)
+  return new Intl.NumberFormat(getLocaleCode(lang), getNumberOpts()).format(v)
 }
 
 /**
@@ -38,20 +44,24 @@ export function formatRupees(v, lang = 'en') {
 
   if (abs >= 1e7) {
     const val = (v / 1e7).toFixed(abs >= 1e9 ? 1 : 2)
-    const formattedNum = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: abs >= 1e9 ? 1 : 2,
-      maximumFractionDigits: abs >= 1e9 ? 1 : 2,
-      numberingSystem: 'latn',
-    }).format(Number(val))
+    const formattedNum = new Intl.NumberFormat(
+      locale,
+      getNumberOpts({
+        minimumFractionDigits: abs >= 1e9 ? 1 : 2,
+        maximumFractionDigits: abs >= 1e9 ? 1 : 2,
+      })
+    ).format(Number(val))
     return `₹${formattedNum} ${units.cr}`
   }
   if (abs >= 1e5) {
     const val = (v / 1e5).toFixed(2)
-    const formattedNum = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      numberingSystem: 'latn',
-    }).format(Number(val))
+    const formattedNum = new Intl.NumberFormat(
+      locale,
+      getNumberOpts({
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    ).format(Number(val))
     return `₹${formattedNum} ${units.lakh}`
   }
   return `₹${num(v, lang)}`
@@ -75,11 +85,13 @@ export function formatDate(dateVal, lang = 'en', options = { dateStyle: 'medium'
 export function formatPercent(v, lang = 'en', decimals = 1) {
   if (v === null || v === undefined || isNaN(v)) return '—'
   const val = Number(v)
-  return `${new Intl.NumberFormat(getLocaleCode(lang), {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-    numberingSystem: 'latn',
-  }).format(val)}%`
+  return `${new Intl.NumberFormat(
+    getLocaleCode(lang),
+    getNumberOpts({
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    })
+  ).format(val)}%`
 }
 
 /**

@@ -28,44 +28,44 @@ export const ROLE_HOME = {
 export const ROLE_NAV_CONFIG = {
   [MINISTRY]: {
     primary: [
-      { to: '/ministry', label: 'National overview', end: true },
-      { to: '/state', label: 'State comparison' },
-      { to: '/district', label: 'District queue' },
-      { to: '/member', label: 'Member accounts' },
+      { to: '/ministry', label: 'National overview', labelKey: 'nav.nationalOverview', end: true },
+      { to: '/state', label: 'State comparison', labelKey: 'nav.stateComparison' },
+      { to: '/district', label: 'District queue', labelKey: 'nav.districtQueue' },
+      { to: '/member', label: 'Member accounts', labelKey: 'nav.memberAccounts' },
     ],
     secondary: [
-      { to: '/rulebook', label: 'Rulebook' },
-      { to: '/alerts', label: 'Alerts', showBadge: true },
-      { to: '/reports/data-gap', label: 'Data-gap report' },
-      { to: '/docs/audit-trail', label: 'Audit trail' },
+      { to: '/rulebook', label: 'Rulebook', labelKey: 'nav.rulebook' },
+      { to: '/alerts', label: 'Alerts', labelKey: 'nav.alerts', showBadge: true },
+      { to: '/reports/data-gap', label: 'Data-gap report', labelKey: 'nav.dataGapReport' },
+      { to: '/docs/audit-trail', label: 'Audit trail', labelKey: 'nav.auditTrail' },
     ],
   },
   [STATE_NODAL]: {
     primary: [
-      { to: '/state', label: 'State overview', end: true },
-      { to: '/district', label: 'District queue' },
+      { to: '/state', label: 'State overview', labelKey: 'nav.stateOverview', end: true },
+      { to: '/district', label: 'District queue', labelKey: 'nav.districtQueue' },
     ],
     secondary: [
-      { to: '/rulebook', label: 'Rulebook' },
-      { to: '/alerts', label: 'Alerts', showBadge: true },
+      { to: '/rulebook', label: 'Rulebook', labelKey: 'nav.rulebook' },
+      { to: '/alerts', label: 'Alerts', labelKey: 'nav.alerts', showBadge: true },
     ],
   },
   [DISTRICT_AUTHORITY]: {
     primary: [
-      { to: '/district', label: 'District queue', end: true },
+      { to: '/district', label: 'District queue', labelKey: 'nav.districtQueue', end: true },
     ],
     secondary: [
-      { to: '/rulebook', label: 'Rulebook' },
-      { to: '/alerts', label: 'Alerts', showBadge: true },
+      { to: '/rulebook', label: 'Rulebook', labelKey: 'nav.rulebook' },
+      { to: '/alerts', label: 'Alerts', labelKey: 'nav.alerts', showBadge: true },
     ],
   },
   [MEMBER_OF_PARLIAMENT]: {
     primary: [
-      { to: '/member', label: 'My account', end: true },
+      { to: '/member', label: 'My account', labelKey: 'nav.myAccount', end: true },
     ],
     secondary: [
-      { to: '/rulebook', label: 'Rulebook' },
-      { to: '/alerts', label: 'Alerts', showBadge: true },
+      { to: '/rulebook', label: 'Rulebook', labelKey: 'nav.rulebook' },
+      { to: '/alerts', label: 'Alerts', labelKey: 'nav.alerts', showBadge: true },
     ],
   },
 }

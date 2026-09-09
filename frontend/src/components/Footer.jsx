@@ -30,48 +30,53 @@ const REFERENCES = [
 
 const SITEMAP_COLUMNS = [
   {
-    title: 'The system',
+    titleKey: 'footer.theSystem',
+    defaultTitle: 'The system',
     links: [
-      { label: 'How it works', href: '#how-it-works' },
-      { label: 'The finding', href: '#the-finding' },
-      { label: 'Detection tiers', href: '#the-wall' },
-      { label: 'Live signal sample', href: '#live-signal' },
+      { labelKey: 'landing.howItWorks', defaultLabel: 'How it works', href: '#how-it-works' },
+      { labelKey: 'landing.theFinding', defaultLabel: 'The finding', href: '#the-finding' },
+      { labelKey: 'footer.detectionTiers', defaultLabel: 'Detection tiers', href: '#the-wall' },
+      { labelKey: 'footer.liveSignalSample', defaultLabel: 'Live signal sample', href: '#live-signal' },
     ],
   },
   {
-    title: 'For authorities',
+    titleKey: 'footer.forAuthorities',
+    defaultTitle: 'For authorities',
     links: [
-      { label: 'Ministry dashboard', href: '/ministry' },
-      { label: 'State overview', href: '/state' },
-      { label: 'District queue', href: '/district' },
-      { label: 'Member account', href: '/member' },
+      { labelKey: 'footer.ministryDashboard', defaultLabel: 'Ministry dashboard', href: '/ministry' },
+      { labelKey: 'common.stateOverview', defaultLabel: 'State overview', href: '/state' },
+      { labelKey: 'common.districtQueue', defaultLabel: 'District queue', href: '/district' },
+      { labelKey: 'footer.memberAccount', defaultLabel: 'Member account', href: '/member' },
     ],
   },
   {
-    title: 'Documentation',
+    titleKey: 'footer.documentation',
+    defaultTitle: 'Documentation',
     links: [
-      { label: 'Rulebook v1.0.0', href: '/rulebook' },
-      { label: 'Data-gap report', href: '/reports/data-gap' },
-      { label: 'Alert queue', href: '/alerts' },
-      { label: 'Data profile', href: '/docs/data-profile' },
+      { labelKey: 'footer.rulebookVer', defaultLabel: 'Rulebook v1.0.0', href: '/rulebook' },
+      { labelKey: 'common.dataGapReport', defaultLabel: 'Data-gap report', href: '/reports/data-gap' },
+      { labelKey: 'common.alerts', defaultLabel: 'Alert queue', href: '/alerts' },
+      { labelKey: 'landing.docDataProfile', defaultLabel: 'Data profile', href: '/docs/data-profile' },
     ],
   },
   {
-    title: 'Data & Integrity',
+    titleKey: 'footer.dataIntegrity',
+    defaultTitle: 'Data & Integrity',
     links: [
-      { label: 'Corpus facts', href: '/#corpus-facts' },
-      { label: '12 Raw datasets', href: 'https://mplads.mospi.gov.in', external: true },
-      { label: 'Scoring engine spec', href: '/rulebook' },
-      { label: 'Audit trail model', href: '/docs/audit-trail' },
+      { labelKey: 'footer.corpusFacts', defaultLabel: 'Corpus facts', href: '/#corpus-facts' },
+      { labelKey: 'footer.rawDatasets', defaultLabel: '12 Raw datasets', href: 'https://mplads.mospi.gov.in', external: true },
+      { labelKey: 'footer.scoringSpec', defaultLabel: 'Scoring engine spec', href: '/rulebook' },
+      { labelKey: 'footer.auditModel', defaultLabel: 'Audit trail model', href: '/docs/audit-trail' },
     ],
   },
   {
-    title: 'About',
+    titleKey: 'landing.about',
+    defaultTitle: 'About',
     links: [
-      { label: 'SIH 2026 PS 26102', href: '#about' },
-      { label: 'MoSPI / DIID', href: 'https://mospi.gov.in', external: true },
-      { label: "Team GOD's Plan", href: '#about' },
-      { label: 'Sign in to portal', href: '/sign-in' },
+      { labelKey: 'footer.sihProblem', defaultLabel: 'SIH 2026 PS 26102', href: '#about' },
+      { labelKey: 'footer.mospiDiid', defaultLabel: 'MoSPI / DIID', href: 'https://mospi.gov.in', external: true },
+      { labelKey: 'footer.teamGodsPlan', defaultLabel: "Team GOD's Plan", href: '#about' },
+      { labelKey: 'footer.signInPortal', defaultLabel: 'Sign in to portal', href: '/sign-in' },
     ],
   },
 ]
@@ -122,11 +127,13 @@ export default function Footer() {
         <div className="mx-auto max-w-[1240px] px-6">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
             {SITEMAP_COLUMNS.map((col) => (
-              <div key={col.title}>
-                <h2 className="text-[15px] font-semibold text-white mb-4">{col.title}</h2>
+              <div key={col.defaultTitle}>
+                <h2 className="text-[15px] font-semibold text-white mb-4">
+                  {t(col.titleKey, col.defaultTitle)}
+                </h2>
                 <ul className="space-y-2">
                   {col.links.map((link) => (
-                    <li key={link.label}>
+                    <li key={link.defaultLabel}>
                       {link.external ? (
                         <a
                           href={link.href}
@@ -134,21 +141,21 @@ export default function Footer() {
                           rel="noopener noreferrer"
                           className="text-[14px] text-[#C9D8E4] transition-colors hover:text-white hover:underline"
                         >
-                          {link.label} ↗
+                          {t(link.labelKey, link.defaultLabel)} ↗
                         </a>
                       ) : link.href.startsWith('#') ? (
                         <a
                           href={link.href}
                           className="text-[14px] text-[#C9D8E4] transition-colors hover:text-white hover:underline"
                         >
-                          {link.label}
+                          {t(link.labelKey, link.defaultLabel)}
                         </a>
                       ) : (
                         <Link
                           to={link.href}
                           className="text-[14px] text-[#C9D8E4] transition-colors hover:text-white hover:underline"
                         >
-                          {link.label}
+                          {t(link.labelKey, link.defaultLabel)}
                         </Link>
                       )}
                     </li>
@@ -165,17 +172,17 @@ export default function Footer() {
         <div className="mx-auto max-w-[1240px] px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="max-w-3xl space-y-1">
             <p>
-              Built for Smart India Hackathon 2026, Problem Statement 26102 (MoSPI, Data Informatics
-              and Innovation Division) by team GOD&rsquo;s Plan. Detection figures are measured on
-              twelve published MPLADS portal exports — a large sample, not the complete national record.
+              {t('footer.colophonP1', 'Built for Smart India Hackathon 2026, Problem Statement 26102 (MoSPI, Data Informatics and Innovation Division) by team GOD’s Plan. Detection figures are measured on twelve published MPLADS portal exports — a large sample, not the complete national record.')}
             </p>
             <p className="font-medium text-white/80">
-              Last reviewed and updated on 06 September 2026 at 15:30 IST.
+              {t('footer.colophonP2', 'Last reviewed and updated on 06 September 2026 at 15:30 IST.')}
             </p>
           </div>
           <div className="shrink-0 text-right">
             <span className="font-display font-semibold text-white/90">NIGRANI</span>
-            <span className="block text-[11px] text-white/50">v1.0.0 · Production build</span>
+            <span className="block text-[11px] text-white/50">
+              {t('footer.buildVersion', 'v1.0.0 · Production build')}
+            </span>
           </div>
         </div>
       </section>

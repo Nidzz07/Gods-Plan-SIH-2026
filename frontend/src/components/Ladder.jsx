@@ -1,56 +1,20 @@
+import { useTranslation } from 'react-i18next'
 import Tag from './Tag.jsx'
 import { GOLD, GREEN, INK_MUTED, NAVY } from '../chart.js'
 import { SKIP_REASON, formatDays, formatPct, formatRupees } from '../severity.js'
 import { CAPTION, CARD, LABEL } from '../ui.js'
 import SectionHeading from './SectionHeading.jsx'
 
-// The two ladders, drawn to scale.
-//
-// They answer the same shape of question about two different quantities: fund
-// reconciles AMOUNT, lifecycle reconciles TIME. Rungs and dates are the
-// readings; hops and lags are the steps between them, and a step is where a
-// finding lives.
-//
-// **Everything is a bar against one scale**, the same treatment the member's
-// account ladder uses, so an officer moving between the two screens is reading
-// one idiom. Within a ladder every bar is measured against that ladder's own
-// largest published value, so the reader can see that disbursement was two
-// fifths of sanction without doing the arithmetic. Scaling each bar to itself
-// would make every rung look equally full, which is the opposite of what a
-// ladder is for.
-//
-// **AN UNMEASURED STEP IS NEVER A CLEAN STEP.** This is the rule the whole
-// component is built around. A rung MoSPI never published draws a DASHED EMPTY
-// TRACK with the reason written inside it - never a bar of zero length, because
-// a zero-length bar is visually identical to an amount of nothing, and "the
-// portal published no certified amount" and "nothing was certified" are
-// different claims. Only the first is true, and it is true of every work in the
-// corpus. A hop that could not be computed reads `Unavailable`, never `Closed`.
-//
-// Severity is carried as a rectangular tag with a text label - pattern (2) -
-// and never as a coloured left-border here, because these are not full data
-// rows. The trace table is where pattern (1) belongs on this screen, and the
-// two never meet on one element.
-
-// State to tag tone. The LABEL carries the meaning, so a reader in greyscale
-// loses nothing.
-//
-// An open step takes gold, not coral. Coral is the case's own HIGH severity and
-// an open hop is not by itself a HIGH case - the score decides that, from the
-// rulebook. Spending the alarm colour on every open hop would leave nothing to
-// say when a case actually is severe.
 const STEP_TONE = { open: 'medium', closed: 'low', computed: 'low', unavailable: 'neutral' }
-const STEP_LABEL = {
-  open: 'Open',
-  closed: 'Closed',
-  computed: 'Computed',
-  unavailable: 'Unavailable',
-}
-
-// Rung colours descend the way the money does: sanctioned, disbursed, certified.
-const RUNG_COLOR = { sanctioned_amt: NAVY, disbursed_amt: GOLD, certified_amt: GREEN }
 
 function StepTag({ state }) {
+  const { t } = useTranslation()
+  const STEP_LABEL = {
+    open: t('common.open', 'Open'),
+    closed: t('common.closed', 'Closed'),
+    computed: t('common.computed', 'Computed'),
+    unavailable: t('common.unavailable', 'Unavailable'),
+  }
   return <Tag tone={STEP_TONE[state] ?? 'neutral'}>{STEP_LABEL[state] ?? state}</Tag>
 }
 
@@ -144,6 +108,7 @@ function Step({ label, measured, compared, state, reason, action, highlighted })
 }
 
 export function FundLadder({ ladder, gapHop }) {
+  const { t } = useTranslation()
   const amounts = ladder.rungs
     .filter((rung) => published(rung.availability))
     .map((rung) => rung.amount ?? 0)
@@ -151,13 +116,14 @@ export function FundLadder({ ladder, gapHop }) {
 
   return (
     <section>
-      <SectionHeading title="Fund ladder">
-        Where the money is. Three rungs to scale against the largest published
-        amount, and two hops, each a signed variance against the rung above it compared with the
-        tolerance the rulebook sets for that hop.
+      <SectionHeading title={t('components.fundLadderTitle', 'Fund ladder')}>
+        {t(
+          'components.fundLadderDesc',
+          'Where the money is. Three rungs to scale against the largest published amount, and two hops, each a signed variance against the rung above it compared with the tolerance the rulebook sets for that hop.'
+        )}
         {gapHop
-          ? ' The first open hop walking down is what this case is scored on.'
-          : ' No hop on this work is open.'}
+          ? ` ${t('components.fundLadderOpenHop', 'The first open hop walking down is what this case is scored on.')}`
+          : ` ${t('components.fundLadderNoOpenHop', 'No hop on this work is open.')}`}
       </SectionHeading>
 
       <div className={`${CARD} mt-4 p-6`}>
@@ -171,13 +137,9 @@ export function FundLadder({ ladder, gapHop }) {
               color={RUNG_COLOR[rung.key] ?? NAVY}
             />
 
-            {/* Declared limitation 3: recommended equals sanctioned on every
-                matched work in this corpus, which is why the cost-overrun rule
-                was designed and then removed. */}
             {rung.recommended_equals_sanctioned ? (
               <p className={`${CAPTION} ml-[146px]`}>
-                Recommended {formatRupees(rung.recommended_amt)} — equal to the sanctioned amount,
-                as it is on every matched work in this corpus.
+                {t('common.recommended', 'Recommended')} {formatRupees(rung.recommended_amt)} — {t('components.recEqualsSanc', 'equal to the sanctioned amount, as it is on every matched work in this corpus.')}
               </p>
             ) : null}
             {rung.note ? <p className={`${CAPTION} ml-[146px]`}>{rung.note}</p> : null}
@@ -187,7 +149,7 @@ export function FundLadder({ ladder, gapHop }) {
                 <Step
                   label={ladder.hops[index].label}
                   measured={formatPct(ladder.hops[index].variance_pct)}
-                  compared={`tolerance ${formatPct(ladder.hops[index].tolerance_pct)}`}
+                  compared={`${t('rulebook.colThreshold', 'tolerance')} ${formatPct(ladder.hops[index].tolerance_pct)}`}
                   state={ladder.hops[index].state}
                   reason={ladder.hops[index].unavailable_reason}
                   action={ladder.hops[index].hop_action}
@@ -203,6 +165,7 @@ export function FundLadder({ ladder, gapHop }) {
 }
 
 export function LifecycleLadder({ ladder, slowestLag }) {
+  const { t } = useTranslation()
   const days = ladder.lags
     .filter((lag) => lag.days !== null && lag.days !== undefined)
     .map((lag) => lag.days)
@@ -210,13 +173,14 @@ export function LifecycleLadder({ ladder, slowestLag }) {
 
   return (
     <section>
-      <SectionHeading title="Lifecycle ladder">
-        Where the time went. Four dates and three lags, in whole days, computed date to date and
-        never clamped — a negative lag is an ingest reject, not a zero. Each lag is drawn against
-        the longest one on this work.
+      <SectionHeading title={t('components.lifecycleLadderTitle', 'Lifecycle ladder')}>
+        {t(
+          'components.lifecycleLadderDesc',
+          'Where the time went. Four dates and three lags, in whole days, computed date to date and never clamped — a negative lag is an ingest reject, not a zero. Each lag is drawn against the longest one on this work.'
+        )}
         {slowestLag
-          ? ' The slowest lag is what says which stage the delay actually occurred in.'
-          : ' No lag on this work is computable.'}
+          ? ` ${t('components.slowestLagDesc', 'The slowest lag is what says which stage the delay actually occurred in.')}`
+          : ` ${t('common.noLagComputable', 'No lag on this work is computable.')}`}
       </SectionHeading>
 
       <div className={`${CARD} mt-4 p-6`}>
@@ -238,11 +202,8 @@ export function LifecycleLadder({ ladder, slowestLag }) {
 
             {ladder.lags[index] ? (
               <div className="mt-4">
-                {/* The lag as a bar as well as a number, so three lags on one
-                    work can be compared by eye — which is the whole question
-                    the lifecycle ladder exists to answer. */}
                 <div className="ml-6 grid grid-cols-[124px_1fr_170px] items-center gap-4">
-                  <span className="text-meta-label uppercase text-ink-secondary">Elapsed</span>
+                  <span className="text-meta-label uppercase text-ink-secondary">{t('common.elapsed', 'Elapsed')}</span>
                   {ladder.lags[index].days === null ||
                   ladder.lags[index].days === undefined ? (
                     <span className="flex h-2 w-full items-center rounded border border-dashed border-border-strong" />
@@ -279,11 +240,11 @@ export function LifecycleLadder({ ladder, slowestLag }) {
         ))}
       </div>
 
-      {/* Payment count is never null — zero payments is a fact about the work,
-          not an unmeasured field — so it is stated flatly rather than guarded. */}
       <p className={`${CAPTION} mt-4`}>
-        {ladder.payment_count === 1 ? '1 payment' : `${ladder.payment_count} payments`} recorded
-        {ladder.last_payment_date ? `, the last on ${ladder.last_payment_date}` : ''}.
+        {ladder.payment_count === 1
+          ? t('components.paymentCount_one', '1 payment recorded')
+          : t('components.paymentCount_other', '{{count}} payments recorded', { count: ladder.payment_count })}
+        {ladder.last_payment_date ? `, ${t('components.lastOn', 'the last on')} ${ladder.last_payment_date}` : ''}.
       </p>
     </section>
   )

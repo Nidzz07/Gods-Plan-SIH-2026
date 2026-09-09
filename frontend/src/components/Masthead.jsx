@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { LogoMark } from './Logo.jsx'
 import { getToken } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { ROLE_HOME } from '../roles.js'
 
 export default function Masthead() {
+  const { t } = useTranslation()
   const [scrolled, setScrolled] = useState(false)
   const { user } = useAuth()
   const token = getToken()
@@ -55,21 +57,21 @@ export default function Masthead() {
             </div>
             {!scrolled && (
               <span className="text-[12px] uppercase tracking-wider text-ink-secondary">
-                MPLADS Oversight
+                {t('landing.mpladsOversight', 'MPLADS Oversight')}
               </span>
             )}
           </div>
         </Link>
 
         {/* Navigation links */}
-        <nav aria-label="Main navigation" className="hidden md:flex items-center gap-6">
+        <nav aria-label={t('nav.mainNav', 'Main navigation')} className="hidden md:flex items-center gap-6">
           <a
             href="#how-it-works"
             className={`text-body-secondary font-medium transition-colors hover:underline ${
               scrolled ? 'text-white/80 hover:text-white' : 'text-ink-secondary hover:text-ink'
             }`}
           >
-            How it works
+            {t('landing.howItWorks', 'How it works')}
           </a>
           <a
             href="#the-finding"
@@ -77,7 +79,7 @@ export default function Masthead() {
               scrolled ? 'text-white/80 hover:text-white' : 'text-ink-secondary hover:text-ink'
             }`}
           >
-            The finding
+            {t('landing.theFinding', 'The finding')}
           </a>
           <Link
             to="/reports/data-gap"
@@ -85,7 +87,7 @@ export default function Masthead() {
               scrolled ? 'text-white/80 hover:text-white' : 'text-ink-secondary hover:text-ink'
             }`}
           >
-            Data-gap report
+            {t('common.dataGapReport', 'Data-gap report')}
           </Link>
           <a
             href="#about"
@@ -93,7 +95,7 @@ export default function Masthead() {
               scrolled ? 'text-white/80 hover:text-white' : 'text-ink-secondary hover:text-ink'
             }`}
           >
-            About
+            {t('landing.about', 'About')}
           </a>
         </nav>
 
@@ -108,7 +110,7 @@ export default function Masthead() {
                   : 'bg-portal text-white hover:bg-portal-deep'
               }`}
             >
-              Go to your dashboard
+              {t('landing.goToDashboard', 'Go to your dashboard')}
             </Link>
           ) : (
             <Link
@@ -119,7 +121,7 @@ export default function Masthead() {
                   : 'bg-portal text-white hover:bg-portal-deep'
               }`}
             >
-              Sign in
+              {t('common.signIn', 'Sign in')}
             </Link>
           )}
         </div>

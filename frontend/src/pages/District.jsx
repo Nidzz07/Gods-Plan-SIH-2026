@@ -102,9 +102,9 @@ export default function District() {
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">
                 <span className="font-mono text-ink-muted">{row.work_id}</span>
                 <span>·</span>
-                <span>{row.gap_hop ? (HOP_LABEL[row.gap_hop] ?? row.gap_hop) : 'no open hop'}</span>
+                <span>{row.gap_hop ? (HOP_LABEL[row.gap_hop] ?? row.gap_hop) : t('common.noOpenHop', 'no open hop')}</span>
                 <span>·</span>
-                <span>{row.slowest_lag ? (LAG_LABEL[row.slowest_lag] ?? row.slowest_lag) : 'no lag'}</span>
+                <span>{row.slowest_lag ? (LAG_LABEL[row.slowest_lag] ?? row.slowest_lag) : t('common.noLag', 'no lag')}</span>
               </div>
             </div>
           )
@@ -188,7 +188,7 @@ export default function District() {
                 meanCoverage: data.summary.mean_coverage_pct,
                 defaultValue: `${num(data.summary.cases, lang)} cases (${num(data.summary.high_cases, lang)} HIGH) under ${t('district.agencyCount', { count: data.agencies.length })} in ${data.state}, scored against rulebook ${cleanRulebookVersion}. Mean signal coverage ${data.summary.mean_coverage_pct}%.`,
               })
-            : 'Ranked highest score first — this queue is the primary working screen for district inspection.'
+            : t('district.workingQueueSubtitle', 'Ranked highest score first — this queue is the primary working screen for district inspection.')
         }
         breadcrumbs={[
           { label: t('common.home', 'Home'), href: '/' },
@@ -196,9 +196,9 @@ export default function District() {
             ? [{ label: t('ministry.title', 'National overview'), href: '/ministry' }]
             : []),
           ...(targetState
-            ? [{ label: `${targetState} overview`, href: `/state/${encodeURIComponent(targetState)}` }]
+            ? [{ label: `${targetState} ${t('common.overview', 'overview')}`, href: `/state/${encodeURIComponent(targetState)}` }]
             : []),
-          { label: targetDistrict ? `${targetDistrict} queue` : 'District queue' },
+          { label: targetDistrict ? `${targetDistrict} ${t('common.queue', 'queue')}` : t('district.defaultTitle', 'District queue') },
         ]}
       />
 
@@ -206,13 +206,12 @@ export default function District() {
       <div className="w-full px-4 sm:px-6 py-8 space-y-10">
         {!targetDistrict && (
           <EmptyState title={t('district.noDistrictBound', 'This account has no district bound to it')}>
-            A District Authority account is scoped to one district. Re-run{' '}
-            <code>python -m app.seed_users</code> to provision it against a district with cases.
+            {t('district.noDistrictBoundBody', 'A District Authority account is scoped to one district. Re-run python -m app.seed_users to provision it against a district with cases.')}
           </EmptyState>
         )}
 
         {loading && (
-          <LoadingRegion label={`Loading queue for ${targetDistrict}…`}>
+          <LoadingRegion label={t('district.loadingQueue', { districtName: targetDistrict, defaultValue: `Loading queue for ${targetDistrict}…` })}>
             <SkeletonPanel lines={3} />
             <SkeletonRows rows={6} />
           </LoadingRegion>
@@ -225,24 +224,24 @@ export default function District() {
             {/* Stat summary */}
             <section aria-labelledby="district-stats-heading">
               <h2 id="district-stats-heading" className="sr-only">
-                District metrics
+                {t('district.metricsAria', 'District metrics')}
               </h2>
               <div className="grid grid-cols-2 gap-grid-gap lg:grid-cols-4">
                 <Figure label={t('common.cases', 'District cases')} value={num(data.summary.cases, lang)} />
                 <Figure
                   label={t('common.highRisk', 'HIGH cases')}
                   value={num(data.summary.high_cases, lang)}
-                  note="Triage inspection candidates"
+                  note={t('district.statTriageNote', 'Triage inspection candidates')}
                 />
                 <Figure
                   label={t('common.worstScore', 'Worst score')}
                   value={num(data.summary.worst_score, lang)}
-                  note="Maximum case score in district"
+                  note={t('district.statWorstDistrictNote', 'Maximum case score in district')}
                 />
                 <Figure
                   label={t('common.sanctioned', 'Sanctioned volume')}
                   value={formatRupees(data.summary.sanctioned_amt, lang)}
-                  note="Total sanctioned funds"
+                  note={t('district.statSanctionedDistrictNote', 'Total sanctioned funds')}
                 />
               </div>
             </section>
@@ -255,16 +254,17 @@ export default function District() {
                   {t('district.agencyConcentration', 'Agency concentration')}
                 </h3>
                 <p className={CAPTION}>
-                  {t('district.agencyCount', { count: data.agencies.length })} in this district. Click
-                  an agency to filter the queue.
+                  {t('district.agencyCaption', { count: data.agencies.length, defaultValue: `${data.agencies.length} implementing agencies in this district. Click an agency to filter the queue.` })}
                 </p>
 
                 {topAgency && (
                   <div className="mt-4 rounded bg-portal-tint p-3 text-[14px] text-ink">
-                    <p className="font-semibold text-portal">Primary agency: {topAgency.row.agency}</p>
+                    <p className="font-semibold text-portal">
+                      {t('district.primaryAgency', { agencyName: topAgency.row.agency, defaultValue: `Primary agency: ${topAgency.row.agency}` })}
+                    </p>
                     <p className="mt-0.5 text-ink-secondary">
-                      {num(topAgency.row.cases, lang)} of {num(data.summary.cases, lang)} cases
-                      {topAgency.sharePct !== null ? ` (${topAgency.sharePct.toFixed(1)}% share)` : ''}
+                      {num(topAgency.row.cases, lang)} {t('common.of', 'of')} {num(data.summary.cases, lang)} {t('common.cases', 'cases')}
+                      {topAgency.sharePct !== null ? ` (${topAgency.sharePct.toFixed(1)}% ${t('district.share', 'share')})` : ''}
                     </p>
                   </div>
                 )}
@@ -276,9 +276,9 @@ export default function District() {
                     caption=""
                     data={agencies}
                     categoryKey="agency"
-                    series={[{ key: 'cases', label: 'Cases', color: NAVY }]}
+                    series={[{ key: 'cases', label: t('common.cases', 'Cases'), color: NAVY }]}
                     valueFormat={(value) => num(value, lang)}
-                    axisLabel="cases"
+                    axisLabel={t('district.axisCases', 'cases')}
                     categoryWidth={140}
                     onBarClick={(entry) =>
                       setSelectedAgency((curr) => (curr === entry.agency ? null : entry.agency))
@@ -289,14 +289,14 @@ export default function District() {
                 {selectedAgency && (
                   <div className="mt-3 flex items-center justify-between text-[13px] bg-paper-sunk p-2.5 rounded border border-rule">
                     <span>
-                      Filtered to: <strong>{selectedAgency}</strong>
+                      {t('district.filteredTo', 'Filtered to:')} <strong>{selectedAgency}</strong>
                     </span>
                     <button
                       type="button"
                       onClick={() => setSelectedAgency(null)}
                       className="text-portal font-semibold hover:underline"
                     >
-                      Clear agency filter
+                      {t('district.clearAgencyFilter', 'Clear agency filter')}
                     </button>
                   </div>
                 )}
@@ -311,8 +311,7 @@ export default function District() {
                         {t('district.workingQueue', 'Working queue')}
                       </h3>
                       <p className={CAPTION}>
-                        {num(filteredCases.length, lang)} cases displayed (minimum 64px row
-                        height, 90ms hover). Click any row to open the full case sheet.
+                        {t('district.queueCaption', { count: num(filteredCases.length, lang), defaultValue: `${num(filteredCases.length, lang)} cases displayed (minimum 64px row height, 90ms hover). Click any row to open the full case sheet.` })}
                       </p>
                     </div>
 
@@ -346,8 +345,8 @@ export default function District() {
                       type="text"
                       value={textFilter}
                       onChange={(e) => setTextFilter(e.target.value)}
-                      placeholder="Filter queue by work ID, description, MP…"
-                      aria-label="Filter queue cases"
+                      placeholder={t('district.filterPlaceholder', 'Filter queue by work ID, description, MP…')}
+                      aria-label={t('district.filterAria', 'Filter queue cases')}
                       className="w-full rounded border border-rule bg-paper py-2.5 px-3.5 text-[15px] text-ink placeholder-ink-muted focus:border-portal focus:outline-none"
                     />
                   </div>
@@ -357,7 +356,7 @@ export default function District() {
                 <div className="overflow-x-auto rounded border border-rule bg-paper shadow-card">
                   <table className="w-full border-collapse">
                     <caption className="sr-only">
-                      District case queue sorted by risk score
+                      {t('district.tableAriaSorted', 'District case queue sorted by risk score')}
                     </caption>
                     <thead>
                       {table.getHeaderGroups().map((headerGroup) => (

@@ -314,8 +314,8 @@ export default function SignIn() {
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? t('signin.hidePassword', 'Hide password') : t('signin.showPassword', 'Show password')}
                     aria-pressed={showPassword}
-                    className="absolute right-0.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-ink-secondary hover:text-ink focus:text-ink transition-colors rounded"
-                    style={{ width: '44px', height: '44px' }}
+                    className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center text-ink-secondary hover:text-ink focus:text-ink transition-colors rounded"
+                    style={{ width: '44px', height: '44px', right: '4px' }}
                   >
                     {showPassword ? (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

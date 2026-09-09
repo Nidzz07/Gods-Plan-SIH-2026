@@ -75,7 +75,7 @@ function AccountLadderCard({ ladder, scale, title, caption, lang, t }) {
         <p className="num text-[14px] font-medium text-ink-secondary">
           {ladder.mp_utilisation_pct === null || ladder.mp_utilisation_pct === undefined
             ? t('common.notPublished', 'utilisation not published')
-            : `${ladder.mp_utilisation_pct.toFixed(2)}% utilised`}
+            : `${ladder.mp_utilisation_pct.toFixed(2)}% ${t('common.utilised', 'utilised')}`}
         </p>
       </div>
 
@@ -136,8 +136,8 @@ export default function Member() {
                 {row.description ?? row.work_id}
               </Link>
               <span className="block text-[13px] text-ink-muted mt-0.5">
-                {row.work_id} · {row.gap_hop ? HOP_LABEL[row.gap_hop] : 'no open hop'} ·{' '}
-                {row.slowest_lag ? LAG_LABEL[row.slowest_lag] : 'no lag computable'}
+                {row.work_id} · {row.gap_hop ? (HOP_LABEL[row.gap_hop] ?? row.gap_hop) : t('common.noOpenHop', 'no open hop')} ·{' '}
+                {row.slowest_lag ? (LAG_LABEL[row.slowest_lag] ?? row.slowest_lag) : t('common.noLagComputable', 'no lag computable')}
               </span>
             </div>
           )
@@ -189,11 +189,16 @@ export default function Member() {
     <article className="relative isolate flex-1 bg-paper w-full">
       {/* Page Hero */}
       <PageHero
-        title={data ? `${data.mp.name} account` : t('member.defaultTitle', 'Constituency overview')}
+        title={data ? t('member.memberAccount', { memberName: data.mp.name, defaultValue: `${data.mp.name} account` }) : t('member.defaultTitle', 'Constituency overview')}
         lede={
           data
-            ? `${data.mp.house === 'rajya_sabha' ? 'Rajya Sabha' : 'Lok Sabha'} · ${data.mp.constituency ?? data.mp.state} · term ${data.mp.term ?? 'current'}. Read-only audit view: scheme subjects do not adjudicate scheme findings.`
-            : 'Member of Parliament account overview and recommended works portfolio.'
+            ? t('member.memberLede', {
+                constituency: data.mp.constituency ?? data.mp.state,
+                state: data.mp.state,
+                term: data.mp.term ?? 'current',
+                defaultValue: `${data.mp.house === 'rajya_sabha' ? 'Rajya Sabha' : 'Lok Sabha'} · ${data.mp.constituency ?? data.mp.state} · term ${data.mp.term ?? 'current'}. Read-only audit view: scheme subjects do not adjudicate scheme findings.`,
+              })
+            : t('member.memberDefaultLede', 'Member of Parliament account overview and recommended works portfolio.')
         }
         breadcrumbs={[
           { label: t('common.home', 'Home'), href: '/' },
@@ -204,14 +209,13 @@ export default function Member() {
       {/* Main Container: Full main column width (§C3) */}
       <div className="w-full px-4 sm:px-6 py-8 space-y-10">
         {!mpId && (
-          <EmptyState title={t('member.noMemberBound', 'This account is not bound to a member')}>
-            A Member of Parliament account is scoped to one member id. Re-run{' '}
-            <code>python -m app.seed_users</code> to provision it.
+          <EmptyState title={t('member.noMemberBound', 'This account has no MP record bound to it')}>
+            {t('member.noMemberBoundBody', 'A Member of Parliament account is scoped to one member id. Re-run python -m app.seed_users to provision it.')}
           </EmptyState>
         )}
 
         {loading && (
-          <LoadingRegion label="Loading account ladder…">
+          <LoadingRegion label={t('member.loadingLadder', 'Loading account ladder…')}>
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={4} />
           </LoadingRegion>
@@ -224,27 +228,27 @@ export default function Member() {
             {/* Stat Strip */}
             <section aria-labelledby="member-stats-heading">
               <h2 id="member-stats-heading" className="sr-only">
-                Member account metrics
+                {t('member.metricsAria', 'Member account metrics')}
               </h2>
               <div className="grid grid-cols-2 gap-grid-gap lg:grid-cols-4">
                 <Figure label={t('common.works', 'Recommended works')} value={num(data.portfolio?.cases, lang)} />
                 <Figure
                   label={t('common.highRisk', 'HIGH cases')}
                   value={num(data.portfolio?.high_cases, lang)}
-                  note="Cases with severe delay or gap"
+                  note={t('member.severeDelayNote', 'Cases with severe delay or gap')}
                 />
                 <Figure
-                  label={t('common.sanctioned', 'Total Sanctioned')}
+                  label={t('member.totalSanctioned', 'Total Sanctioned')}
                   value={formatRupees(data.portfolio?.sanctioned_amt, lang)}
                 />
                 <Figure
-                  label="Utilisation percentile"
+                  label={t('member.utilPercentile', 'Utilisation percentile')}
                   value={
                     data.utilisation_percentile === null
                       ? '—'
                       : `${num(data.utilisation_percentile, lang)}th`
                   }
-                  note={`Against ${num(data.utilisation_peers, lang)} peer members`}
+                  note={t('member.againstPeers', { count: num(data.utilisation_peers, lang), defaultValue: `Against ${num(data.utilisation_peers, lang)} peer members` })}
                 />
               </div>
             </section>
@@ -256,8 +260,7 @@ export default function Member() {
                   {t('member.accountLadder', 'Account allocation ladder')}
                 </h3>
                 <p className={CAPTION}>
-                  Allocated, sanctioned and disbursed funds. Unpublished years render as a dashed
-                  outline carrying &ldquo;not published by MoSPI&rdquo; — never as a zero bar.
+                  {t('member.ladderCaption', 'Allocated, sanctioned and disbursed funds. Unpublished years render as a dashed outline carrying “not published by MoSPI” — never as a zero bar.')}
                 </p>
               </div>
 
@@ -268,8 +271,8 @@ export default function Member() {
                     scale={scale}
                     lang={lang}
                     t={t}
-                    title="Term to date cumulative allocation"
-                    caption="Cumulative allocation published on the portal. MoSPI publishes one cumulative figure per member and no per-financial-year breakdown."
+                    title={t('member.termCumulativeTitle', 'Term to date cumulative allocation')}
+                    caption={t('member.termCumulativeCaption', 'Cumulative allocation published on the portal. MoSPI publishes one cumulative figure per member and no per-financial-year breakdown.')}
                   />
                 </div>
               )}
@@ -297,7 +300,7 @@ export default function Member() {
                   {t('member.recommendedWorks', 'Recommended works portfolio')}
                 </h3>
                 <p className={CAPTION}>
-                  All {num(data.worst_cases.length, lang)} works recommended across districts. Read-only view.
+                  {t('member.portfolioCaption', { count: num(data.worst_cases.length, lang), defaultValue: `All ${num(data.worst_cases.length, lang)} works recommended across districts. Read-only view.` })}
                 </p>
               </div>
 
@@ -308,9 +311,9 @@ export default function Member() {
                 data={data.worst_cases}
                 initialSort={[{ id: 'score', desc: true }]}
                 rowAccent={(row) => SEVERITY_BORDER[row.severity]}
-                emptyTitle="No cases for this member"
-                emptyBody="No sanctioned work recommended by this member produced a case in the committed sample."
-                footnote="This table is read-only. An MP can inspect any case sheet to review the lifecycle ladder and attribution of administrative delays."
+                emptyTitle={t('member.emptyTitle', 'No cases for this member')}
+                emptyBody={t('member.emptyBody', 'No sanctioned work recommended by this member produced a case in the committed sample.')}
+                footnote={t('member.tableFootnote', 'This table is read-only. An MP can inspect any case sheet to review the lifecycle ladder and attribution of administrative delays.')}
               />
             </section>
           </>

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export default function PreviewList({ items = [], title, caption, className = '' }) {
+  const { t } = useTranslation()
   const [activeIndex, setActiveIndex] = useState(0)
   const navigate = useNavigate()
 
@@ -104,7 +106,7 @@ export default function PreviewList({ items = [], title, caption, className = ''
               <div className="w-full sm:w-[42%] shrink-0 h-44 rounded border border-rule bg-portal-tint/70 py-card-y px-card-x flex flex-col justify-between">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-portal">
-                    Preview record
+                    {t('landing.previewRecord', 'Preview record')}
                   </span>
                   <p className="mt-1 font-display text-[18px] font-semibold text-navy line-clamp-2">
                     {activeItem.title || activeItem.label}
@@ -140,7 +142,7 @@ export default function PreviewList({ items = [], title, caption, className = ''
                     to={activeItem.href}
                     className="inline-flex items-center justify-center rounded bg-portal px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-portal-deep focus:outline-none"
                   >
-                    Open record
+                    {t('common.openRecord', 'Open record')}
                   </Link>
                 </div>
               )}

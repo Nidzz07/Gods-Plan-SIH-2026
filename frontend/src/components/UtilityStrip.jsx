@@ -77,8 +77,8 @@ export default function UtilityStrip() {
         <button
           type="button"
           onClick={cycleTextSize}
-          aria-label={`Current text size: ${SIZE_ARIA[textSize]}. Click to change.`}
-          title={`Text size: ${SIZE_ARIA[textSize]}`}
+          aria-label={t('utility.textSizeAria', { size: SIZE_LABELS[textSize], defaultValue: `Current text size: ${SIZE_ARIA[textSize]}. Click to change.` })}
+          title={`${t('utility.textSize', 'Text size')}: ${SIZE_LABELS[textSize]}`}
           className="rounded border border-[#C9D8E4]/30 px-2 py-0.5 font-medium text-[#C9D8E4] transition-colors hover:border-[#C9D8E4] hover:bg-[#C9D8E4]/10"
         >
           {SIZE_LABELS[textSize]}
@@ -87,9 +87,9 @@ export default function UtilityStrip() {
         <button
           type="button"
           onClick={toggleContrast}
-          aria-label={`High contrast: ${highContrast ? 'On' : 'Off'}. Click to toggle.`}
+          aria-label={t('utility.contrastAria', { status: highContrast ? t('utility.statusOn', 'On') : t('utility.statusOff', 'Off'), defaultValue: `High contrast: ${highContrast ? 'On' : 'Off'}. Click to toggle.` })}
           aria-pressed={highContrast}
-          title="Toggle high contrast"
+          title={t('utility.highContrast', 'High contrast mode')}
           className={`rounded border px-2 py-0.5 font-medium transition-colors ${
             highContrast
               ? 'border-white bg-white text-portal-deep'

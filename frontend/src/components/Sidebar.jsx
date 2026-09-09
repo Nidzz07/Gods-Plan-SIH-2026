@@ -56,7 +56,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
               type="button"
               onClick={onClose}
               className="lg:hidden rounded p-1 text-ink-secondary hover:bg-portal-tint"
-              aria-label="Close sidebar"
+              aria-label={t('common.closeSidebar', 'Close sidebar')}
             >
               ✕
             </button>
@@ -76,7 +76,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder={t('common.filterMenu', 'Filter menu…')}
-            aria-label="Filter navigation items"
+            aria-label={t('common.filterNavigation', 'Filter navigation items')}
             className="w-full rounded border border-rule bg-paper py-2 pr-3 text-[14px] text-ink placeholder-ink-muted focus:border-portal focus:outline-none"
             style={{ paddingLeft: '38px' }}
           />
@@ -88,7 +88,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
   const navContent = (
     <div className="rail__nav">
       {/* Primary nav items */}
-      <nav aria-label="Primary navigation" className="space-y-1">
+      <nav aria-label={t('common.primaryNavigation', 'Primary navigation')} className="space-y-1">
         {filteredPrimary.map((item) => (
           <NavLink
             key={item.to}
@@ -97,7 +97,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
             onClick={onClose}
             className={navClass}
           >
-            <span>{item.label}</span>
+            <span>{item.labelKey ? t(item.labelKey, item.label) : item.label}</span>
           </NavLink>
         ))}
       </nav>
@@ -108,7 +108,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
       )}
 
       {/* Secondary nav items */}
-      <nav aria-label="System navigation" className="space-y-1">
+      <nav aria-label={t('common.secondaryNavigation', 'Secondary navigation')} className="space-y-1">
         {filteredSecondary.map((item) => (
           <NavLink
             key={item.to}
@@ -117,7 +117,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
             onClick={onClose}
             className={navClass}
           >
-            <span>{item.label}</span>
+            <span>{item.labelKey ? t(item.labelKey, item.label) : item.label}</span>
             {item.showBadge && openAlertsCount !== null && openAlertsCount > 0 && (
               <span className="num ml-2 rounded bg-gold px-1.5 py-0.5 text-[12px] font-semibold text-white">
                 {openAlertsCount}
@@ -138,7 +138,7 @@ export default function Sidebar({ user, isOpen, onClose }) {
         {user?.display_name ?? 'Officer'}
       </p>
       <p className="text-[13px] text-ink-secondary truncate">
-        {ROLE_LABEL[user?.role] ?? user?.role}
+        {user?.role ? t(`roles.${user.role}`, ROLE_LABEL[user.role] ?? user.role) : '—'}
       </p>
       <button
         type="button"

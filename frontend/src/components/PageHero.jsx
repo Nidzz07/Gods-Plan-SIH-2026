@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export default function PageHero({
   title,
@@ -7,12 +8,14 @@ export default function PageHero({
   action = null,
   className = '',
 }) {
+  const { t } = useTranslation()
+
   return (
     <header className={`border-b border-rule bg-paper px-6 py-6 lg:px-8 ${className}`}>
       <div className="mx-auto max-w-[1240px]">
         {/* Breadcrumb (§7.2: Home › <Role home> › <Page>) */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav aria-label="Breadcrumb" className="mb-3">
+          <nav aria-label={t('nav.breadcrumb', 'Breadcrumb')} className="mb-3">
             <ol className="flex flex-wrap items-center gap-1.5 text-[14px] text-ink-secondary">
               {breadcrumbs.map((crumb, idx) => {
                 const isLast = idx === breadcrumbs.length - 1

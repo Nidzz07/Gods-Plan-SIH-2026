@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import PageHero from '../components/PageHero.jsx'
 
 const DOCS_CONTENT = {
@@ -47,14 +48,15 @@ const DOCS_CONTENT = {
 }
 
 export default function StaticDocPage() {
+  const { t } = useTranslation()
   const { docId } = useParams()
   const doc = DOCS_CONTENT[docId] || {
-    title: 'System documentation',
-    lede: 'Official specification and system architecture records for NIGRANI.',
+    title: t('doc.systemDoc', 'System documentation'),
+    lede: t('doc.docLede', 'Official specification and system architecture records for NIGRANI.'),
     sections: [
       {
-        heading: 'Architecture',
-        body: 'Four-tier detection architecture enforcing a strict boundary between deterministic rule scoring and zero-weight machine learning badges.',
+        heading: t('doc.archHeading', 'Architecture'),
+        body: t('doc.archBody', 'Four-tier detection architecture enforcing a strict boundary between deterministic rule scoring and zero-weight machine learning badges.'),
       },
     ],
   }
@@ -65,8 +67,8 @@ export default function StaticDocPage() {
         title={doc.title}
         lede={doc.lede}
         breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Documentation', href: '/#docs' },
+          { label: t('common.home', 'Home'), href: '/' },
+          { label: t('nav.docs', 'Documentation'), href: '/#docs' },
           { label: doc.title },
         ]}
       />
@@ -88,13 +90,13 @@ export default function StaticDocPage() {
             to="/rulebook"
             className="rounded bg-portal px-4 py-2 text-[14px] font-medium text-white hover:bg-portal-deep"
           >
-            Open Rulebook
+            {t('doc.openRulebook', 'Open Rulebook')}
           </Link>
           <Link
             to="/reports/data-gap"
             className="rounded border border-rule bg-paper px-4 py-2 text-[14px] font-medium text-ink hover:bg-paper-sunk"
           >
-            View Data-gap Report
+            {t('doc.viewDataGap', 'View Data-gap Report')}
           </Link>
         </div>
       </div>

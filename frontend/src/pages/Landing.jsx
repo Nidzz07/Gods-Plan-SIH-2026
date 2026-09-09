@@ -186,7 +186,7 @@ export default function Landing() {
                   <select
                     value={searchCategory}
                     onChange={(e) => setSearchCategory(e.target.value)}
-                    aria-label="Search filter category"
+                    aria-label={t('landing.searchCategory', 'Search filter category')}
                     className="rounded bg-white text-[#14171A] border border-white/30 font-medium focus:outline-none focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                     style={{ height: '56px', padding: '0 20px', fontSize: '1.05rem', width: '220px', borderRadius: '4px' }}
                   >
@@ -251,7 +251,7 @@ export default function Landing() {
                     e.currentTarget.style.color = '#0B2E4F'
                   }}
                 >
-                  {t('roles.ministry', 'Ministry')} {t('common.overview', 'overview')}
+                  {t('nav.nationalOverview', 'Ministry overview')}
                 </Link>
                 <Link
                   to="/district"
@@ -276,7 +276,7 @@ export default function Landing() {
                     e.currentTarget.style.color = '#0B2E4F'
                   }}
                 >
-                  {t('common.district', 'District')} {t('common.queue', 'queue')}
+                  {t('common.districtQueue', 'District queue')}
                 </Link>
                 <Link
                   to="/reports/data-gap"
@@ -400,7 +400,7 @@ export default function Landing() {
               <div className="md:col-span-6 space-y-6 rounded border border-rule bg-paper-sunk/60 p-8 shadow-card">
                 <div>
                   <div className="flex justify-between type-body-lg font-medium text-ink mb-1.5">
-                    <span>{t('common.recommended', 'Recommended amount')}</span>
+                    <span>{t('landing.findingRecAmount', 'Recommended amount')}</span>
                     <span className="num font-semibold text-portal">100%</span>
                   </div>
                   <div className="h-6 w-full rounded bg-rule/50 overflow-hidden">
@@ -413,7 +413,7 @@ export default function Landing() {
 
                 <div>
                   <div className="flex justify-between type-body-lg font-medium text-ink mb-1.5">
-                    <span>{t('common.sanctioned', 'Sanctioned amount')}</span>
+                    <span>{t('landing.findingSancAmount', 'Sanctioned amount')}</span>
                     <span className="num font-semibold text-ink-secondary">100%</span>
                   </div>
                   <div className="h-6 w-full rounded bg-rule/50 overflow-hidden">
@@ -427,10 +427,10 @@ export default function Landing() {
                 <div className="pt-4 border-t border-rule">
                   <p className="font-display text-[38px] text-coral leading-none font-bold">14,831</p>
                   <p className="mt-1 type-body-lg font-medium text-ink">
-                    of 14,831 matched works identical
+                    {t('landing.findingCount', 'of 14,831 matched works identical')}
                   </p>
                   <p className="mt-2 text-[14px] text-ink-secondary">
-                    Every matched work where both numbers are published has zero variance.
+                    {t('landing.findingVariance', 'Every matched work where both numbers are published has zero variance.')}
                   </p>
                 </div>
               </div>
@@ -439,24 +439,21 @@ export default function Landing() {
               <div className="md:col-span-6 space-y-4">
                 <div>
                   <h2 className="font-display type-section text-navy font-semibold">
-                    What we found before we built
+                    {t('landing.findingHeading', 'What we found before we built')}
                   </h2>
                   <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
                 </div>
 
                 <p className="type-lede text-ink leading-relaxed">
-                  Across every work where both figures are published, the recommended amount and the
-                  sanctioned amount are the same number. Not close — identical.
+                  {t('landing.findingP1', 'Across every work where both figures are published, the recommended amount and the sanctioned amount are the same number. Not close — identical.')}
                 </p>
 
                 <p className="type-body-lg text-ink-secondary leading-relaxed">
-                  The portal publishes no revised estimate, so cost overrun cannot be detected from
-                  public MPLADS data at all.
+                  {t('landing.findingP2', 'The portal publishes no revised estimate, so cost overrun cannot be detected from public MPLADS data at all.')}
                 </p>
 
                 <p className="type-body-lg text-ink font-medium leading-relaxed">
-                  MPLADS data is financially flat and temporally rich. The signal is in time and
-                  repetition — and that is what NIGRANI reads.
+                  {t('landing.findingP3', 'MPLADS data is financially flat and temporally rich. The signal is in time and repetition — and that is what NIGRANI reads.')}
                 </p>
               </div>
             </div>
@@ -470,12 +467,11 @@ export default function Landing() {
           <div className="mx-auto max-w-[1240px] px-6">
             <div>
               <h2 className="font-display type-section text-navy font-semibold">
-                Built for four authorities
+                {t('landing.authoritiesHeading', 'Built for four authorities')}
               </h2>
               <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
               <p className="mt-3 type-lede text-ink-secondary max-w-[72ch]">
-                Each sees only what their office is responsible for. Scoping is enforced in the
-                database query, not in the interface.
+                {t('landing.authoritiesLede', 'Each sees only what their office is responsible for. Scoping is enforced in the database query, not in the interface.')}
               </p>
             </div>
 
@@ -487,21 +483,20 @@ export default function Landing() {
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
                       {t('roles.ministry', 'Ministry')}
                     </span>
-                    <span className="text-xs text-ink-muted">Unrestricted</span>
+                    <span className="text-xs text-ink-muted">{t('landing.scopeUnrestricted', 'Unrestricted')}</span>
                   </div>
                   <h3 className="mt-4 font-display text-[22px] font-semibold text-navy">
-                    MoSPI Analyst
+                    {t('roles.ministryAnalyst', 'MoSPI Analyst')}
                   </h3>
                   <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                    National risk map, state league table, and a reporting-gap report on MoSPI&rsquo;s
-                    own data format.
+                    {t('landing.roleDescMinistry', 'National risk map, state league table, and a reporting-gap report on MoSPI’s own data format.')}
                   </p>
                 </div>
                 <Link
                   to="/sign-in?role=ministry"
                   className="mt-6 inline-block text-[15px] font-semibold text-portal hover:underline"
                 >
-                  {t('common.signIn', 'Sign in')} as {t('roles.ministry', 'Ministry')}
+                  {t('landing.signInAs', 'Sign in as {{role}}', { role: t('roles.ministry', 'Ministry') })}
                 </Link>
               </div>
 
@@ -512,21 +507,20 @@ export default function Landing() {
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
                       {t('roles.stateNodal', 'State Nodal')}
                     </span>
-                    <span className="text-xs text-ink-muted">One state</span>
+                    <span className="text-xs text-ink-muted">{t('landing.scopeOneState', 'One state')}</span>
                   </div>
                   <h3 className="mt-4 font-display text-[22px] font-semibold text-navy">
-                    State Officer
+                    {t('roles.stateOfficer', 'State Officer')}
                   </h3>
                   <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                    District comparison and utilisation trend, so slow districts surface before
-                    financial year-end.
+                    {t('landing.roleDescState', 'District comparison and utilisation trend, so slow districts surface before financial year-end.')}
                   </p>
                 </div>
                 <Link
                   to="/sign-in?role=state_nodal"
                   className="mt-6 inline-block text-[15px] font-semibold text-portal hover:underline"
                 >
-                  {t('common.signIn', 'Sign in')} as {t('roles.stateNodal', 'State Nodal')}
+                  {t('landing.signInAs', 'Sign in as {{role}}', { role: t('roles.stateNodal', 'State Nodal') })}
                 </Link>
               </div>
 
@@ -537,21 +531,20 @@ export default function Landing() {
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
                       {t('roles.district', 'District')}
                     </span>
-                    <span className="text-xs text-ink-muted">One district</span>
+                    <span className="text-xs text-ink-muted">{t('landing.scopeOneDistrict', 'One district')}</span>
                   </div>
                   <h3 className="mt-4 font-display text-[22px] font-semibold text-navy">
-                    District Magistrate
+                    {t('roles.districtMagistrate', 'District Magistrate')}
                   </h3>
                   <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                    A ranked, evidence-ordered queue that replaces rotation-based inspection with
-                    evidence triage.
+                    {t('landing.roleDescDistrict', 'A ranked, evidence-ordered queue that replaces rotation-based inspection with evidence triage.')}
                   </p>
                 </div>
                 <Link
                   to="/sign-in?role=district_authority"
                   className="mt-6 inline-block text-[15px] font-semibold text-portal hover:underline"
                 >
-                  {t('common.signIn', 'Sign in')} as {t('roles.district', 'District')}
+                  {t('landing.signInAs', 'Sign in as {{role}}', { role: t('roles.district', 'District') })}
                 </Link>
               </div>
 
@@ -562,20 +555,20 @@ export default function Landing() {
                     <span className="rounded bg-portal/10 px-2.5 py-1 text-[13px] font-semibold text-portal uppercase">
                       {t('roles.member', 'MP')}
                     </span>
-                    <span className="text-xs text-ink-muted">Own works</span>
+                    <span className="text-xs text-ink-muted">{t('landing.scopeOwnWorks', 'Own works')}</span>
                   </div>
                   <h3 className="mt-4 font-display text-[22px] font-semibold text-navy">
-                    Member of Parliament
+                    {t('roles.memberOfParliament', 'Member of Parliament')}
                   </h3>
                   <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                    Own account utilisation and stalled recommendations, in a read-only audit view.
+                    {t('landing.roleDescMember', 'Own account utilisation and stalled recommendations, in a read-only audit view.')}
                   </p>
                 </div>
                 <Link
                   to="/sign-in?role=member_of_parliament"
                   className="mt-6 inline-block text-[15px] font-semibold text-portal hover:underline"
                 >
-                  {t('common.signIn', 'Sign in')} as {t('roles.member', 'Member')}
+                  {t('landing.signInAs', 'Sign in as {{role}}', { role: t('roles.member', 'Member') })}
                 </Link>
               </div>
             </div>
@@ -588,74 +581,68 @@ export default function Landing() {
         <section id="how-it-works" className="bg-paper py-18 border-b border-rule">
           <div className="mx-auto max-w-[1240px] px-6">
             <div>
-              <h2 className="font-display type-section text-navy font-semibold">How a case is scored</h2>
+              <h2 className="font-display type-section text-navy font-semibold">{t('landing.scoringHeading', 'How a case is scored')}</h2>
               <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
             </div>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">01 · Fund ladder</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard1Step', '01 · Fund ladder')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  Sanctioned → Disbursed → Certified
+                  {t('landing.scoreCard1Title', 'Sanctioned → Disbursed → Certified')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  The system names which hop the money stalled at, comparing signed variance
-                  against measured tolerances.
+                  {t('landing.scoreCard1Desc', 'The system names which hop the money stalled at, comparing signed variance against measured tolerances.')}
                 </p>
               </div>
 
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">02 · Lifecycle</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard2Step', '02 · Lifecycle')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  Recommended → Sanctioned → Paid → Done
+                  {t('landing.scoreCard2Title', 'Recommended → Sanctioned → Paid → Done')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  Identifies which administrative or execution stage lost the time, so criticism
-                  lands on the responsible desk.
+                  {t('landing.scoreCard2Desc', 'Identifies which administrative or execution stage lost the time, so criticism lands on the responsible desk.')}
                 </p>
               </div>
 
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">03 · Rulebook</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard3Step', '03 · Rulebook')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  An editable threshold matrix
+                  {t('landing.scoreCard3Title', 'An editable threshold matrix')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  Ten thresholds in YAML, each carrying the count of works it fires on. The
-                  Ministry edits them live with versioning.
+                  {t('landing.scoreCard3Desc', 'Ten thresholds in YAML, each carrying the count of works it fires on. The Ministry edits them live with versioning.')}
                 </p>
               </div>
 
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">04 · Coverage</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard4Step', '04 · Coverage')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  Coverage, stated honestly
+                  {t('landing.scoreCard4Title', 'Coverage, stated honestly')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  A rule with no reading is reported as not published, never as passed. Mean signal
-                  coverage today is 58.47%.
+                  {t('landing.scoreCard4Desc', 'A rule with no reading is reported as not published, never as passed. Mean signal coverage today is 58.47%.')}
                 </p>
               </div>
 
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">05 · Duplicates</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard5Step', '05 · Duplicates')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  Duplicates, cited not accused
+                  {t('landing.scoreCard5Title', 'Duplicates, cited not accused')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  Opens candidate work IDs side by side for manual review. 447 clusters found across
-                  agencies.
+                  {t('landing.scoreCard5Desc', 'Opens candidate work IDs side by side for manual review. 447 clusters found across agencies.')}
                 </p>
               </div>
 
               <div className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-                <span className="text-[13px] font-bold uppercase text-portal">06 · Audit trail</span>
+                <span className="text-[13px] font-bold uppercase text-portal">{t('landing.scoreCard6Step', '06 · Audit trail')}</span>
                 <h3 className="mt-2 font-display text-[20px] font-semibold text-navy">
-                  An append-only trail
+                  {t('landing.scoreCard6Title', 'An append-only trail')}
                 </h3>
                 <p className="mt-2 type-body-lg text-ink-secondary leading-relaxed">
-                  84,666 hash-chained events. A score re-derives months later against the stored
-                  rulebook snapshot in force that day.
+                  {t('landing.scoreCard6Desc', '84,666 hash-chained events. A score re-derives months later against the stored rulebook snapshot in force that day.')}
                 </p>
               </div>
             </div>
@@ -669,7 +656,7 @@ export default function Landing() {
           <div className="mx-auto max-w-[1240px] px-6">
             <div>
               <h2 className="font-display type-section text-white font-semibold">
-                Four detection tiers, and the wall between them
+                {t('landing.wallHeading', 'Four detection tiers, and the wall between them')}
               </h2>
               <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
             </div>
@@ -679,20 +666,18 @@ export default function Landing() {
               <div className="space-y-4 rounded border border-white/20 bg-portal-deep/50 p-6">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <span className="text-[14px] font-bold uppercase tracking-wider text-saffron">
-                    Tiers 1 & 2 · Deterministic scoring
+                    {t('landing.wallDeterministic', 'Tiers 1 & 2 · Deterministic scoring')}
                   </span>
                   <span className="rounded bg-coral px-2.5 py-0.5 text-[12px] font-bold uppercase text-white">
-                    Scores
+                    {t('landing.wallScores', 'Scores')}
                   </span>
                 </div>
                 <div className="space-y-3 type-body-lg text-[#C9D8E4]">
                   <p>
-                    <strong className="text-white">Tier 1 — The Rulebook:</strong> 10 domain rules
-                    evaluating fund gaps, execution delays, and missing milestones.
+                    <strong className="text-white">{t('landing.tier1Label', 'Tier 1 — The Rulebook:')}</strong> {t('landing.tier1Desc', '10 domain rules evaluating fund gaps, execution delays, and missing milestones.')}
                   </p>
                   <p>
-                    <strong className="text-white">Tier 2 — Duplicate Detection:</strong>{' '}
-                    Syntactic & semantic clustering with cited candidate works.
+                    <strong className="text-white">{t('landing.tier2Label', 'Tier 2 — Duplicate Detection:')}</strong>{' '}{t('landing.tier2Desc', 'Syntactic & semantic clustering with cited candidate works.')}
                   </p>
                 </div>
               </div>
@@ -701,20 +686,18 @@ export default function Landing() {
               <div className="space-y-4 rounded border border-white/20 bg-portal-deep/50 p-6 border-l-4 border-l-coral">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <span className="text-[14px] font-bold uppercase tracking-wider text-[#C9D8E4]">
-                    Tiers 3 & 4 · Statistical & Graph
+                    {t('landing.wallStatistical', 'Tiers 3 & 4 · Statistical & Graph')}
                   </span>
                   <span className="rounded bg-white/20 px-2.5 py-0.5 text-[12px] font-bold uppercase text-white">
-                    Badges, worth zero
+                    {t('landing.wallBadges', 'Badges, worth zero')}
                   </span>
                 </div>
                 <div className="space-y-3 type-body-lg text-[#C9D8E4]">
                   <p>
-                    <strong className="text-white">Tier 3 — Anomaly & Delay:</strong> Isolation
-                    forest and gradient-boosted delay forecast.
+                    <strong className="text-white">{t('landing.tier3Label', 'Tier 3 — Anomaly & Delay:')}</strong> {t('landing.tier3Desc', 'Isolation forest and gradient-boosted delay forecast.')}
                   </p>
                   <p>
-                    <strong className="text-white">Tier 4 — Graph Centrality:</strong> Co-occurrence
-                    centrality and vendor concentration (HHI).
+                    <strong className="text-white">{t('landing.tier4Label', 'Tier 4 — Graph Centrality:')}</strong> {t('landing.tier4Desc', 'Co-occurrence centrality and vendor concentration (HHI).')}
                   </p>
                 </div>
               </div>
@@ -731,9 +714,7 @@ export default function Landing() {
             </div>
 
             <p className="mt-6 type-body-lg text-white/90 leading-relaxed text-center max-w-3xl mx-auto">
-              An automated test walks the import graph and fails the build if the scoring engine
-              ever imports the machine-learning package. The number in the corner cannot come from
-              a model.
+              {t('landing.wallIntegrity', 'An automated test walks the import graph and fails the build if the scoring engine ever imports the machine-learning package. The number in the corner cannot come from a model.')}
             </p>
           </div>
         </section>
@@ -745,11 +726,11 @@ export default function Landing() {
           <div className="mx-auto max-w-[1240px] px-6">
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
               <div>
-                <h2 className="font-display type-section text-navy font-semibold">Live signal</h2>
+                <h2 className="font-display type-section text-navy font-semibold">{t('landing.liveSignalHeading', 'Live signal')}</h2>
                 <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
               </div>
               <span className="text-[13px] font-medium uppercase tracking-wider text-ink-muted">
-                Sample from the committed corpus
+                {t('landing.liveSignalSample', 'Sample from the committed corpus')}
               </span>
             </div>
 
@@ -757,7 +738,7 @@ export default function Landing() {
               {/* Left: High risk cases */}
               <div className="rounded border border-rule bg-paper shadow-card py-card-y px-card-x">
                 <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
-                  High-risk cases in sample
+                  {t('landing.liveSignalHighCases', 'High-risk cases in sample')}
                 </h3>
                 <ul className="divide-y divide-rule type-body-lg">
                   <li className="py-3 flex items-center justify-between">
@@ -769,7 +750,7 @@ export default function Landing() {
                     </div>
                     <div className="text-right">
                       <span className="num font-bold text-coral text-[18px]">92</span>
-                      <span className="block text-[12px] uppercase text-ink-muted">Utilisation shortfall</span>
+                      <span className="block text-[12px] uppercase text-ink-muted">{t('landing.ruleHitUtilisation', 'Utilisation shortfall')}</span>
                     </div>
                   </li>
                   <li className="py-3 flex items-center justify-between">
@@ -781,7 +762,7 @@ export default function Landing() {
                     </div>
                     <div className="text-right">
                       <span className="num font-bold text-coral text-[18px]">88</span>
-                      <span className="block text-[12px] uppercase text-ink-muted">Execution delay</span>
+                      <span className="block text-[12px] uppercase text-ink-muted">{t('landing.ruleHitExecution', 'Execution delay')}</span>
                     </div>
                   </li>
                   <li className="py-3 flex items-center justify-between">
@@ -793,7 +774,7 @@ export default function Landing() {
                     </div>
                     <div className="text-right">
                       <span className="num font-bold text-coral text-[18px]">85</span>
-                      <span className="block text-[12px] uppercase text-ink-muted">Duplicate work</span>
+                      <span className="block text-[12px] uppercase text-ink-muted">{t('landing.ruleHitDuplicate', 'Duplicate work')}</span>
                     </div>
                   </li>
                   <li className="py-3 flex items-center justify-between">
@@ -805,7 +786,7 @@ export default function Landing() {
                     </div>
                     <div className="text-right">
                       <span className="num font-bold text-coral text-[18px]">82</span>
-                      <span className="block text-[12px] uppercase text-ink-muted">Administrative lag</span>
+                      <span className="block text-[12px] uppercase text-ink-muted">{t('landing.ruleHitAdminLag', 'Administrative lag')}</span>
                     </div>
                   </li>
                   <li className="py-3 flex items-center justify-between">
@@ -817,7 +798,7 @@ export default function Landing() {
                     </div>
                     <div className="text-right">
                       <span className="num font-bold text-coral text-[18px]">79</span>
-                      <span className="block text-[12px] uppercase text-ink-muted">Vendor concentration</span>
+                      <span className="block text-[12px] uppercase text-ink-muted">{t('landing.ruleHitVendorConc', 'Vendor concentration')}</span>
                     </div>
                   </li>
                 </ul>
@@ -826,38 +807,36 @@ export default function Landing() {
               {/* Right: Reporting gaps */}
               <div className="rounded border border-rule bg-paper shadow-card py-card-y px-card-x">
                 <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
-                  Reporting gaps we found
+                  {t('landing.liveSignalGaps', 'Reporting gaps we found')}
                 </h3>
                 <div className="space-y-4 type-body-lg">
                   <div className="rounded border border-rule bg-paper-sunk p-4">
                     <div className="flex justify-between items-baseline">
-                      <span className="font-semibold text-ink">Expenditure linkage missing</span>
+                      <span className="font-semibold text-ink">{t('landing.gap1Title', 'Expenditure linkage missing')}</span>
                       <span className="num text-coral font-bold">+30.44 pp</span>
                     </div>
                     <p className="mt-1 text-ink-secondary text-[14px]">
-                      70,647 skips across 23,549 works. Linking expenditure increases mean coverage
-                      from 58.47% to 88.91%.
+                      {t('landing.gap1Desc', '70,647 skips across 23,549 works. Linking expenditure increases mean coverage from 58.47% to 88.91%.')}
                     </p>
                   </div>
 
                   <div className="rounded border border-rule bg-paper-sunk p-4">
                     <div className="flex justify-between items-baseline">
-                      <span className="font-semibold text-ink">Asset completion evidence</span>
+                      <span className="font-semibold text-ink">{t('landing.gap2Title', 'Asset completion evidence')}</span>
                       <span className="num text-coral font-bold">+3.65 pp</span>
                     </div>
                     <p className="mt-1 text-ink-secondary text-[14px]">
-                      14,104 skips. Unrecorded physical progress certificates stall certification
-                      verification.
+                      {t('landing.gap2Desc', '14,104 skips. Unrecorded physical progress certificates stall certification verification.')}
                     </p>
                   </div>
 
                   <div className="rounded border border-rule bg-paper-sunk p-4">
                     <div className="flex justify-between items-baseline">
-                      <span className="font-semibold text-ink">Unpublished zero fields</span>
-                      <span className="num text-ink-secondary font-bold">7 fields</span>
+                      <span className="font-semibold text-ink">{t('landing.gap3Title', 'Unpublished zero fields')}</span>
+                      <span className="num text-ink-secondary font-bold">{t('landing.sevenFields', '7 fields')}</span>
                     </div>
                     <p className="mt-1 text-ink-secondary text-[14px]">
-                      7 fields published as zero rather than omitting or explaining unmeasured hops.
+                      {t('landing.gap3Desc', '7 fields published as zero rather than omitting or explaining unmeasured hops.')}
                     </p>
                   </div>
                 </div>
@@ -873,7 +852,7 @@ export default function Landing() {
           <div className="mx-auto max-w-[1240px] px-6">
             <div>
               <h2 className="font-display type-section text-navy font-semibold">
-                Documentation & reference
+                {t('landing.docHeading', 'Documentation & reference')}
               </h2>
               <div className="mt-1 h-[3px] w-20 bg-saffron" aria-hidden="true" />
             </div>
@@ -889,7 +868,7 @@ export default function Landing() {
                   {t('common.rulebook', 'Rulebook')}
                 </span>
                 <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
-                  v1.0.0 thresholds
+                  {t('landing.docRulebookSub', 'v1.0.0 thresholds')}
                 </span>
               </Link>
 
@@ -900,10 +879,10 @@ export default function Landing() {
               >
                 <img src={docDataProfile} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
                 <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
-                  Data profile
+                  {t('landing.docDataProfile', 'Data profile')}
                 </span>
                 <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
-                  12 dataset schema
+                  {t('landing.docDataProfileSub', '12 dataset schema')}
                 </span>
               </Link>
 
@@ -917,7 +896,7 @@ export default function Landing() {
                   {t('common.dataGapReport', 'Data-gap report')}
                 </span>
                 <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
-                  MoSPI ablation findings
+                  {t('landing.docDataGapSub', 'MoSPI ablation findings')}
                 </span>
               </Link>
 
@@ -928,10 +907,10 @@ export default function Landing() {
               >
                 <img src={docApi} alt="" aria-hidden="true" className="doc-tile__icon" style={{ width: '40px', height: '40px', marginBottom: '14px' }} />
                 <span className="font-semibold text-[1.05rem] text-navy group-hover:text-white" style={{ fontWeight: '600' }}>
-                  API reference
+                  {t('landing.docApiRef', 'API reference')}
                 </span>
                 <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
-                  Role-scoped endpoints
+                  {t('landing.docApiRefSub', 'Role-scoped endpoints')}
                 </span>
               </Link>
 
@@ -945,7 +924,7 @@ export default function Landing() {
                   {t('common.auditTrail', 'Audit trail')}
                 </span>
                 <span className="text-[0.9rem] text-ink-secondary group-hover:text-white/80" style={{ marginTop: '6px' }}>
-                  84,666 chained logs
+                  {t('landing.docAuditSub', '84,666 chained logs')}
                 </span>
               </Link>
             </div>
