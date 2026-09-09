@@ -1,5 +1,4 @@
 import { Link, useParams } from 'react-router-dom'
-import PageMotif from '../components/PageMotif.jsx'
 import PageHero from '../components/PageHero.jsx'
 
 const DOCS_CONTENT = {
@@ -62,8 +61,6 @@ export default function StaticDocPage() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="rulebook" />
-
       <PageHero
         title={doc.title}
         lede={doc.lede}

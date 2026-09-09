@@ -9,7 +9,7 @@
 // texture run between the letterforms of the title and its note. The motif's
 // top fade attenuates that but does not remove it — at the note's baseline the
 // fade is still better than half open — so occlusion, not opacity, is what
-// keeps this band clean. See PageMotif.jsx, contrast discipline.
+// keeps this band clean.
 export default function PageHeader({ title, note }) {
   return (
     <header className="border-b border-border bg-bg px-8 py-6">

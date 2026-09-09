@@ -11,7 +11,6 @@ import {
 } from 'recharts'
 
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import Figure from '../components/Figure.jsx'
 import { AXIS_LINE, AXIS_TICK, GRID, INK, INK_SECONDARY, PORTAL, GREEN } from '../chart.js'
@@ -79,8 +78,6 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="ministry" />
-
       {/* §7.2 Page Hero */}
       <PageHero
         title="Data-gap recommendation report"

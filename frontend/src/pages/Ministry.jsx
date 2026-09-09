@@ -16,7 +16,6 @@ import CaseRows from '../components/CaseRows.jsx'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import PreviewList from '../components/PreviewList.jsx'
 import ScopedTable from '../components/ScopedTable.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
@@ -137,8 +136,6 @@ export default function Ministry() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="ministry" />
-
       {/* Page Hero with single 'v' prefix fix (§1 Defect 1) */}
       <PageHero
         title={t('ministry.title', 'National overview')}

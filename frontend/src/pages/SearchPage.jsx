@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import PageMotif from '../components/PageMotif.jsx'
 import PageHero from '../components/PageHero.jsx'
 import { useApi } from '../hooks/useApi.js'
 import { formatCount, formatRupees, SEVERITY_BORDER } from '../severity.js'
@@ -42,8 +41,6 @@ export default function SearchPage() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="district" />
-
       <PageHero
         title="Record search"
         lede={`Search across works, case IDs, districts, agencies and members in your authenticated scope.`}

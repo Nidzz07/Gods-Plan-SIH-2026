@@ -4,7 +4,6 @@ import CaseActions from '../components/CaseActions.jsx'
 import { ErrorState } from '../components/EmptyState.jsx'
 import { FundLadder, LifecycleLadder } from '../components/Ladder.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
 import Tag, { SeverityTag, StatusTag } from '../components/Tag.jsx'
@@ -27,8 +26,6 @@ export default function CaseDetail() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="district" />
-
       {/* §7.2 Page Hero */}
       <PageHero
         title={

@@ -64,7 +64,6 @@
   html.high-contrast {
     filter: contrast(1.2);
   }
-  html.high-contrast .motif-layer,
   html.high-contrast .hero-photo-layer {
     display: none !important;
   }

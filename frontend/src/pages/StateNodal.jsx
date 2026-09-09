@@ -20,7 +20,6 @@ import {
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import PreviewList from '../components/PreviewList.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
@@ -171,8 +170,6 @@ export default function StateNodal() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="state" />
-
       {/* Page Hero */}
       <PageHero
         title={targetState ? t('state.title', { state: targetState, defaultValue: `${targetState} overview` }) : t('common.overview', 'State overview')}

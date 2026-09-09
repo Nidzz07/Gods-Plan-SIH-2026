@@ -5,7 +5,6 @@ import { ApiError, apiPost } from '../api.js'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonRows } from '../components/Skeleton.jsx'
 import Tag from '../components/Tag.jsx'
@@ -87,8 +86,6 @@ export default function Alerts() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="district" />
-
       {/* §7.2 Page Hero */}
       <PageHero
         title="Alert inbox"

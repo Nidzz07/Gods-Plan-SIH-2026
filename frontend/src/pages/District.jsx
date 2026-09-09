@@ -11,7 +11,6 @@ import {
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import RankedBar from '../components/RankedBar.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
@@ -175,8 +174,6 @@ export default function District() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="district" />
-
       {/* Page Hero with proper pluralisation fix (§1 Defect 2) */}
       <PageHero
         title={targetDistrict ? `${targetDistrict} case queue` : t('district.defaultTitle', 'District queue')}

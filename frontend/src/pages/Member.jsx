@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import ScopedTable from '../components/ScopedTable.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
@@ -188,8 +187,6 @@ export default function Member() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="mp" />
-
       {/* Page Hero */}
       <PageHero
         title={data ? `${data.mp.name} account` : t('member.defaultTitle', 'Constituency overview')}

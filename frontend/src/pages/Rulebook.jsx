@@ -4,7 +4,6 @@ import { useOutletContext } from 'react-router-dom'
 import { ApiError, apiPost } from '../api.js'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import PreviewList from '../components/PreviewList.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel } from '../components/Skeleton.jsx'
@@ -130,8 +129,6 @@ export default function Rulebook() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="rulebook" />
-
       {/* §7.2 Page Hero */}
       <PageHero
         title="Rulebook specification"
