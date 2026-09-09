@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { API_BASE } from '../api.js'
 
 export default function ServerWakeBanner() {
+  const { t } = useTranslation()
   const [wakeState, setWakeState] = useState('idle') // 'idle' | 'waking' | 'error' | 'ready'
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const mountedRef = useRef(true)
@@ -94,7 +96,7 @@ export default function ServerWakeBanner() {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span>
-            Could not reach the server after 90 seconds. Please check back shortly.
+            {t('common.serverWakeTimeout', 'Could not reach the server after 90 seconds. Please check back shortly.')}
           </span>
         </div>
       </aside>
@@ -110,7 +112,7 @@ export default function ServerWakeBanner() {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <span>
-          Waking the server. Free hosting sleeps when idle; this takes up to a minute.
+          {t('common.serverWaking', 'Waking the server. Free hosting sleeps when idle; this takes up to a minute.')}
         </span>
         <span className="text-[#5B6169] tabular-nums font-mono text-[12px]">
           {secondsElapsed}s / 90s

@@ -24,15 +24,17 @@ if (typeof document !== 'undefined') {
   document.documentElement.lang = initialLang
 }
 
+const resources = {
+  en: { translation: en },
+  hi: { translation: hi },
+  mr: { translation: mr },
+  gu: { translation: gu },
+}
+
 i18n
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: en },
-      hi: { translation: hi },
-      mr: { translation: mr },
-      gu: { translation: gu },
-    },
+    resources,
     lng: initialLang,
     fallbackLng: 'en',
     returnEmptyString: false,

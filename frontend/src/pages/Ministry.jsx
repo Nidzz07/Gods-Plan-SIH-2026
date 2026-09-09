@@ -16,7 +16,6 @@ import CaseRows from '../components/CaseRows.jsx'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import PreviewList from '../components/PreviewList.jsx'
 import ScopedTable from '../components/ScopedTable.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
@@ -137,8 +136,6 @@ export default function Ministry() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="ministry" />
-
       {/* Page Hero with single 'v' prefix fix (§1 Defect 1) */}
       <PageHero
         title={t('ministry.title', 'National overview')}
@@ -163,7 +160,7 @@ export default function Ministry() {
       {/* Main Container: Full main column width without narrow max-w-1240px (§C3) */}
       <div className="w-full px-4 sm:px-6 py-8 space-y-10">
         {national.loading && (
-          <LoadingRegion label="Loading national rollup…">
+          <LoadingRegion label={t('ministry.loadingRollup', 'Loading national rollup…')}>
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={6} />
           </LoadingRegion>
@@ -176,7 +173,7 @@ export default function Ministry() {
             {/* Stat strip (§8.1 & §C2) */}
             <section aria-labelledby="stat-strip-heading">
               <h2 id="stat-strip-heading" className="sr-only">
-                National case load summary
+                {t('ministry.summaryAria', 'National case load summary')}
               </h2>
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Figure
@@ -216,8 +213,8 @@ export default function Ministry() {
 
               <PreviewList
                 items={previewItems}
-                title="State priority triage"
-                caption="Select a state to inspect aggregated findings"
+                title={t('ministry.statePriorityTriage', 'State priority triage')}
+                caption={t('ministry.statePriorityCaption', 'Select a state to inspect aggregated findings')}
               />
             </section>
 
@@ -230,8 +227,7 @@ export default function Ministry() {
                     {t('ministry.topStatesByHigh', 'States by HIGH case count')}
                   </h3>
                   <p className={CAPTION}>
-                    States carrying the highest concentration of high-severity cases. The top bar is
-                    highlighted in coral.
+                    {t('ministry.chartCaption', 'States carrying the highest concentration of high-severity cases. The top bar is highlighted in coral.')}
                   </p>
                 </div>
 
@@ -259,7 +255,7 @@ export default function Ministry() {
                         tickLine={false}
                       />
                       <Tooltip content={<CustomTooltip lang={lang} />} cursor={{ fill: '#E8EFF5' }} />
-                      <Bar dataKey="high_cases" name="HIGH cases" isAnimationActive={false}>
+                      <Bar dataKey="high_cases" name={t('ministry.chartHighCases', 'HIGH cases')} isAnimationActive={false}>
                         {rankedStates.map((entry, idx) => (
                           <Cell
                             key={`cell-${idx}`}
@@ -276,32 +272,30 @@ export default function Ministry() {
               <section className={`${CARD} py-card-y px-card-x flex flex-col justify-between`}>
                 <div>
                   <h3 className="font-display text-section-heading text-navy">
-                    Fund-flow proportion
+                    {t('ministry.fundFlowTitle', 'Fund-flow proportion')}
                   </h3>
                   <p className={CAPTION}>
-                    Sanctioned volume vs. funds sitting behind an open or unverified hop.
+                    {t('ministry.fundFlowCaption', 'Sanctioned volume vs. funds sitting behind an open or unverified hop.')}
                   </p>
                 </div>
 
                 <div className="my-6">
                   <StatPair
-                    label="National fund flow"
-                    totalLabel="Sanctioned in sample"
+                    label={t('ministry.fundFlowLabel', 'National fund flow')}
+                    totalLabel={t('ministry.fundFlowTotal', 'Sanctioned in sample')}
                     totalValue={formatRupees(data.sanctioned_amt, lang)}
                     totalAmount={data.sanctioned_amt}
-                    partLabel="Behind an open hop"
+                    partLabel={t('ministry.fundFlowPart', 'Behind an open hop')}
                     partValue={formatRupees(data.undisbursed_amt, lang)}
                     partAmount={data.undisbursed_amt}
-                    caption="Sanctioned minus disbursed on open hops. Most unverified amounts reflect MoSPI published export gaps."
-                    note={`${num(data.cases_without_expenditure_row, lang)} of ${num(data.total_cases, lang)} cases have no expenditure row in published exports.`}
+                    caption={t('ministry.fundFlowStatCaption', 'Sanctioned minus disbursed on open hops. Most unverified amounts reflect MoSPI published export gaps.')}
+                    note={t('ministry.fundFlowNote', '{{unlinkedCount}} of {{totalCases}} cases have no expenditure row in published exports.', { unlinkedCount: num(data.cases_without_expenditure_row, lang), totalCases: num(data.total_cases, lang) })}
                   />
                 </div>
 
                 <div className="rounded border border-rule bg-paper-sunk py-card-y px-card-x text-[14px] text-ink-secondary">
                   <p>
-                    Mean signal coverage stands at{' '}
-                    <span className="font-semibold text-ink">{data.mean_coverage_pct}%</span>.
-                    Skipped rule weight is never redistributed.
+                    {t('ministry.coverageNote', 'Mean signal coverage stands at {{coverage}}%. Skipped rule weight is never redistributed.', { coverage: data.mean_coverage_pct })}
                   </p>
                 </div>
               </section>
@@ -315,7 +309,7 @@ export default function Ministry() {
                 columns={columns}
                 data={data.states}
                 initialSort={[{ id: 'high_cases', desc: true }]}
-                footnote="Undisbursed represents sanctioned minus disbursed on works with open first hops."
+                footnote={t('ministry.tableFootnote', 'Undisbursed represents sanctioned minus disbursed on works with open first hops.')}
               />
             </section>
 
@@ -326,7 +320,7 @@ export default function Ministry() {
               </SectionHeading>
 
               {feed.loading && (
-                <LoadingRegion label="Loading case feed…">
+                <LoadingRegion label={t('ministry.loadingCaseFeed', 'Loading case feed…')}>
                   <SkeletonRows rows={4} />
                 </LoadingRegion>
               )}
@@ -334,8 +328,8 @@ export default function Ministry() {
               {feed.data && (
                 <div className="mt-4">
                   {feed.data.items.length === 0 ? (
-                    <EmptyState title="No HIGH cases">
-                      No case scores 75 or above in the current sample.
+                    <EmptyState title={t('ministry.noHighCasesTitle', 'No HIGH cases')}>
+                      {t('ministry.noHighCasesBody', 'No case scores 75 or above in the current sample.')}
                     </EmptyState>
                   ) : (
                     <CaseRows cases={feed.data.items} />

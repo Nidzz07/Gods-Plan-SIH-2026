@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bar,
   BarChart,
@@ -11,11 +12,12 @@ import {
 } from 'recharts'
 
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import Figure from '../components/Figure.jsx'
 import { AXIS_LINE, AXIS_TICK, GRID, INK, INK_SECONDARY, PORTAL, GREEN } from '../chart.js'
 import { CORPUS } from '../data/corpus-facts.js'
+import { useLanguage } from '../i18n/useLanguage.js'
+import { num } from '../i18n/format.js'
 import { formatCount } from '../severity.js'
 
 const COMPARISON_DATA = [
@@ -48,6 +50,9 @@ const ABLATION_FIELDS = [
 ]
 
 export default function DataGapReport() {
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
+
   function downloadReport() {
     const markdownContent = `# NIGRANI — Data-Gap & Reporting Recommendation Report
 Prepared for: Ministry of Statistics and Programme Implementation (MoSPI) · DIID
@@ -79,16 +84,14 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="ministry" />
-
       {/* §7.2 Page Hero */}
       <PageHero
-        title="Data-gap recommendation report"
-        lede="Ablation analysis demonstrating that linking public expenditure exports raises mean signal coverage from 58.47% to 88.91%."
+        title={t('datagap.title', 'Data-gap recommendation report')}
+        lede={t('datagap.lede', 'Ablation analysis demonstrating that linking public expenditure exports raises mean signal coverage from 58.47% to 88.91%.')}
         breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Documentation', href: '/#docs' },
-          { label: 'Data-gap report' },
+          { label: t('common.home', 'Home'), href: '/' },
+          { label: t('nav.docs', 'Documentation'), href: '/#docs' },
+          { label: t('common.dataGapReport', 'Data-gap report') },
         ]}
         action={
           <button
@@ -96,7 +99,7 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
             onClick={downloadReport}
             className="rounded bg-portal px-4 py-2 text-[14px] font-medium text-white hover:bg-portal-deep"
           >
-            Download report (.md)
+            {t('common.downloadReport', 'Download report (.md)')}
           </button>
         }
       />
@@ -105,37 +108,36 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
         {/* Metric summary */}
         <section aria-labelledby="ablation-metrics-heading">
           <h2 id="ablation-metrics-heading" className="sr-only">
-            Ablation Metrics
+            {t('datagap.metricsAria', 'Ablation Metrics')}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-grid-gap">
             <Figure
-              label="Current mean coverage"
-              value={`${CORPUS.meanCoverage}%`}
-              note="Across 27,078 evaluated works"
+              label={t('datagap.currMeanCov', 'Current mean coverage')}
+              value={`${num(CORPUS.meanCoverage, lang)}%`}
+              note={t('datagap.acrossWorks', 'Across 27,078 evaluated works')}
             />
             <Figure
-              label="Potential coverage"
-              value={`${CORPUS.ablation.expenditureLinkage.coverageTo}%`}
-              note="With expenditure linkage"
+              label={t('datagap.potentialCov', 'Potential coverage')}
+              value={`${num(CORPUS.ablation.expenditureLinkage.coverageTo, lang)}%`}
+              note={t('datagap.withExpLink', 'With expenditure linkage')}
             />
             <Figure
-              label="Coverage gain"
-              value={`+${CORPUS.ablation.expenditureLinkage.deltaPp} pp`}
-              note="From single export key linkage"
+              label={t('datagap.covGain', 'Coverage gain')}
+              value={`+${num(CORPUS.ablation.expenditureLinkage.deltaPp, lang)} pp`}
+              note={t('datagap.fromKeyLink', 'From single export key linkage')}
             />
             <Figure
-              label="Published zero fields"
-              value={CORPUS.ablation.zeroFields}
-              note="Fields causing false-zero readings"
+              label={t('datagap.pubZeroFields', 'Published zero fields')}
+              value={num(CORPUS.ablation.zeroFields, lang)}
+              note={t('datagap.zeroFieldsDesc', 'Fields causing false-zero readings')}
             />
           </div>
         </section>
 
         {/* Coverage comparison chart */}
         <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-          <SectionHeading title="Signal coverage impact projection">
-            Comparing current evaluated rule weight against potential coverage when missing relational
-            keys are linked in MoSPI portal exports.
+          <SectionHeading title={t('datagap.impactProjTitle', 'Signal coverage impact projection')}>
+            {t('datagap.impactProjCaption', 'Comparing current evaluated rule weight against potential coverage when missing relational keys are linked in MoSPI portal exports.')}
           </SectionHeading>
 
           <div className="mt-6 h-[260px] w-full max-w-xl">
@@ -162,10 +164,10 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
                   tickLine={false}
                 />
                 <Tooltip
-                  formatter={(value) => [`${value}%`, 'Coverage']}
+                  formatter={(value) => [`${value}%`, t('datagap.chartCoverage', 'Coverage')]}
                   cursor={{ fill: '#E8EFF5' }}
                 />
-                <Bar dataKey="value" name="Coverage" isAnimationActive={false}>
+                <Bar dataKey="value" name={t('datagap.chartCoverage', 'Coverage')} isAnimationActive={false}>
                   {COMPARISON_DATA.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={entry.fill} />
                   ))}
@@ -177,19 +179,18 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
 
         {/* Ranked field table */}
         <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
-          <SectionHeading title="Ranked data gap findings">
-            Specific reporting deficiencies identified in public MPLADS datasets, ordered by coverage
-            loss magnitude.
+          <SectionHeading title={t('datagap.rankedGapsTitle', 'Ranked data gap findings')}>
+            {t('datagap.rankedGapsCaption', 'Specific reporting deficiencies identified in public MPLADS datasets, ordered by coverage loss magnitude.')}
           </SectionHeading>
 
           <div className="mt-6 overflow-x-auto">
             <table className="w-full min-w-[700px] border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-rule bg-paper-sunk text-left text-[12px] font-semibold text-ink-secondary uppercase">
-                  <th className="py-3 px-4">Deficient Field / Export</th>
-                  <th className="py-3 px-4">Coverage Delta</th>
-                  <th className="py-3 px-4">Evaluations Skipped</th>
-                  <th className="py-3 px-4">Actionable Recommendation</th>
+                  <th className="py-3 px-4">{t('datagap.colDeficient', 'Deficient Field / Export')}</th>
+                  <th className="py-3 px-4">{t('datagap.colDelta', 'Coverage Delta')}</th>
+                  <th className="py-3 px-4">{t('datagap.colSkipped', 'Evaluations Skipped')}</th>
+                  <th className="py-3 px-4">{t('datagap.colRec', 'Actionable Recommendation')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-rule">
@@ -211,20 +212,14 @@ Connecting missing relational keys and eliminating unpublished zero fields will 
         {/* Formal memo narrative */}
         <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
           <h3 className="font-display text-[20px] font-semibold text-navy mb-4">
-            Formal recommendation statement to MoSPI
+            {t('datagap.formalStatementTitle', 'Formal recommendation statement to MoSPI')}
           </h3>
           <div className="space-y-4 text-body text-ink leading-relaxed max-w-4xl">
             <p>
-              1. <strong>Relational Linkage:</strong> The primary reason 70,647 rule evaluations
-              cannot execute is that the public expenditure export omits a stable reference to
-              the sanctioned work ID. Adding this column allows the automated fund ladder to track
-              funds down to vendor accounts across 100% of cases.
+              {t('datagap.formalStatementP1', '1. Retain Relational Integrity Across Exports: Currently, the public expenditure exports lack the uniform work identification keys present in work master datasets. Introducing a standardized composite key (Work ID + District ID) across financial ledgers will immediately recover up to 30.44 percentage points of audit signal without requiring modifications to state accounting systems.')}
             </p>
             <p>
-              2. <strong>Distinguishing Null from Zero:</strong> Seven schema fields publish the
-              integer 0 for unmeasured or pending stages. The portal should adopt explicit nulls
-              or status flags (&ldquo;pending&rdquo;, &ldquo;not applicable&rdquo;) so that auditing
-              algorithms do not penalise uncommenced milestones as zero-value defaults.
+              {t('datagap.formalStatementP2', '2. Distinguish Between Unrecorded and True Zero: Distinguishing between genuinely unspent balances and unrecorded milestone data is critical. Reporting nulls as explicit zero figures creates false-positive anomalies in deterministic rule matching. We recommend enforcing schema validation at portal ingestion to distinguish missing records from numeric zero balances.')}
             </p>
           </div>
         </section>

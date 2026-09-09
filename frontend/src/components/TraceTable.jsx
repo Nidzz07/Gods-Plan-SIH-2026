@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { OPERATOR_SYMBOL, SKIP_REASON, TRACE_ROW } from '../severity.js'
 import { COLUMN_HEAD } from '../ui.js'
 import SectionHeading from './SectionHeading.jsx'
@@ -14,16 +15,19 @@ function traceValue(value) {
 }
 
 function Citation({ citation, onOpenCompare }) {
+  const { t } = useTranslation()
   return (
     <div className="mt-3 rounded border-l-4 border-l-border-strong bg-surface-sunk py-card-y px-card-x">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-meta-label uppercase not-italic text-ink-secondary">Cited evidence</p>
+        <p className="text-meta-label uppercase not-italic text-ink-secondary">
+          {t('components.citedEvidence', 'Cited evidence')}
+        </p>
         <button
           type="button"
           onClick={onOpenCompare}
           className="rounded border border-rule-strong bg-paper px-3 py-1 text-[12px] font-semibold text-portal hover:bg-portal-tint"
         >
-          Compare side-by-side
+          {t('components.traceBtnCompare', 'Compare side-by-side')}
         </button>
       </div>
 
@@ -32,14 +36,14 @@ function Citation({ citation, onOpenCompare }) {
       </p>
 
       <p className="num mt-1 text-body-secondary not-italic text-ink-secondary">
-        Similarity {citation.similarity} by {citation.method}
-        {citation.cluster_size ? `, in a cluster of ${citation.cluster_size}` : ''}
-        {citation.agency ? `, under ${citation.agency}` : ''}.
+        {t('case.similarity', 'Similarity')} {citation.similarity} {t('common.by', 'by')} {citation.method}
+        {citation.cluster_size ? `, ${t('components.inClusterOf', 'in a cluster of')} ${citation.cluster_size}` : ''}
+        {citation.agency ? `, ${t('common.under', 'under')} ${citation.agency}` : ''}.
       </p>
 
       {citation.matched_work_ids?.length ? (
         <p className="mt-2 text-body-secondary not-italic text-ink">
-          Candidate works:{' '}
+          {t('components.candidateWorks', 'Candidate works')}:{' '}
           <span className="num font-mono text-[13px]">{citation.matched_work_ids.join(', ')}</span>
         </p>
       ) : null}
@@ -52,21 +56,24 @@ function Citation({ citation, onOpenCompare }) {
 }
 
 export default function TraceTable({ hits, primaryWork }) {
+  const { t } = useTranslation()
   const [activeModalCitation, setActiveModalCitation] = useState(null)
 
   return (
     <section>
-      <SectionHeading title="Reasoning trace">
-        Every rule in the rulebook, what it read, what it compared that against, and what it did
-        about it — including the rules that passed and the ones there was no reading for.
+      <SectionHeading title={t('components.reasoningTraceTitle', 'Reasoning trace')}>
+        {t(
+          'components.reasoningTraceDesc',
+          'Every rule in the rulebook, what it read, what it compared that against, and what it did about it — including the rules that passed and the ones there was no reading for.'
+        )}
       </SectionHeading>
 
       <div className={`${GRID} mt-4 border-b border-border-strong bg-paper-sunk px-4 pb-2 pt-2`}>
-        <span className={COLUMN_HEAD}>Rule</span>
-        <span className={`${COLUMN_HEAD} text-right`}>Reading</span>
-        <span className={`${COLUMN_HEAD} text-right`}>Threshold</span>
-        <span className={`${COLUMN_HEAD} text-right`}>Weight</span>
-        <span className={COLUMN_HEAD}>Status</span>
+        <span className={COLUMN_HEAD}>{t('rulebook.colRule', 'Rule')}</span>
+        <span className={`${COLUMN_HEAD} text-right`}>{t('components.traceColReading', 'Reading')}</span>
+        <span className={`${COLUMN_HEAD} text-right`}>{t('rulebook.colThreshold', 'Threshold')}</span>
+        <span className={`${COLUMN_HEAD} text-right`}>{t('rulebook.colWeight', 'Weight')}</span>
+        <span className={COLUMN_HEAD}>{t('common.status', 'Status')}</span>
       </div>
 
       <ul className="space-y-card-gap mt-4">
@@ -87,10 +94,10 @@ export default function TraceTable({ hits, primaryWork }) {
                 </span>
 
                 <span className="num text-right text-table-cell">
-                  {reading ?? 'no reading'}
+                  {reading ?? t('common.noReading', 'no reading')}
                   {hit.status === 'skipped' && hit.skip_reason ? (
                     <span className="block text-meta-label normal-case not-italic text-ink-muted">
-                      {SKIP_REASON[hit.skip_reason] ?? hit.skip_reason}
+                      {SKIP_REASON[hit.skip_reason] ? t(`severity.skip_${hit.skip_reason}`, SKIP_REASON[hit.skip_reason]) : hit.skip_reason}
                     </span>
                   ) : null}
                 </span>
@@ -104,7 +111,7 @@ export default function TraceTable({ hits, primaryWork }) {
                 </span>
 
                 <span className={`text-table-cell font-medium ${state.labelClass}`}>
-                  {state.label}
+                  {t(`severity.trace_${hit.status}`, state.label)}
                 </span>
               </div>
 

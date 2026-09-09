@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth.jsx'
 import { ROLE_LABEL } from '../roles.js'
 import { LogoMark } from './Logo.jsx'
 
 export default function TopBar({ user, onOpenMobileNav }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { signOut } = useAuth()
 
@@ -20,7 +22,7 @@ export default function TopBar({ user, onOpenMobileNav }) {
           type="button"
           onClick={onOpenMobileNav}
           className="lg:hidden rounded border border-white/20 p-1.5 text-white hover:bg-white/10 focus:outline-none"
-          aria-label="Open navigation menu"
+          aria-label={t('common.openMobileMenu', 'Open navigation menu')}
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -40,7 +42,7 @@ export default function TopBar({ user, onOpenMobileNav }) {
 
         {/* Server scope sentence */}
         <div className="hidden md:block truncate border-l border-white/20 pl-4 text-[13px] text-[#C9D8E4]">
-          {user.scope?.describes ? `Scope: ${user.scope.describes}` : 'Authenticated session'}
+          {user.scope?.describes ? `${t('common.scope', 'Scope:')} ${user.scope.describes}` : t('common.authSession', 'Authenticated session')}
         </div>
       </div>
 
@@ -50,8 +52,8 @@ export default function TopBar({ user, onOpenMobileNav }) {
             {user.display_name}
           </span>
           <span className="block text-[11px] uppercase tracking-wider text-[#C9D8E4]">
-            {ROLE_LABEL[user.role] ?? user.role}
-            {!user.can_write && ' · read-only'}
+            {user?.role ? t(`roles.${user.role}`, ROLE_LABEL[user.role] ?? user.role) : '—'}
+            {!user.can_write && ` · ${t('common.readOnly', 'read-only')}`}
           </span>
         </div>
 
@@ -60,7 +62,7 @@ export default function TopBar({ user, onOpenMobileNav }) {
           onClick={logout}
           className="rounded border border-white/30 bg-transparent px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:border-white hover:bg-white/10"
         >
-          Sign out
+          {t('common.signOut', 'Sign out')}
         </button>
       </div>
     </header>

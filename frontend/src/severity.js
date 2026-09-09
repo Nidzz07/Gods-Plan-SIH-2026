@@ -130,90 +130,36 @@ export const TRACE_ROW = {
   },
 }
 
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
+import {
+  num,
+  formatRupees as i18nFormatRupees,
+  formatMoney as i18nFormatMoney,
+  formatPercent as i18nFormatPercent,
+} from './i18n/format.js'
 
-// en-IN, so grouping is lakh-and-crore (1,99,539) rather than thousands
-// (199,539). Every rupee figure in the corpus is a whole rupee — the exports
-// carry no paise — so no fraction digits are ever shown.
-const INDIAN = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
-
-export function formatCount(value) {
-  return value === null || value === undefined ? null : INDIAN.format(value)
+export function formatCount(value, lang = 'en') {
+  return value === null || value === undefined ? null : num(value, lang)
 }
 
-// A count with its noun, agreeing in number.
-//
-// Written once because the dashboards say this constantly — "7,032 cases across
-// 74 districts", "1 case under 1 implementing agency" — and because the corpus
-// makes the singular a REAL case rather than a theoretical one: 342 of the 710
-// districts carry a handful of cases and several carry exactly one, as does the
-// whole of Meghalaya. A screen reading "1 cases across 1 districts" is a screen
-// a judge stops trusting on the small numbers, which are exactly the ones a
-// district officer is looking at.
-//
-// The plural is passed rather than derived, because the nouns this app counts
-// are not all regular: "agency" pluralises to "agencies" and no rule short of a
-// dictionary gets that from the singular.
-export function countNoun(value, singular, plural) {
-  const count = formatCount(value)
+export function countNoun(value, singular, plural, lang = 'en') {
+  const count = formatCount(value, lang)
   if (count === null) return null
   return `${count} ${value === 1 ? singular : plural}`
 }
 
-// An exact rupee figure, for a case sheet where an officer reconciles against
-// a sanction order. Charts do NOT use this — see formatMoney.
-export function formatRupees(value) {
-  return value === null || value === undefined ? null : `₹${INDIAN.format(value)}`
+export function formatRupees(value, lang = 'en') {
+  return i18nFormatRupees(value, lang)
 }
 
-// Aggregate money, scaled. The UI conventions are explicit that an axis carries
-// rupees in crore OR LAKH and never a raw integer, and a national total written
-// out in rupees is fourteen digits nobody reads. One decimal: at either scale
-// the second one is noise.
-//
-// TWO DEFECTS FIXED HERE, both of which show up the moment aggregates reach a
-// chart axis or a district table.
-//
-// It did not group its integer part. `(value / 1e7).toFixed(1)` printed
-// "₹2107.5 cr" beside figures that every other formatter in this file groups
-// lakh-and-crore, so the one number on the screen large enough to need
-// separators was the one number that did not get them. It goes through the same
-// en-IN formatter as the rest now.
-//
-// It was crore-only, and 342 of the 710 districts in this corpus carry less
-// than one crore. A district holding Rs 2,00,000 printed "₹0.0 cr", which reads
-// as nothing at all rather than as a small amount — on nearly half the rows of
-// the district table. Below a crore it drops to lakh, which is the other unit
-// the conventions name and the one an officer uses for a figure that size.
-//
-// Named for the job rather than the unit, because the unit is now the
-// function's decision and not the caller's.
-const CRORE = 10000000
-const LAKH = 100000
-const SCALED = new Intl.NumberFormat('en-IN', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
+export function formatMoney(value, lang = 'en') {
+  return i18nFormatMoney(value, lang)
+}
 
-export function formatMoney(value) {
+export function formatPct(value, lang = 'en') {
+  return value === null || value === undefined ? null : i18nFormatPercent(value, lang, 2)
+}
+
+export function formatDays(value, lang = 'en') {
   if (value === null || value === undefined) return null
-  // Signed, so a negative aggregate scales on its magnitude rather than
-  // landing in lakh because the minus sign made it smaller than a crore.
-  const magnitude = Math.abs(value)
-  return magnitude >= CRORE
-    ? `₹${SCALED.format(value / CRORE)} cr`
-    : `₹${SCALED.format(value / LAKH)} lakh`
-}
-
-export function formatPct(value) {
-  // Two decimals, matching the precision the fund ladder is reconciled at.
-  // Nulls stay null: an unmeasured hop is not a 0.00% hop.
-  return value === null || value === undefined ? null : `${value.toFixed(2)}%`
-}
-
-export function formatDays(value) {
-  if (value === null || value === undefined) return null
-  return `${INDIAN.format(value)} ${value === 1 ? 'day' : 'days'}`
+  return `${num(value, lang)} ${value === 1 ? 'day' : 'days'}`
 }

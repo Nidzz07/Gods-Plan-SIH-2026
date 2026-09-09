@@ -20,7 +20,6 @@ import {
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import PreviewList from '../components/PreviewList.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonPanel, SkeletonRows } from '../components/Skeleton.jsx'
@@ -75,13 +74,13 @@ export default function StateNodal() {
       .map((dst) => ({
         id: dst.district,
         label: dst.district,
-        title: `${dst.district} District`,
-        badge: `${num(dst.high_cases, lang)} HIGH`,
-        meta: `${num(dst.cases, lang)} cases · worst score ${num(dst.worst_score, lang) ?? '—'} · ${dst.mean_coverage_pct ?? '—'}% cov`,
-        body: `${num(dst.high_cases, lang)} HIGH, ${num(dst.medium_cases, lang)} MEDIUM, ${num(dst.cases - dst.high_cases - dst.medium_cases, lang)} LOW cases. Sanctioned volume: ${formatRupees(dst.sanctioned_amt, lang) ?? '—'}.`,
+        title: `${dst.district} ${t('common.district', 'District')}`,
+        badge: `${num(dst.high_cases, lang)} ${t('common.high', 'HIGH')}`,
+        meta: `${num(dst.cases, lang)} ${t('common.cases', 'cases')} · ${t('common.worstScore', 'worst score')} ${num(dst.worst_score, lang) ?? '—'} · ${dst.mean_coverage_pct ?? '—'}% ${t('common.coverage', 'cov')}`,
+        body: `${num(dst.high_cases, lang)} ${t('common.high', 'HIGH')}, ${num(dst.medium_cases, lang)} ${t('common.medium', 'MEDIUM')}, ${num(dst.cases - dst.high_cases - dst.medium_cases, lang)} ${t('common.low', 'LOW')} ${t('common.cases', 'cases')}. ${t('common.sanctioned', 'Sanctioned')}: ${formatRupees(dst.sanctioned_amt, lang) ?? '—'}.`,
         href: `/district/${encodeURIComponent(targetState)}/${encodeURIComponent(dst.district)}`,
       }))
-  }, [data, targetState, lang])
+  }, [data, targetState, lang, t])
 
   // Distribution chart data: 420px tall stacked bar (§C3)
   const distribution = useMemo(() => {
@@ -171,8 +170,6 @@ export default function StateNodal() {
 
   return (
     <article className="relative isolate flex-1 bg-paper w-full">
-      <PageMotif variant="state" />
-
       {/* Page Hero */}
       <PageHero
         title={targetState ? t('state.title', { state: targetState, defaultValue: `${targetState} overview` }) : t('common.overview', 'State overview')}
@@ -186,28 +183,27 @@ export default function StateNodal() {
                 meanCoverage: data.summary.mean_coverage_pct,
                 defaultValue: `${num(data.summary.cases, lang)} works across ${num(data.districts.length, lang)} districts in ${data.state}, scored against rulebook ${cleanRulebookVersion}. Mean signal coverage ${data.summary.mean_coverage_pct}%.`,
               })
-            : 'Every district in this state carrying at least one case, ranked by HIGH case count.'
+            : t('state.defaultLede', 'Every district in this state carrying at least one case, ranked by HIGH case count.')
         }
         breadcrumbs={[
           { label: t('common.home', 'Home'), href: '/' },
           ...(user?.role === 'ministry'
             ? [{ label: t('ministry.title', 'National overview'), href: '/ministry' }]
             : []),
-          { label: targetState ? `${targetState} overview` : 'State' },
+          { label: targetState ? `${targetState} ${t('common.overview', 'overview')}` : t('common.state', 'State') },
         ]}
       />
 
       {/* Main Container: Full main column width (§C3) */}
       <div className="w-full px-4 sm:px-6 py-8 space-y-10">
         {!targetState && (
-          <EmptyState title="This account has no state bound to it">
-            A State Nodal account is scoped to one state. Re-run{' '}
-            <code>python -m app.seed_users</code> to provision it against a state with cases.
+          <EmptyState title={t('state.noStateBoundTitle', 'This account has no state bound to it')}>
+            {t('state.noStateBoundBody', 'A State Nodal account is scoped to one state. Re-run python -m app.seed_users to provision it against a state with cases.')}
           </EmptyState>
         )}
 
         {loading && (
-          <LoadingRegion label={`Loading state data for ${targetState}…`}>
+          <LoadingRegion label={t('state.loadingState', { stateName: targetState, defaultValue: `Loading state data for ${targetState}…` })}>
             <SkeletonPanel lines={4} />
             <SkeletonRows rows={5} />
           </LoadingRegion>
@@ -220,24 +216,24 @@ export default function StateNodal() {
             {/* Stat Strip */}
             <section aria-labelledby="state-stats-heading">
               <h2 id="state-stats-heading" className="sr-only">
-                State statistics
+                {t('state.summaryAria', 'State statistics')}
               </h2>
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Figure label={t('common.totalCases', 'Total cases')} value={num(data.summary.cases, lang)} />
                 <Figure
                   label={t('common.highRisk', 'HIGH cases')}
                   value={num(data.summary.high_cases, lang)}
-                  note="Cases requiring urgent inspection"
+                  note={t('state.statUrgentNote', 'Cases requiring urgent inspection')}
                 />
                 <Figure
                   label={t('common.worstScore', 'Worst score')}
                   value={num(data.summary.worst_score, lang) ?? '—'}
-                  note="Maximum case score in state"
+                  note={t('state.statWorstNote', 'Maximum case score in state')}
                 />
                 <Figure
                   label={t('common.sanctioned', 'Sanctioned')}
                   value={formatRupees(data.summary.sanctioned_amt, lang)}
-                  note="Total sanctioned funds"
+                  note={t('state.statSanctionedNote', 'Total sanctioned funds')}
                 />
               </div>
             </section>
@@ -256,8 +252,8 @@ export default function StateNodal() {
 
               <PreviewList
                 items={previewItems}
-                title="District triage queue"
-                caption="Select a district to inspect its working case queue"
+                title={t('state.districtTriageTitle', 'District triage queue')}
+                caption={t('state.districtTriageCaption', 'Select a district to inspect its working case queue')}
               />
             </section>
 
@@ -269,9 +265,8 @@ export default function StateNodal() {
                 </h3>
                 <p className={CAPTION}>
                   {distribution.length === 1
-                    ? `The one district in ${data.state}`
-                    : `The ${distribution.length} busiest districts in ${data.state}, worst first`}
-                  , each bar split by severity band.
+                    ? t('state.chartSingleDistrict', { stateName: data.state, defaultValue: `The one district in ${data.state}` })
+                    : t('state.chartBusiestDistricts', { count: num(distribution.length, lang), stateName: data.state, defaultValue: `The ${distribution.length} busiest districts in ${data.state}, worst first, each bar split by severity band.` })}
                 </p>
               </div>
 
@@ -306,7 +301,7 @@ export default function StateNodal() {
                       <Bar
                         key={entry.key}
                         dataKey={entry.key}
-                        name={entry.label}
+                        name={t(`common.${entry.key.toLowerCase().replace('_cases', '')}`, entry.label)}
                         fill={entry.color}
                         stackId="severity"
                         isAnimationActive={false}
@@ -324,7 +319,7 @@ export default function StateNodal() {
                       style={{ backgroundColor: entry.color }}
                       aria-hidden="true"
                     />
-                    <span className="uppercase text-ink-secondary">{entry.label}</span>
+                    <span className="uppercase text-ink-secondary">{t(`common.${entry.key.toLowerCase().replace('_cases', '')}`, entry.label)}</span>
                   </li>
                 ))}
               </ul>
@@ -334,17 +329,17 @@ export default function StateNodal() {
             <section className="w-full">
               <div className="mb-4">
                 <h3 className="font-display text-section-heading text-navy">
-                  Every district in {data.state}
+                  {t('state.tableHeading', { stateName: data.state, defaultValue: `Every district in ${data.state}` })}
                 </h3>
                 <p className={CAPTION}>
-                  All {num(data.districts.length, lang)} districts in the sample. Click any district row to open its working case queue.
+                  {t('state.tableCaption', { count: num(data.districts.length, lang), defaultValue: `All ${num(data.districts.length, lang)} districts in the sample. Click any district row to open its working case queue.` })}
                 </p>
               </div>
 
               <div className="overflow-x-auto rounded border border-rule bg-paper shadow-card">
                 <table className="w-full border-collapse">
                   <caption className="sr-only">
-                    All districts in {data.state} sortable by severity
+                    {t('state.tableAria', { stateName: data.state, defaultValue: `All districts in ${data.state} sortable by severity` })}
                   </caption>
                   <thead>
                     {table.getHeaderGroups().map((headerGroup) => (

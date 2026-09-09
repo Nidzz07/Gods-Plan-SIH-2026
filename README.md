@@ -8,14 +8,14 @@ shows its working.
 
 Built for **Smart India Hackathon 2026, problem statement PS 26102**, set by the
 Ministry of Statistics and Programme Implementation (MoSPI), Data Informatics
-and Innovation Division (DIID), by team **ExploreeTinkerBell**.
+and Innovation Division (DIID), by team **God's Plan**.
 
 ---
 
 ## Deployed service
 
-- **Frontend (Vercel)**: `https://<vercel-deployment-url>.vercel.app` *(placeholder — configured after Vercel deploy)*
-- **API (Render)**: `https://<render-service-url>.onrender.com` *(placeholder — configured after Render deploy)*
+- **Frontend (Vercel)**: `https://gods-plan-sih-2026.vercel.app` *(placeholder — configured after Vercel deploy)*
+- **API (Render)**: `https://nigrani-national-project-monitoring.onrender.com` *(placeholder — configured after Render deploy)*
 
 ## Demo credentials
 
@@ -25,8 +25,8 @@ Four role accounts are provisioned for evaluation. Passwords are set via environ
 | --- | --- | --- | --- |
 | **Ministry** | `ministry@demo.nigrani.local` | `<Ministry@Demo2026>` | National view (all states and districts) |
 | **State Nodal Authority** | `nodal.uttarpradesh@demo.nigrani.local` | `<StateNodal@Demo2026>` | Uttar Pradesh (all districts in state) |
-| **District Authority** | `dm.agra@demo.nigrani.local` | `<District@Demo2026>` | Agra District, Uttar Pradesh |
-| **Member of Parliament** | `office.mp847@demo.nigrani.local` | `<Member@Demo2026>` | MP portfolio (read-only) |
+| **District Authority** | `dm.jalaun@demo.nigrani.local` | `<District@Demo2026>` | Agra District, Uttar Pradesh |
+| **Member of Parliament** | `office.mp91@demo.nigrani.local` | `<Member@Demo2026>` | MP portfolio (read-only) |
 
 ---
 
@@ -283,8 +283,6 @@ python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.
 
 | Document | What it is |
 | --- | --- |
-| [`PROJECT-BRIEF.md`](PROJECT-BRIEF.md) | Scope, features, personas, the scoring table, declared limitations |
-| [`CLAUDE.md`](CLAUDE.md) | Conventions, the twelve invariants, the build sequence |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The pipeline and the four-tier boundary, as a diagram |
 | [`docs/data/DATA-PROFILE.md`](docs/data/DATA-PROFILE.md) | The authority for every threshold and every claim about the data |
 | [`docs/data/INGEST-EXPECTATIONS.md`](docs/data/INGEST-EXPECTATIONS.md) | What a correct ingest run must print, figure by figure |
@@ -295,20 +293,12 @@ python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.
 | [`docs/reports/DATA-GAP-RECOMMENDATION.md`](docs/reports/DATA-GAP-RECOMMENDATION.md) | What MoSPI should publish, ranked by unrealised rulebook weight |
 | [`docs/design/REDESIGN-SPEC.md`](docs/design/REDESIGN-SPEC.md) | Locked design tokens and UI conventions |
 
-`docs/context/REPO-CONTEXT.md` is a dated snapshot of the **inherited**
-LEAKPROOF repository, kept as provenance. It describes what was inherited, not
-what NIGRANI is.
-
-## Provenance
-
-NIGRANI inherits its detection-engine architecture from LEAKPROOF, a PDS
-diversion prototype by the same team (tag `leakproof-baseline`). The
-architecture is kept; the entire domain layer was rebuilt against real MPLADS
-data. Where a file still carries PDS vocabulary it is either that snapshot or a
-known outstanding item, and `CLAUDE.md`'s repo map says which.
-
 ## Team
 
-**ExploreeTinkerBell**
-- Nidhi Dhyani — backend, detection engine
-- Saumya Singh — frontend, integration
+**God's Plan**
+- Nidhi Dhyani — backend, ML & data processing
+- Dhruv Gangurde — backend, ML & data processing
+- Chetan Chavan — frontend, UI/UX & deployment
+- Rohan Dhumal — frontend, UI/UX 
+- Swanand Dixit — frontend, UI/UX 
+- Jai Desai — integration testing & documentation

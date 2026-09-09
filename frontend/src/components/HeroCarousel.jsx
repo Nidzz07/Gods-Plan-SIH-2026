@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import hero1 from '../assets/hero/hero-1.jpeg'
 import hero2 from '../assets/hero/hero-2.jpeg'
@@ -10,6 +11,7 @@ const HERO_IMAGES = [hero1, hero2, hero3, hero4, hero5]
 const INTERVAL_MS = 3000
 
 export default function HeroCarousel({ isPausedExternal = false }) {
+  const { t } = useTranslation()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
@@ -81,7 +83,7 @@ export default function HeroCarousel({ isPausedExternal = false }) {
       {/* 3. Dot Indicator Controls (Bottom-Right) */}
       <div
         role="group"
-        aria-label="Carousel navigation"
+        aria-label={t('landing.carouselNav', 'Carousel navigation')}
         className="absolute bottom-6 right-6 z-20 flex items-center gap-2 rounded bg-portal-deep/60 px-3 py-1.5 backdrop-blur-xs border border-white/20"
       >
         {HERO_IMAGES.map((_, i) => {
@@ -91,7 +93,7 @@ export default function HeroCarousel({ isPausedExternal = false }) {
               key={i}
               type="button"
               onClick={() => setCurrentIndex(i)}
-              aria-label={`Slide ${i + 1}`}
+              aria-label={t('landing.slideNum', { num: i + 1, defaultValue: `Slide ${i + 1}` })}
               aria-current={isActive ? 'true' : undefined}
               className={`h-2.5 rounded transition-all duration-200 ${
                 isActive ? 'w-6 bg-paper' : 'w-2.5 bg-white/40 hover:bg-white/80'

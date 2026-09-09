@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { ApiError, apiPost } from '../api.js'
 import EmptyState, { ErrorState } from '../components/EmptyState.jsx'
 import Figure from '../components/Figure.jsx'
 import PageHero from '../components/PageHero.jsx'
-import PageMotif from '../components/PageMotif.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
 import { LoadingRegion, SkeletonRows } from '../components/Skeleton.jsx'
 import Tag from '../components/Tag.jsx'
 import { useApi } from '../hooks/useApi.js'
+import { useLanguage } from '../i18n/useLanguage.js'
+import { num } from '../i18n/format.js'
 import { ROLE_LABEL } from '../roles.js'
 import { SEVERITY_BORDER, formatCount } from '../severity.js'
 import { BUTTON, BUTTON_PRIMARY, CAPTION, CARD } from '../ui.js'
@@ -22,30 +24,30 @@ const STATUS_TONE = {
 }
 
 const FILTERS = [
-  { key: '', label: 'All' },
-  { key: 'open', label: 'Open' },
-  { key: 'acknowledged', label: 'Acknowledged' },
-  { key: 'escalated', label: 'Escalated' },
+  { key: '', labelKey: 'common.all', defaultLabel: 'All' },
+  { key: 'open', labelKey: 'alerts.open', defaultLabel: 'Open' },
+  { key: 'acknowledged', labelKey: 'alerts.acknowledged', defaultLabel: 'Acknowledged' },
+  { key: 'escalated', labelKey: 'alerts.escalated', defaultLabel: 'Escalated' },
 ]
 
-function EscalationPanel({ result }) {
+function EscalationPanel({ result, t }) {
   return (
     <div className="mt-3 rounded border-l-4 border-l-gold bg-portal-tint/50 p-4" role="status">
       <p className="font-semibold text-navy text-[14px]">
-        {result.delivered ? 'Escalated and emailed.' : 'Escalated. Dry-run transport (no email sent).'}
+        {result.delivered ? t('alerts.escalatedEmailed', 'Escalated and emailed.') : t('alerts.escalatedDryRun', 'Escalated. Dry-run transport (no email sent).')}
       </p>
       <p className="mt-1 text-[13px] text-ink-secondary">{result.detail}</p>
 
       <details className="mt-3 text-[13px]">
         <summary className="cursor-pointer font-medium text-portal hover:underline">
           {result.dry_run
-            ? 'View verbatim dry-run message'
-            : 'View delivered notification message'}
+            ? t('alerts.viewVerbatimDryRun', 'View verbatim dry-run message')
+            : t('alerts.viewDeliveredMessage', 'View delivered notification message')}
         </summary>
         <div className="mt-2 rounded border border-rule bg-paper p-3 font-mono text-[12px] text-ink-secondary space-y-1">
-          <p>Recipient: {result.recipient}</p>
-          <p>Transport: {result.transport}</p>
-          <p>Subject: {result.subject}</p>
+          <p>{t('alerts.recipient', 'Recipient:')} {result.recipient}</p>
+          <p>{t('alerts.transport', 'Transport:')} {result.transport}</p>
+          <p>{t('alerts.subject', 'Subject:')} {result.subject}</p>
           <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-ink">
             {result.body}
           </pre>
@@ -56,6 +58,8 @@ function EscalationPanel({ result }) {
 }
 
 export default function Alerts() {
+  const { t } = useTranslation()
+  const { lang } = useLanguage()
   const { user } = useOutletContext()
   const [status, setStatus] = useState('')
   const query = status ? `?status=${status}&limit=200` : '?limit=200'
@@ -87,21 +91,19 @@ export default function Alerts() {
 
   return (
     <article className="relative isolate flex-1 bg-paper">
-      <PageMotif variant="district" />
-
       {/* §7.2 Page Hero */}
       <PageHero
-        title="Alert inbox"
-        lede={`One alert per HIGH-risk work within this account's scope. Escalations record an audit log and queue the item for the next administrative level.`}
+        title={t('alerts.inboxTitle', 'Alert inbox')}
+        lede={t('alerts.inboxLede', "One alert per HIGH-risk work within this account's scope. Escalations record an audit log and queue the item for the next administrative level.")}
         breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Alerts' },
+          { label: t('common.home', 'Home'), href: '/' },
+          { label: t('common.alerts', 'Alerts') },
         ]}
       />
 
       <div className="w-full px-4 sm:px-6 py-8 space-y-8">
         {loading && (
-          <LoadingRegion label="Loading alert queue…">
+          <LoadingRegion label={t('alerts.loadingAlerts', 'Loading alert queue…')}>
             <SkeletonRows rows={5} />
           </LoadingRegion>
         )}
@@ -119,15 +121,17 @@ export default function Alerts() {
             {/* Counts & Filters */}
             <section className="rounded border border-rule bg-paper py-card-y px-card-x shadow-card">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Figure label="Total alerts" value={formatCount(data.total)} />
-                <Figure label="Open" value={formatCount(counts.open ?? 0)} />
-                <Figure label="Acknowledged" value={formatCount(counts.acknowledged ?? 0)} />
-                <Figure label="Escalated" value={formatCount(counts.escalated ?? 0)} />
+                <Figure label={t('alerts.totalAlerts', 'Total alerts')} value={num(data.total, lang)} />
+                <Figure label={t('alerts.open', 'Open')} value={num(counts.open ?? 0, lang)} />
+                <Figure label={t('alerts.acknowledged', 'Acknowledged')} value={num(counts.acknowledged ?? 0, lang)} />
+                <Figure label={t('alerts.escalated', 'Escalated')} value={num(counts.escalated ?? 0, lang)} />
               </div>
 
               <div className="border-t border-rule" style={{ marginTop: '24px', paddingTop: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <span className="text-[13px] font-medium text-ink-secondary" style={{ marginRight: '8px' }}>Filter status:</span>
+                  <span className="text-[13px] font-medium text-ink-secondary" style={{ marginRight: '8px' }}>
+                    {t('alerts.filterStatus', 'Filter status:')}
+                  </span>
                   {FILTERS.map((f) => (
                     <button
                       key={f.key || 'all'}
@@ -144,7 +148,7 @@ export default function Alerts() {
                         border: status === f.key ? '1px solid #0B2E4F' : '1px solid #D5DEE6',
                       }}
                     >
-                      {f.label}
+                      {t(f.labelKey, f.defaultLabel)}
                     </button>
                   ))}
                 </div>
@@ -154,10 +158,10 @@ export default function Alerts() {
             {/* Alert Items List */}
             <section>
               {data.items.length === 0 ? (
-                <EmptyState title="No alerts in queue">
+                <EmptyState title={t('alerts.noAlertsTitle', 'No alerts in queue')}>
                   {status
-                    ? `No alert is currently in '${status}' status.`
-                    : 'No high-severity alerts have been routed to this scope.'}
+                    ? t('alerts.noAlertsStatus', { status, defaultValue: `No alert is currently in '${status}' status.` })
+                    : t('alerts.noAlertsScope', 'No high-severity alerts have been routed to this scope.')}
                 </EmptyState>
               ) : (
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -183,8 +187,8 @@ export default function Alerts() {
                             {item.description || item.work_id || item.case_id}
                           </Link>
                           <p className="num text-ink-muted" style={{ fontSize: '0.85rem', marginTop: '6px' }}>
-                            Case <span className="font-mono">{item.case_id}</span> · {item.district || item.state} · Rule:{' '}
-                            <span className="font-mono">{item.rule_id || 'Composite HIGH'}</span>
+                            {t('common.caseId', 'Case')} <span className="font-mono">{item.case_id}</span> · {item.district || item.state} · {t('alerts.alertRule', 'Rule:')}{' '}
+                            <span className="font-mono">{item.rule_id || t('alerts.compositeHigh', 'Composite HIGH')}</span>
                           </p>
                           <p className="text-ink leading-relaxed" style={{ fontSize: '1rem', marginTop: '14px', maxWidth: '78ch' }}>
                             {item.message}
@@ -192,7 +196,7 @@ export default function Alerts() {
                         </div>
 
                         <div className="text-right shrink-0" style={{ paddingRight: '0', minWidth: '80px' }}>
-                          <span className="num font-bold text-navy text-[18px]">{item.score}</span>
+                          <span className="num font-bold text-navy text-[18px]">{num(item.score, lang)}</span>
                           <span className="block text-[11px] uppercase font-semibold text-coral">
                             {item.severity}
                           </span>
@@ -211,7 +215,7 @@ export default function Alerts() {
                             className={BUTTON}
                             style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '4px', minHeight: '44px' }}
                           >
-                            {item.status === 'open' ? 'Acknowledge' : 'Acknowledged'}
+                            {item.status === 'open' ? t('alerts.btnAcknowledge', 'Acknowledge') : t('alerts.btnAcknowledged', 'Acknowledged')}
                           </button>
                           <button
                             type="button"
@@ -220,17 +224,16 @@ export default function Alerts() {
                             className={BUTTON_PRIMARY}
                             style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '4px', minHeight: '44px' }}
                           >
-                            {busy === item.id ? 'Working…' : 'Escalate'}
+                            {busy === item.id ? t('alerts.btnEscalating', 'Working…') : t('alerts.btnEscalate', 'Escalate')}
                           </button>
                         </div>
                       ) : (
                         <p className="text-[12px] italic text-ink-muted border-t border-rule/40" style={{ marginTop: '18px', paddingTop: '12px' }}>
-                          Read-only account. Alert status modifications are restricted to
-                          administrative authorities.
+                          {t('alerts.readOnlyAlertNotice', 'Read-only account. Alert status modifications are restricted to administrative authorities.')}
                         </p>
                       )}
 
-                      {escalations[item.id] && <EscalationPanel result={escalations[item.id]} />}
+                      {escalations[item.id] && <EscalationPanel result={escalations[item.id]} t={t} />}
                     </li>
                   ))}
                 </ul>
