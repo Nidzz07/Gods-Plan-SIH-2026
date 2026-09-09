@@ -1,11 +1,31 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
-const STANDARDS = [
-  { name: 'GOV.UK Design System', detail: 'Pattern benchmark' },
-  { name: 'WCAG 2.1 AA', detail: 'Accessibility standard' },
-  { name: 'NIST SP 800-92', detail: 'Audit trail integrity' },
-  { name: 'OWASP ASVS', detail: 'Application security' },
-  { name: 'MoSPI Open Data', detail: '12 MPLADS datasets' },
+const REFERENCES = [
+  {
+    title: 'MPLADS Portal, MoSPI',
+    descriptorKey: 'footer.refMplads',
+    defaultDescriptor: 'All twelve datasets used in this project',
+    href: 'https://mplads.mospi.gov.in/digigov/dashboard.html',
+  },
+  {
+    title: 'National Portal of India',
+    descriptorKey: 'footer.refIndiaGov',
+    defaultDescriptor: 'Design and status-guidance benchmark',
+    href: 'https://www.india.gov.in/',
+  },
+  {
+    title: 'MAHAONE Portal',
+    descriptorKey: 'footer.refMahaone',
+    defaultDescriptor: 'Maharashtra SSO — sign-in page reference',
+    href: 'https://mahaone.maharashtra.gov.in/',
+  },
+  {
+    title: 'W3C WCAG 2.1 AA',
+    descriptorKey: 'footer.refWcag',
+    defaultDescriptor: 'Accessibility conformance reference',
+    href: 'https://www.w3.org/TR/WCAG21/',
+  },
 ]
 
 const SITEMAP_COLUMNS = [
@@ -57,25 +77,41 @@ const SITEMAP_COLUMNS = [
 ]
 
 export default function Footer() {
+  const { t } = useTranslation()
+
   return (
     <footer className="w-full text-ink">
-      {/* 1. Standards strip (96px, paper-sunk) */}
+      {/* 1. References strip (paper-sunk) */}
       <section className="border-t border-rule bg-paper-sunk py-6">
         <div className="mx-auto max-w-[1240px] px-6">
           <p className="text-[12px] font-medium uppercase tracking-wider text-ink-secondary mb-3">
-            Standards, benchmarks & open data compliance
+            {t('footer.referencesHeading', 'References and design benchmarks')}
           </p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5 items-center">
-            {STANDARDS.map((std) => (
-              <div
-                key={std.name}
-                className="group flex flex-col rounded border border-rule/60 bg-paper p-3 transition-colors hover:border-rule-strong hover:bg-portal-tint"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+            {REFERENCES.map((item) => (
+              <a
+                key={item.title}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col justify-between rounded border border-rule/60 bg-paper transition-colors hover:border-rule-strong hover:bg-portal-tint"
+                style={{ padding: '22px 24px' }}
               >
-                <span className="text-[14px] font-semibold text-ink/70 transition-colors group-hover:text-navy">
-                  {std.name}
-                </span>
-                <span className="text-[11px] text-ink-secondary truncate">{std.detail}</span>
-              </div>
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[15px] font-semibold text-ink/80 transition-colors group-hover:text-navy">
+                      {item.title}
+                    </span>
+                    <span className="text-[13px] text-ink-secondary opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+                      ↗
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[12px] text-ink-secondary leading-relaxed">
+                    {t(item.descriptorKey, item.defaultDescriptor)}
+                  </p>
+                </div>
+                <span className="sr-only"> ({t('common.opensInNewTab', 'opens in a new tab')})</span>
+              </a>
             ))}
           </div>
         </div>

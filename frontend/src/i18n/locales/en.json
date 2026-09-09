@@ -44,7 +44,8 @@
     "all": "ALL",
     "high": "HIGH",
     "medium": "MEDIUM",
-    "low": "LOW"
+    "low": "LOW",
+    "opensInNewTab": "opens in a new tab"
   },
   "utility": {
     "skipToContent": "Skip to main content",
@@ -200,5 +201,12 @@
     "playLabel": "Play",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
+  },
+  "footer": {
+    "referencesHeading": "References and design benchmarks",
+    "refMplads": "All twelve datasets used in this project",
+    "refIndiaGov": "Design and status-guidance benchmark",
+    "refMahaone": "Maharashtra SSO — sign-in page reference",
+    "refWcag": "Accessibility conformance reference"
   }
 }
