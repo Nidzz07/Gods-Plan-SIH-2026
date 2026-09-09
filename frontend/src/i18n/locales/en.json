@@ -197,6 +197,8 @@
     "passwordLabel": "Password",
     "signingIn": "Signing in…",
     "playVideo": "Play background video",
-    "playLabel": "Play"
+    "playLabel": "Play",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   }
 }

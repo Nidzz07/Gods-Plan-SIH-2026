@@ -199,6 +199,8 @@
     "passwordLabel": "पासवर्ड",
     "signingIn": "साइन इन हो रहा है…",
     "playVideo": "पृष्ठभूमि वीडियो चलाएं",
-    "playLabel": "चलाएं"
+    "playLabel": "चलाएं",
+    "showPassword": "पासवर्ड दिखाएं",
+    "hidePassword": "पासवर्ड छिपाएं"
   }
 }
