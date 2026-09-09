@@ -14,8 +14,8 @@ and Innovation Division (DIID), by team **God's Plan**.
 
 ## Deployed service
 
-- **Frontend (Vercel)**: `https://<vercel-deployment-url>.vercel.app` *(placeholder — configured after Vercel deploy)*
-- **API (Render)**: `https://<render-service-url>.onrender.com` *(placeholder — configured after Render deploy)*
+- **Frontend (Vercel)**: `https://gods-plan-sih-2026.vercel.app` *(placeholder — configured after Vercel deploy)*
+- **API (Render)**: `https://nigrani-national-project-monitoring.onrender.com` *(placeholder — configured after Render deploy)*
 
 ## Demo credentials
 
@@ -283,8 +283,6 @@ python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.
 
 | Document | What it is |
 | --- | --- |
-| [`PROJECT-BRIEF.md`](PROJECT-BRIEF.md) | Scope, features, personas, the scoring table, declared limitations |
-| [`CLAUDE.md`](CLAUDE.md) | Conventions, the twelve invariants, the build sequence |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The pipeline and the four-tier boundary, as a diagram |
 | [`docs/data/DATA-PROFILE.md`](docs/data/DATA-PROFILE.md) | The authority for every threshold and every claim about the data |
 | [`docs/data/INGEST-EXPECTATIONS.md`](docs/data/INGEST-EXPECTATIONS.md) | What a correct ingest run must print, figure by figure |
@@ -295,16 +293,12 @@ python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.
 | [`docs/reports/DATA-GAP-RECOMMENDATION.md`](docs/reports/DATA-GAP-RECOMMENDATION.md) | What MoSPI should publish, ranked by unrealised rulebook weight |
 | [`docs/design/REDESIGN-SPEC.md`](docs/design/REDESIGN-SPEC.md) | Locked design tokens and UI conventions |
 
-`docs/context/REPO-CONTEXT.md` is a dated snapshot of the **inherited**
-LEAKPROOF repository, kept as provenance. It describes what was inherited, not
-what NIGRANI is.
-
 ## Team
 
 **God's Plan**
 - Nidhi Dhyani — backend, ML & data processing
+- Dhruv Gangurde — backend, ML & data processing
 - Chetan Chavan — frontend, UI/UX & deployment
 - Rohan Dhumal — frontend, UI/UX 
-- Dhruv Gangurde — backend, ML & data processing
 - Swanand Dixit — frontend, UI/UX 
 - Jai Desai — integration testing & documentation
