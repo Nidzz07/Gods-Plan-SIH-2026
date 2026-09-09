@@ -8,7 +8,7 @@ shows its working.
 
 Built for **Smart India Hackathon 2026, problem statement PS 26102**, set by the
 Ministry of Statistics and Programme Implementation (MoSPI), Data Informatics
-and Innovation Division (DIID), by team **ExploreeTinkerBell**.
+and Innovation Division (DIID), by team **God's Plan**.
 
 ---
 
@@ -25,8 +25,8 @@ Four role accounts are provisioned for evaluation. Passwords are set via environ
 | --- | --- | --- | --- |
 | **Ministry** | `ministry@demo.nigrani.local` | `<Ministry@Demo2026>` | National view (all states and districts) |
 | **State Nodal Authority** | `nodal.uttarpradesh@demo.nigrani.local` | `<StateNodal@Demo2026>` | Uttar Pradesh (all districts in state) |
-| **District Authority** | `dm.agra@demo.nigrani.local` | `<District@Demo2026>` | Agra District, Uttar Pradesh |
-| **Member of Parliament** | `office.mp847@demo.nigrani.local` | `<Member@Demo2026>` | MP portfolio (read-only) |
+| **District Authority** | `dm.jalaun@demo.nigrani.local` | `<District@Demo2026>` | Agra District, Uttar Pradesh |
+| **Member of Parliament** | `office.mp91@demo.nigrani.local` | `<Member@Demo2026>` | MP portfolio (read-only) |
 
 ---
 
@@ -299,16 +299,12 @@ python -c "import gzip,shutil; shutil.copyfileobj(open('nigrani.db','rb'), gzip.
 LEAKPROOF repository, kept as provenance. It describes what was inherited, not
 what NIGRANI is.
 
-## Provenance
-
-NIGRANI inherits its detection-engine architecture from LEAKPROOF, a PDS
-diversion prototype by the same team (tag `leakproof-baseline`). The
-architecture is kept; the entire domain layer was rebuilt against real MPLADS
-data. Where a file still carries PDS vocabulary it is either that snapshot or a
-known outstanding item, and `CLAUDE.md`'s repo map says which.
-
 ## Team
 
-**ExploreeTinkerBell**
-- Nidhi Dhyani — backend, detection engine
-- Saumya Singh — frontend, integration
+**God's Plan**
+- Nidhi Dhyani — backend, ML & data processing
+- Chetan Chavan — frontend, UI/UX & deployment
+- Rohan Dhumal — frontend, UI/UX 
+- Dhruv Gangurde — backend, ML & data processing
+- Swanand Dixit — frontend, UI/UX 
+- Jai Desai — integration testing & documentation
