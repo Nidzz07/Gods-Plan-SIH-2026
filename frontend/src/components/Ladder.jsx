@@ -7,6 +7,9 @@ import SectionHeading from './SectionHeading.jsx'
 
 const STEP_TONE = { open: 'medium', closed: 'low', computed: 'low', unavailable: 'neutral' }
 
+// Rung colours descend the way the money does: sanctioned, disbursed, certified.
+const RUNG_COLOR = { sanctioned_amt: NAVY, disbursed_amt: GOLD, certified_amt: GREEN }
+
 function StepTag({ state }) {
   const { t } = useTranslation()
   const STEP_LABEL = {
