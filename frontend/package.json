@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint:i18n": "node scripts/check-i18n.js"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.0.20",
